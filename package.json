@@ -1,0 +1,21 @@
+{
+  "name": "ion-liquid-hardware",
+  "private": true,
+  "version": "0.1.0",
+  "description": "ION® — Liquid Hardware. A futuristic hydration brand landing page built around an interactive 3D can.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@fontsource-variable/archivo": "^5.2.8",
+    "@fontsource-variable/space-grotesk": "^5.2.10",
+    "@fontsource/space-mono": "^5.2.9",
+    "three": "^0.166.1"
+  },
+  "devDependencies": {
+    "vite": "^5.4.21"
+  }
+}
