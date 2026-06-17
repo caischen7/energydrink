@@ -242,6 +242,73 @@ def main():
             "quotes": sample_quotes(attr_quotes, terms, n=2),
         })
 
+    # --- nutrition (curated flagship values; extend via fetch_openfoodfacts.py)
+    nutrition, nut_by_brand = [], {}
+    nut_path = f"{DATA}/nutrition/brand_nutrition.csv"
+    if os.path.exists(nut_path):
+        ndf = pd.read_csv(nut_path)
+        for _, r in ndf.iterrows():
+            if pd.isna(r.get("caffeine_mg")) or pd.isna(r.get("serving_oz")):
+                continue
+            caf, oz = float(r["caffeine_mg"]), float(r["serving_oz"])
+            rec = {
+                "brand": r["brand"],
+                "product": r["representative_product"],
+                "serving_oz": oz,
+                "caffeine_mg": caf,
+                "caffeine_per_oz": round(caf / oz, 1) if oz else None,
+                "sugar_g": fval(r.get("sugar_g")),
+                "calories": ival(r.get("calories")),
+                "category": r.get("category"),
+            }
+            nutrition.append(rec)
+            nut_by_brand[r["brand"]] = rec
+    for b in brands:  # surface key nutrition on the leaderboard rows too
+        rec = nut_by_brand.get(b["brand"])
+        if rec:
+            b["caffeine_mg"] = rec["caffeine_mg"]
+            b["sugar_g"] = rec["sugar_g"]
+
+    # --- momentum: monthly brand mention volume from OUR OWN timestamps -----
+    from collections import defaultdict
+    brand_month = defaultdict(lambda: defaultdict(int))
+
+    def add_month_counts(frame, brand_col, date_col):
+        f = frame.dropna(subset=[brand_col, date_col]).copy()
+        f["month"] = pd.to_datetime(f[date_col], errors="coerce").dt.to_period("M").astype(str)
+        for (brand, month), c in f.groupby([brand_col, "month"]).size().items():
+            if month and month != "NaT":
+                brand_month[brand][month] += int(c)
+
+    add_month_counts(reviews, "brand", "review_date")
+    add_month_counts(ig, "brand", "post_date")
+    vexp = videos.dropna(subset=["brands_mentioned"]).copy()
+    vexp["brand"] = vexp["brands_mentioned"].str.split("; ")
+    vexp = vexp.explode("brand")
+    add_month_counts(vexp, "brand", "upload_date")
+
+    window = sorted(m for m in {mm for d in brand_month.values() for mm in d} if m >= "2023-01")
+    win_set = set(window)
+    totals = {b: sum(v for m, v in d.items() if m in win_set) for b, d in brand_month.items()}
+    top_brands = [b for b, _ in sorted(totals.items(), key=lambda x: -x[1])[:8]]
+    trends = {
+        "months": window,
+        "series": [
+            {"brand": b, "counts": [brand_month[b].get(m, 0) for m in window]}
+            for b in top_brands
+        ],
+        "note": "Monthly brand-mention volume across our own data (YouTube uploads + "
+                "Amazon reviews + Instagram posts) — an attention proxy. Run "
+                "fetch_google_trends.py for true search interest.",
+    }
+
+    # --- market context (real figures; sources cited in the JSON) ----------
+    market = {}
+    mc_path = f"{DATA}/market/market_context.json"
+    if os.path.exists(mc_path):
+        with open(mc_path) as f:
+            market = json.load(f)
+
     out = {
         "meta": {
             "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
@@ -259,6 +326,9 @@ def main():
         "attributes": attributes,
         "painpoints": painpoints,
         "opportunities": opportunities,
+        "nutrition": nutrition,
+        "trends": trends,
+        "market": market,
     }
 
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
@@ -270,6 +340,8 @@ def main():
     print(f"wrote {OUT}  ({size_kb:.0f} KB)")
     print(f"  brands={len(brands)} flavors={len(flavors)} attrs={len(attributes)} "
           f"pains={len(painpoints)} opps={len(opportunities)} products_plotted={len(scatter)}")
+    print(f"  nutrition={len(nutrition)} brands  trends={len(trends['series'])} series x "
+          f"{len(trends['months'])} months  market={'yes' if market else 'no'}")
     print("  top white spaces:", ", ".join(f"{a['name']}({a['gap_score']})" for a in attributes[:4]))
 
 

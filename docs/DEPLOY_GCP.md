@@ -77,18 +77,65 @@ git commit -am "refresh market intel" && git push
 ./deploy/deploy.sh                            # redeploy
 ```
 
-## Continuous deploy (optional)
+## Continuous deploy — GitHub Actions (set up)
 
-To redeploy automatically on every push, either:
+`.github/workflows/deploy-cloudrun.yml` redeploys to Cloud Run on every push.
+It's already in the repo; it just needs **two secrets** added once.
 
-- **Cloud Build trigger** — `gcloud builds triggers create github --repo-name
-  energydrink --branch-pattern '^main$' --build-config` (or use the inferred
-  Dockerfile), or
-- a **GitHub Actions** workflow using
-  [`google-github-actions/deploy-cloudrun`](https://github.com/google-github-actions/deploy-cloudrun)
-  with Workload Identity Federation.
+**1. Create a deployer service account + key** (run locally in Cloud Shell with
+your project's owner):
 
-Ask and I can wire either one up.
+```bash
+PROJECT=your-project-id
+gcloud config set project "$PROJECT"
+
+# create the SA the Action will authenticate as
+gcloud iam service-accounts create gh-deployer --display-name "GitHub Actions deployer"
+SA="gh-deployer@${PROJECT}.iam.gserviceaccount.com"
+
+# roles it needs to build (Cloud Build) and deploy (Cloud Run)
+for ROLE in roles/run.admin roles/cloudbuild.builds.editor \
+            roles/artifactregistry.admin roles/storage.admin \
+            roles/iam.serviceAccountUser; do
+  gcloud projects add-iam-policy-binding "$PROJECT" --member="serviceAccount:$SA" --role="$ROLE"
+done
+
+# create a JSON key (this is the secret you'll paste into GitHub)
+gcloud iam service-accounts keys create key.json --iam-account "$SA"
+cat key.json   # copy the whole JSON
+```
+
+**2. Add the secrets to GitHub** — repo → *Settings → Secrets and variables →
+Actions → New repository secret*:
+
+| Secret | Value |
+|--------|-------|
+| `GCP_PROJECT` | `your-project-id` |
+| `GCP_SA_KEY` | the entire contents of `key.json` |
+
+Then delete `key.json` locally. That's the one-time setup.
+
+**3. Trigger it** — push to a branch the workflow watches (edit the `branches:`
+list in the workflow to match yours), or run it manually from the **Actions**
+tab (*Deploy to Cloud Run → Run workflow*). The run's summary prints the live
+URLs:
+
+```
+✅ Deployed
+- Landing page:   https://energydrink-site-XXXX-uc.a.run.app/
+- Intel terminal: https://energydrink-site-XXXX-uc.a.run.app/dashboard.html
+```
+
+> More secure alternative: swap the SA key for **Workload Identity Federation**
+> (no long-lived key) — change the `auth` step to use `workload_identity_provider`.
+> Ask and I'll convert it.
+
+## Manual continuous-deploy alternative (Cloud Build trigger)
+
+```bash
+gcloud builds triggers create github --repo-name energydrink \
+  --repo-owner caischen7 --branch-pattern '.*' --include-build-logs ENABLED
+```
 
 ## Cost
 

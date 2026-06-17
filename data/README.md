@@ -25,7 +25,31 @@ data/
   scripts/
     build_clean_datasets.py          regenerates everything above from raw exports
     build_dashboard_data.py          aggregates the cleaned CSVs into public/market_intel.json
+    fetch_openfoodfacts.py           loader: per-SKU nutrition from Open Food Facts (open API)
+    fetch_google_trends.py           loader: search-interest momentum from Google Trends (pytrends)
+    fetch_reddit.py                  loader: qualitative chatter from energy-drink subreddits
+  nutrition/
+    brand_nutrition.csv              curated flagship nutrition (caffeine, sugar, calories) per brand
+  market/
+    market_context.json              real US market size + dollar-share, with sources
 ```
+
+### Added data sources
+
+- **Nutrition** (`nutrition/brand_nutrition.csv`) — curated, public label values
+  for each tracked brand's flagship SKU (caffeine mg, sugar g, calories, serving).
+  Powers the dashboard's **Formulation map**. Extend per-SKU with
+  `fetch_openfoodfacts.py` where outbound network is available.
+- **Market context** (`market/market_context.json`) — real US category size
+  (~$21B), CAGR, and dollar-share (Red Bull 37 / Monster 28 / Celsius 12 /
+  others 23), pulled via web search with sources cited inline. Powers the
+  **Market sizing / TAM** feature.
+- **Momentum** — no new file; computed in `build_dashboard_data.py` from our own
+  timestamps (YouTube `upload_date` + Amazon `review_date` + Instagram
+  `post_date`) into monthly per-brand series. Powers the **Momentum explorer**.
+  `fetch_google_trends.py` upgrades this to true search interest.
+- **Loaders** (`fetch_*.py`) are runnable where outbound HTTPS is allowed (they
+  hit live APIs). Each documents its prereqs; Reddit/Trends note any credentials.
 
 The **Market Intelligence terminal** (`/dashboard.html`, source in
 `src/dashboard/`) is a founder-facing tool built on this data — a white-space

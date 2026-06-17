@@ -6,6 +6,12 @@ import {
   quadrantChart, priceScatter, barList, demandSupplyRow, wireTooltips, nice,
 } from './charts.js';
 
+// Feature modules built by the agent team — each exports { meta, mount }.
+import * as formulation from './features/formulation.js';
+import * as momentum from './features/momentum.js';
+import * as market from './features/market.js';
+const FEATURES = [formulation, momentum, market];
+
 // 12-seat board (condensed; full bios in docs/advisory-board.md)
 const BOARD = [
   ['Maya Okafor', 'Voltcore', 'Better-for-you energy'],
@@ -62,11 +68,23 @@ function render(d) {
 
   const demandMax = Math.max(...d.attributes.map((a) => a.demand));
 
+  // Agent-built feature sections (07-09): standard header from each module's
+  // meta + an empty container the module mounts into after innerHTML is set.
+  const featNav = FEATURES.map((f) => `<a href="#${f.meta.id}">${f.meta.navLabel}</a>`).join('');
+  const featureSections = FEATURES.map((f, i) => `
+    <section class="block" id="${f.meta.id}">
+      <div class="shead">
+        <div><div class="tag mono">${String(7 + i).padStart(2, '0')} / ${f.meta.navLabel}</div><h2>${f.meta.title}</h2></div>
+        <p>${f.meta.blurb}</p>
+      </div>
+      <div id="feat-${f.meta.id}"></div>
+    </section>`).join('');
+
   $('#app').innerHTML = `
   <div class="topbar">
     <div class="brand"><span class="dot"></span><b>ION_INTEL</b><span class="mono dim">MARKET&nbsp;TERMINAL</span></div>
     <div class="mono live"><span>BUILD ${m.generated}</span></div>
-    <nav class="mono"><a href="#opportunity">WHITE_SPACE</a><a href="#builder">BUILDER</a><a href="#pricing">PRICING</a><a href="#pain">PAIN→POS</a><a href="#brands">BRANDS</a><a href="#board">BOARD</a><a href="${import.meta.env.BASE_URL}index.html">↩ SITE</a></nav>
+    <nav class="mono"><a href="#opportunity">WHITE_SPACE</a><a href="#builder">BUILDER</a><a href="#pricing">PRICING</a><a href="#pain">PAIN→POS</a><a href="#brands">BRANDS</a>${featNav}<a href="#board">BOARD</a><a href="${import.meta.env.BASE_URL}index.html">↩ SITE</a></nav>
   </div>
 
   <div class="wrap">
@@ -165,10 +183,13 @@ function render(d) {
       </div>
     </section>
 
+    <!-- AGENT-BUILT FEATURES (07-09) -->
+    ${featureSections}
+
     <!-- BOARD -->
     <section class="block" id="board">
       <div class="shead">
-        <div><div class="tag mono">07 / FOUNDER ADVISORY BOARD</div><h2>12 operators steering the tool</h2></div>
+        <div><div class="tag mono">10 / FOUNDER ADVISORY BOARD</div><h2>12 operators steering the tool</h2></div>
         <p>The board that defined these views and voted the data roadmap below. Full session in <a class="volt" href="https://github.com/caischen7/energydrink/blob/HEAD/docs/board-discussion.md">board-discussion.md</a>.</p>
       </div>
       <div class="board-grid">
@@ -176,7 +197,7 @@ function render(d) {
       </div>
 
       <div class="shead" style="margin-top:3rem">
-        <div><div class="tag mono">08 / DATA ROADMAP</div><h2>What the board wants next</h2></div>
+        <div><div class="tag mono">11 / DATA ROADMAP</div><h2>What the board wants next</h2></div>
         <p>Sources the board prioritized to turn this hypothesis engine into a go/no-go tool. P0 = highest impact.</p>
       </div>
       <div class="roadmap panel" style="padding:0 1.4rem">
@@ -192,6 +213,18 @@ function render(d) {
   </div>`;
 
   initBuilder(d, demandMax);
+
+  // Mount the agent-built feature modules into their containers.
+  FEATURES.forEach((f) => {
+    const el = document.getElementById(`feat-${f.meta.id}`);
+    if (!el) return;
+    try {
+      f.mount(el, d);
+    } catch (err) {
+      console.error(`feature ${f.meta.id} failed:`, err);
+      el.innerHTML = `<div class="panel" style="padding:1.2rem"><span class="warn mono">// ${f.meta.id} failed to render</span></div>`;
+    }
+  });
 }
 
 // ---- component builders ---------------------------------------------------

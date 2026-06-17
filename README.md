@@ -102,8 +102,19 @@ new beverage:
 - **Concept builder** — pick a functional angle, flavor, incumbent pain point and
   price band; it scores the combination and writes the one-line brief
 - **Pricing arbitrage**, **pain → positioning**, and **share-of-voice** views
-- Scoped by a simulated **12-founder advisory board** (`docs/`) that also voted a
-  prioritized roadmap of data sources to acquire next
+- **Formulation map** — every flagship plotted by caffeine vs sugar; the open
+  product *spec* (high-caffeine / zero-sugar + an unmet function) — *new nutrition data*
+- **Momentum explorer** — 41-month mention-volume trend per brand, fastest riser
+  flagged — *derived from our own timestamps*
+- **Market sizing / TAM** — real US category size + dollar-share with an
+  interactive TAM→SAM→SOM calculator — *new sourced market data*
+- Scoped by a simulated **12-founder advisory board** + a **founder×VC feature
+  session** (`docs/`) that voted a prioritized roadmap of data to acquire next
+
+The three new features were built in parallel by a small team of agents
+(`src/dashboard/features/`). Additional data sources have runnable loaders in
+`data/scripts/` (Open Food Facts, Google Trends, Reddit) for refreshing/extending
+the dataset where outbound network is available.
 
 It reads one pre-aggregated file, `public/market_intel.json`, built by
 `python data/scripts/build_dashboard_data.py`.

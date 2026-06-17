@@ -1,0 +1,21 @@
+{
+  "note": "Real market figures pulled via web search to give the dashboard a TAM/market-sizing anchor. Industry estimates vary widely by research firm and by how the category is scoped (US vs global, RTD vs incl. shots/mixes); treat as directional. Refresh periodically.",
+  "as_of": "2026-06",
+  "geography": "United States",
+  "market_size_usd_b": 21.0,
+  "market_size_note": "US energy drink retail sales ~ $21B (2024). Global estimates run far higher and vary by firm.",
+  "cagr_pct": 7.0,
+  "cagr_note": "Commonly cited US forecasts cluster around ~7% CAGR (range across firms ~3-12%).",
+  "share_by_dollar_sales": [
+    { "brand": "Red Bull", "share_pct": 37 },
+    { "brand": "Monster", "share_pct": 28 },
+    { "brand": "Celsius", "share_pct": 12 },
+    { "brand": "All others", "share_pct": 23 }
+  ],
+  "share_note": "US dollar-sales share, Q2 2024. The 'All others' 23% is the realistic battleground for a new entrant.",
+  "sources": [
+    { "label": "Grand View Research — U.S. Energy Drinks Market", "url": "https://www.grandviewresearch.com/industry-analysis/us-energy-drinks-market" },
+    { "label": "US dollar-sales share Q2 2024 (Red Bull 37 / Monster 28 / Celsius 12)", "url": "https://x.com/wallstengine/status/1853523794154909743" },
+    { "label": "Celsius Holdings investor filings (SEC EDGAR)", "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001341766&type=10-K" }
+  ]
+}

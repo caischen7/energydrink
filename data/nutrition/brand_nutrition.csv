@@ -1,0 +1,24 @@
+brand,representative_product,serving_oz,caffeine_mg,sugar_g,calories,sweetener,category,source
+Celsius,Celsius Sparkling (flagship),12,200,0,10,sucralose,rtd_energy,public label / flagship SKU
+Red Bull,Red Bull Original,8.4,80,27,110,sugar,rtd_energy,public label / flagship SKU
+Monster,Monster Energy Original (green),16,160,54,210,sugar,rtd_energy,public label / flagship SKU
+Bang,Bang Energy,16,300,0,0,sucralose,rtd_energy,public label / flagship SKU
+Alani Nu,Alani Nu Energy,12,200,0,10,sucralose+ace-K,rtd_energy,public label / flagship SKU
+C4,C4 Energy (Original),16,200,0,0,sucralose,rtd_energy,public label / flagship SKU
+Ghost,Ghost Energy,16,200,0,5,sucralose,rtd_energy,public label / flagship SKU
+Rockstar,Rockstar Original,16,160,63,250,sugar,rtd_energy,public label / flagship SKU (sugar-free variants exist)
+NOS,NOS Original,16,160,54,210,sugar,rtd_energy,public label / flagship SKU
+5-hour Energy,5-hour Energy Extra Strength,1.93,230,0,4,sucralose,energy_shot,public label / flagship SKU
+Reign,Reign Total Body Fuel,16,300,0,10,sucralose,rtd_energy,public label / flagship SKU
+Prime,Prime Energy,12,200,0,10,sucralose+ace-K,rtd_energy,public label / flagship SKU
+Zoa,Zoa Zero Sugar,16,160,0,15,sucralose,rtd_energy,public label / flagship SKU
+Bloom Nutrition,Bloom Sparkling Energy,12,180,0,15,sucralose,rtd_energy,public label / flagship SKU
+G Fuel,G Fuel Energy (can),16,300,0,25,sucralose,rtd_energy,public label / flagship SKU
+GURU,GURU Organic Energy,8.4,100,21,80,cane sugar,rtd_energy,public label / flagship SKU (Lite is 0g sugar)
+AdvoCare,AdvoCare Spark,0.27,120,0,45,sucralose,drink_mix,public label / flagship SKU
+Liquid I.V.,Liquid I.V. Hydration Multiplier,0.56,0,11,45,stevia+cane,hydration_mix,public label (Energy Multiplier ~100mg caffeine)
+Liquid Death,Liquid Death Sparkling Water,16.9,0,0,0,none,sparkling_water,public label (iced teas ~30mg caffeine)
+Pureboost,Pureboost Clean Energy,0.32,100,0,25,stevia,energy_mix,public label / flagship SKU
+Zipfizz,Zipfizz Energy,0.39,100,0,20,xylitol+sucralose,energy_mix,public label / flagship SKU
+Spylt,Spylt Protein Latte,12,,,,,protein_coffee,category only; nutrition varies by SKU
+Xwerks,Xwerks (supplements),,,,,,supplement,not an RTD; supplement powders

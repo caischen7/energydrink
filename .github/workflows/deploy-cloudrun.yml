@@ -1,0 +1,65 @@
+name: Deploy to Cloud Run
+
+# Auto-deploys the ION_INTEL site to Google Cloud Run on every push.
+# One-time setup (see docs/DEPLOY_GCP.md): add two repository secrets —
+#   GCP_PROJECT   your Google Cloud project id
+#   GCP_SA_KEY    JSON key for a deployer service account
+#
+# Adjust the branches below to whichever you deploy from.
+on:
+  push:
+    branches:
+      - main
+      - master
+      - claude/pensive-bell-9idinw
+  workflow_dispatch:
+
+env:
+  REGION: us-central1
+  SERVICE: energydrink-site
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Skip cleanly on forks / when the secret isn't configured yet.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.ref_protected || true }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT }}
+
+      - name: Enable required APIs
+        run: |
+          gcloud services enable run.googleapis.com cloudbuild.googleapis.com \
+            artifactregistry.googleapis.com --project "${{ secrets.GCP_PROJECT }}"
+
+      - name: Build & deploy (Cloud Build + Cloud Run)
+        run: |
+          gcloud run deploy "$SERVICE" \
+            --source . \
+            --project "${{ secrets.GCP_PROJECT }}" \
+            --region "$REGION" \
+            --platform managed \
+            --allow-unauthenticated \
+            --port 8080 \
+            --memory 512Mi \
+            --cpu 1 \
+            --max-instances 4 \
+            --quiet
+
+      - name: Show URL
+        run: |
+          URL=$(gcloud run services describe "$SERVICE" --region "$REGION" \
+            --project "${{ secrets.GCP_PROJECT }}" --format 'value(status.url)')
+          echo "### ✅ Deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Landing page: $URL/" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Intel terminal: $URL/dashboard.html" >> "$GITHUB_STEP_SUMMARY"
