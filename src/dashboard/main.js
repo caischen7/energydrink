@@ -169,7 +169,7 @@ function render(d) {
     <section class="block" id="board">
       <div class="shead">
         <div><div class="tag mono">07 / FOUNDER ADVISORY BOARD</div><h2>12 operators steering the tool</h2></div>
-        <p>The board that defined these views and voted the data roadmap below. Full session in <a class="volt" href="https://github.com/caischen7/energydrink/blob/main/docs/board-discussion.md">board-discussion.md</a>.</p>
+        <p>The board that defined these views and voted the data roadmap below. Full session in <a class="volt" href="https://github.com/caischen7/energydrink/blob/HEAD/docs/board-discussion.md">board-discussion.md</a>.</p>
       </div>
       <div class="board-grid">
         ${BOARD.map(([n, c, l]) => `<div class="seat"><div class="nm">${n}</div><div class="co">${c}</div><div class="ln">${l}</div></div>`).join('')}
