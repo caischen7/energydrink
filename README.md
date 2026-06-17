@@ -62,6 +62,19 @@ npm run build    # static build in dist/
 npm run preview
 ```
 
+## Deploy
+
+Hosted on **Google Cloud Run** (landing page + dashboard in one service):
+
+```bash
+gcloud auth login
+GCP_PROJECT=your-project-id ./deploy/deploy.sh
+```
+
+See [`docs/DEPLOY_GCP.md`](docs/DEPLOY_GCP.md) for the full guide (Cloud Shell
+option, CI, costs). The `Dockerfile` builds the Vite site and serves it with
+nginx; `gcloud run deploy --source .` builds the image on Cloud Build.
+
 ## Structure
 
 ```

@@ -1,0 +1,15 @@
+# Keep the build context small: only ship what `npm run build` needs.
+.git
+node_modules
+dist
+.vite
+
+# Datasets + scripts are not imported by the site (the dashboard reads the
+# pre-built public/market_intel.json), and data/youtube is ~30MB. Exclude them.
+data
+docs
+
+.claude
+.DS_Store
+*.local
+npm-debug.log*
