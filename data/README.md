@@ -24,6 +24,23 @@ data/
     brand_summary.csv                one row per brand, aggregated across all 3 platforms
   scripts/
     build_clean_datasets.py          regenerates everything above from raw exports
+    build_dashboard_data.py          aggregates the cleaned CSVs into public/market_intel.json
+```
+
+The **Market Intelligence terminal** (`/dashboard.html`, source in
+`src/dashboard/`) is a founder-facing tool built on this data — a white-space
+finder, pricing-arbitrage view, pain→positioning board, share-of-voice
+leaderboard and an interactive concept builder. It reads a single pre-aggregated
+file, `public/market_intel.json`, produced by `build_dashboard_data.py` (the
+browser never loads the 24MB comment corpus). The advisory board that scoped the
+tool and voted the data roadmap is documented in
+[`../docs/advisory-board.md`](../docs/advisory-board.md) and
+[`../docs/board-discussion.md`](../docs/board-discussion.md).
+
+```
+# regenerate the dashboard feed after the cleaned CSVs change
+pip install pandas
+python data/scripts/build_dashboard_data.py    # -> public/market_intel.json
 ```
 
 ## Cleaning notes

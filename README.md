@@ -71,7 +71,29 @@ src/style.css     futuristic-OS design system
 src/can.js        procedural can + canvas label textures (3 colorways)
 src/scene.js      renderer, scroll choreography, pointer physics
 src/fx.js         split-text reveals, counters, ticker, cursor, edition sync
+
+dashboard.html    ION_INTEL — founder market-intelligence terminal
+src/dashboard/    white-space finder, pricing/pain/brand views, concept builder
+data/             cleaned Amazon + Instagram + YouTube datasets + build scripts
+docs/advisory-board.md, docs/board-discussion.md   the 12-founder board + data roadmap
 ```
+
+## Market Intelligence terminal
+
+A second page, **`/dashboard.html`** (linked as `[05] INTEL` in the nav), turns
+the cleaned datasets in `data/` into a founder tool for finding white space for a
+new beverage:
+
+- **White-space finder** — functional benefits ranked by consumer demand vs.
+  catalog supply (e.g. *protein* and *gut health* show high pull, near-zero shelf)
+- **Concept builder** — pick a functional angle, flavor, incumbent pain point and
+  price band; it scores the combination and writes the one-line brief
+- **Pricing arbitrage**, **pain → positioning**, and **share-of-voice** views
+- Scoped by a simulated **12-founder advisory board** (`docs/`) that also voted a
+  prioritized roadmap of data sources to acquire next
+
+It reads one pre-aggregated file, `public/market_intel.json`, built by
+`python data/scripts/build_dashboard_data.py`.
 
 ---
 
