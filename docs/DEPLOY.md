@@ -50,6 +50,15 @@ To actually deploy, pick one:
    [gcloud CLI](https://cloud.google.com/sdk/docs/install), run
    `gcloud auth login`, then `GCP_PROJECT=your-project-id ./deploy.sh`.
 
+## Dashboard authentication
+
+The Market Intel dashboard's data (`/data/dashboard.json`, derived from licensed
+Mintel/Statista reports) is served behind **nginx HTTP Basic Auth** — see the
+guarded `location = /data/dashboard.json` block in `nginx.conf`, backed by
+`.htpasswd` (copied into the image by the `Dockerfile`). Credentials live in
+`.htpasswd` (hashed); see `docs/CREDENTIALS.md` to view or change them. The
+landing page and the dashboard shell stay public; only the data is gated.
+
 ## Notes
 
 - The container listens on Cloud Run's `$PORT` (default 8080) via nginx's

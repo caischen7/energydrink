@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Aggregate the cleaned market-research CSVs in data/ into one compact JSON
-that the website dashboard consumes (src/data/dashboard.json).
+that the website dashboard consumes (public/data/dashboard.json).
 
 Stdlib only — no pandas — so it runs in the base environment. Reduces the
 ~25 MB YouTube comment corpus down to keyword/theme counts so nothing large
@@ -21,7 +21,7 @@ csv.field_size_limit(10**9)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA = os.path.join(ROOT, "data")
-OUT = os.path.join(ROOT, "src", "data", "dashboard.json")
+OUT = os.path.join(ROOT, "public", "data", "dashboard.json")
 
 
 def rd(path):

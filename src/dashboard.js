@@ -1,13 +1,16 @@
 /*
  * ION_OS // MARKET INTEL — dashboard logic.
- * Loads the precomputed aggregate (src/data/dashboard.json), renders every
+ * Fetches the precomputed aggregate (public/data/dashboard.json, nginx-guarded), renders every
  * panel with the SVG chart builders, wires the sortable cross-platform table,
  * counts up the KPI readouts, and reveals charts on scroll.
  */
 import './dashboard.css';
-import data from './data/dashboard.json';
 import { hBars, vBars, scatter, area, multiLine, stackedBars, fmtCompact, fmtInt, VOLT, ICE } from './charts.js';
 import { requireAuth } from './auth.js';
+
+/* populated by requireAuth() once the visitor authenticates (data is fetched
+   from the nginx-guarded /data/dashboard.json, not bundled into this file) */
+let data;
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -390,7 +393,8 @@ function countUp(el) {
 }
 
 /* ---------- boot ---------- */
-function main() {
+function main(loaded) {
+  data = loaded;
   renderKpis();
   $('#charts').innerHTML = [
     marketSize(),

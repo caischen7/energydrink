@@ -95,8 +95,9 @@ and strips music/entertainment false-matches — ~1.2B phantom views (e.g. Emine
 *"The Monster"*, which had inflated Monster Energy ~10×) are removed, so Red Bull
 and Monster correctly land neck-and-neck.
 
-The numbers come from a precomputed aggregate, `src/data/dashboard.json`
-(~15 KB), built from the cleaned CSVs by:
+The numbers come from a precomputed aggregate, `public/data/dashboard.json`
+(~20 KB) — served as a standalone file (not bundled) so nginx can guard it with
+Basic Auth — built from the cleaned CSVs by:
 
 ```bash
 pip install vaderSentiment            # optional — enables real sentiment (else a lexicon fallback)
@@ -121,16 +122,25 @@ the JSON after the data changes.
 ### Dashboard login
 
 The dashboard is reachable via the **MARKET INTEL ↗** link in the landing-page top
-bar (visible at every screen width) or directly at `/dashboard.html`. It opens
-behind a login gate (`src/auth.js`) — username `energydrinks`, password checked
-against a SHA-256 hash so the plaintext isn't committed. Change it with
-`printf '%s' 'NEWPASS' | sha256sum` → update `PASS_HASH`.
+bar (visible at every screen width) or directly at `/dashboard.html`, and opens
+behind a styled login — username `energydrinks`, password `energydrinks12345`.
 
-> ⚠️ **This login is a client-side deterrent, not real security.** The site is a
-> static bundle, so the check is bypassable via devtools and the data ships in the
-> JS regardless. To genuinely restrict the dashboard (e.g. the licensed market
-> data), gate it server-side — nginx Basic Auth on the `/dashboard.html` location,
-> or Cloud Run IAM / IAP.
+**This is enforced server-side, not just cosmetically.** The dashboard's data
+(`/data/dashboard.json`) is served behind **nginx HTTP Basic Auth** (`.htpasswd`),
+and the login form fetches it with the entered credentials. So the licensed
+Mintel/Statista figures are never sent without valid credentials — bypassing the
+JS check in devtools just yields an empty shell. (Locally via `npm run dev` there's
+no nginx, so the client-side check alone gates it; the real enforcement is on the
+deployed nginx / Cloud Run.)
+
+To change the credentials, update **both**:
+
+```bash
+# 1) server (Basic Auth) — the real gate:
+htpasswd -bc .htpasswd energydrinks 'NEWPASS'     # or: openssl passwd -apr1
+# 2) client check (instant UX / local dev) — PASS_HASH in src/auth.js:
+printf '%s' 'NEWPASS' | sha256sum
+```
 
 ### Waitlist capture
 

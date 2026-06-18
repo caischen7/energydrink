@@ -1,23 +1,36 @@
 /*
  * Dashboard access gate (ION_OS // RESTRICTED).
  *
- * IMPORTANT — this is a client-side deterrent, NOT real security. The page is a
- * static bundle, so a determined visitor can bypass the check via devtools and
- * the underlying data ships in the JS regardless. To actually restrict the
- * dashboard (e.g. the licensed market data), gate it server-side — nginx Basic
- * Auth on the /dashboard.html location, or Cloud Run IAM / IAP. See docs/DEPLOY.md.
+ * Two layers, one styled login:
+ *   1. Client-side check (instant UX + gates local dev where there's no server).
+ *   2. REAL protection: the dashboard's data (public/data/dashboard.json) is
+ *      served behind nginx HTTP Basic Auth on the deployed site. The form fetches
+ *      it with the entered credentials in an Authorization header, so without
+ *      valid credentials the licensed market data is never sent — bypassing the
+ *      JS check (devtools) gets you an empty shell, not the data.
  *
- * Credentials: username compared in the clear (not secret); the password is
- * checked against a SHA-256 hash so the plaintext isn't committed. To change the
- * password, recompute:  printf '%s' 'NEWPASS' | sha256sum
+ * Credentials live in `.htpasswd` (server, hashed). The client-side check uses a
+ * SHA-256 of the password so the plaintext isn't in the bundle. To change them,
+ * update BOTH: `.htpasswd` (htpasswd/openssl) and PASS_HASH below.
  */
-const KEY = 'ion_dash_auth';
+const KEY = 'ion_dash_auth'; // sessionStorage: base64(user:pass) for the session
 const USER = 'energydrinks';
 const PASS_HASH = '51399badaf99cab1e1921de22874aa456d30399d2bf8d9757be42bcaf7a83763';
+const DATA_URL = 'data/dashboard.json'; // relative → /data/dashboard.json (nginx-guarded)
 
 async function sha256(s) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function fetchData(token) {
+  const res = await fetch(DATA_URL, {
+    headers: { Authorization: 'Basic ' + token },
+    cache: 'no-store',
+  });
+  if (res.status === 401 || res.status === 403) return null; // server rejected
+  if (!res.ok) throw new Error('data ' + res.status);
+  return res.json();
 }
 
 function overlay() {
@@ -37,48 +50,75 @@ function overlay() {
   return el;
 }
 
-export function requireAuth() {
-  return new Promise((resolve) => {
-    if (sessionStorage.getItem(KEY) === '1') {
-      resolve();
+function showForm(resolve) {
+  document.body.classList.add('gated');
+  const el = overlay();
+  document.body.appendChild(el);
+  const form = el.querySelector('form');
+  const out = el.querySelector('.gate-out');
+  const user = el.querySelector('#gate-user');
+  const pass = el.querySelector('#gate-pass');
+  user.focus();
+
+  const unlock = (data) => {
+    el.classList.add('out');
+    document.body.classList.remove('gated');
+    setTimeout(() => {
+      el.remove();
+      resolve(data);
+    }, 450);
+  };
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    out.textContent = '> VERIFYING…';
+    const u = user.value.trim();
+    const p = pass.value;
+    let okLocal = false;
+    try {
+      okLocal = u === USER && (await sha256(p)) === PASS_HASH;
+    } catch (err) {
+      out.textContent = '> ERR :: SECURE CONTEXT REQUIRED (USE HTTPS OR LOCALHOST)';
       return;
     }
-    document.body.classList.add('gated');
-    const el = overlay();
-    document.body.appendChild(el);
-    const form = el.querySelector('form');
-    const out = el.querySelector('.gate-out');
-    const user = el.querySelector('#gate-user');
-    const pass = el.querySelector('#gate-pass');
-    user.focus();
+    if (!okLocal) {
+      out.textContent = '> ACCESS DENIED :: INVALID CREDENTIALS';
+      pass.value = '';
+      pass.focus();
+      return;
+    }
+    const token = btoa(`${u}:${p}`);
+    let data;
+    try {
+      data = await fetchData(token);
+    } catch (err) {
+      out.textContent = '> ERR :: DATA FEED UNREACHABLE';
+      return;
+    }
+    if (!data) {
+      out.textContent = '> ACCESS DENIED :: SERVER REJECTED CREDENTIALS';
+      pass.value = '';
+      return;
+    }
+    try {
+      sessionStorage.setItem(KEY, token);
+    } catch (e2) {
+      /* private mode — just won't persist across reloads */
+    }
+    unlock(data);
+  });
+}
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      out.textContent = '> VERIFYING…';
-      let ok = false;
-      try {
-        ok = user.value.trim() === USER && (await sha256(pass.value)) === PASS_HASH;
-      } catch (err) {
-        out.textContent = '> ERR :: SECURE CONTEXT REQUIRED (USE HTTPS OR LOCALHOST)';
-        return;
-      }
-      if (ok) {
-        try {
-          sessionStorage.setItem(KEY, '1');
-        } catch (e2) {
-          /* private mode — gate just won't persist across reloads */
-        }
-        el.classList.add('out');
-        document.body.classList.remove('gated');
-        setTimeout(() => {
-          el.remove();
-          resolve();
-        }, 450);
-      } else {
-        out.textContent = '> ACCESS DENIED :: INVALID CREDENTIALS';
-        pass.value = '';
-        pass.focus();
-      }
-    });
+/* Resolves with the dashboard data once the visitor is authenticated. */
+export function requireAuth() {
+  return new Promise((resolve) => {
+    const saved = sessionStorage.getItem(KEY);
+    if (saved) {
+      fetchData(saved)
+        .then((d) => (d ? resolve(d) : (sessionStorage.removeItem(KEY), showForm(resolve))))
+        .catch(() => showForm(resolve));
+      return;
+    }
+    showForm(resolve);
   });
 }
