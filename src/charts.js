@@ -206,6 +206,64 @@ export function area(series, opts = {}) {
   </svg>`;
 }
 
+/*
+ * 100%-style stacked horizontal bars: length ∝ total (so volume still ranks),
+ * split into sentiment segments. rows: [{label, pos, neu, neg, total}]
+ */
+export function stackedBars(rows, opts = {}) {
+  const fmt = opts.fmt || fmtInt;
+  const W = 800;
+  const rowH = 28;
+  const gap = 12;
+  const labelW = opts.labelW || 150;
+  const valW = 70;
+  const barX = labelW + 8;
+  const barMax = W - barX - valW;
+  const legendH = opts.legend ? 36 : 0;
+  const H = rows.length * (rowH + gap);
+  const max = Math.max(...rows.map((r) => r.total), 1);
+  const SEG = [
+    ['pos', '#c6ff00', 'LOVES'],
+    ['neu', '#454545', 'NEUTRAL'],
+    ['neg', '#ff6b6b', 'COMPLAINTS'],
+  ];
+
+  const bars = rows
+    .map((r, i) => {
+      const y = i * (rowH + gap);
+      const w = Math.max(2, (r.total / max) * barMax);
+      let x = barX;
+      let parts = '';
+      SEG.forEach(([k, c]) => {
+        const sw = r.total ? (r[k] / r.total) * w : 0;
+        if (sw > 0.2) {
+          parts += `<rect x="${x.toFixed(1)}" y="2" width="${sw.toFixed(1)}" height="${rowH - 4}" fill="${c}">
+            <title>${esc(r.label)} — ${k}: ${fmt(r[k])} (${Math.round((100 * r[k]) / r.total)}%)</title></rect>`;
+        }
+        x += sw;
+      });
+      return `<g transform="translate(0 ${y})">
+        <text x="${labelW}" y="${rowH / 2}" class="c-lbl" text-anchor="end" dominant-baseline="middle">${esc(r.label)}</text>
+        ${parts}
+        <text x="${W}" y="${rowH / 2}" class="c-val" text-anchor="end" dominant-baseline="middle">${fmt(r.total)}</text>
+      </g>`;
+    })
+    .join('');
+
+  let legend = '';
+  if (opts.legend) {
+    legend =
+      `<g transform="translate(${barX} ${H + 20})">` +
+      SEG.map(
+        ([, c, lbl], i) =>
+          `<g transform="translate(${i * 150} 0)"><rect width="14" height="10" y="-9" fill="${c}"/><text x="20" y="0" class="c-lbl" dominant-baseline="middle">${lbl}</text></g>`
+      ).join('') +
+      `</g>`;
+  }
+
+  return `<svg viewBox="0 0 ${W} ${H + legendH}" class="chart" preserveAspectRatio="xMidYMid meet" role="img">${bars}${legend}</svg>`;
+}
+
 /* palette for multi-series brand lines — restrained, on-brand, still distinguishable */
 const SERIES_COLORS = ['#c6ff00', '#9fd8ff', '#eaeaea', '#a78bfa', '#ff9f43', '#ff6b9d'];
 

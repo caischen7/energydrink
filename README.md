@@ -79,10 +79,10 @@ A second page — [`dashboard.html`](dashboard.html), linked from the nav as
 **MARKET INTEL** — turns the cleaned research in [`data/`](data/) into an
 `ION_OS` analytics terminal: share of voice, **brand momentum** (trailing-12-mo
 trend lines), a **rising/cooling leaderboard**, category momentum, an Amazon
-price × quality map, review ratings, voice-of-the-customer theme mining
-across **125K+ comments**, Instagram engagement, and a sortable 23-brand
-cross-platform matrix. Same near-black + volt aesthetic, hand-rolled SVG
-charts, no charting library.
+price × quality map, a **flavor demand board**, review ratings, Instagram
+engagement, a **loves-vs-complaints sentiment** breakdown mined across
+**125K+ comments**, and a sortable 23-brand cross-platform matrix. Same
+near-black + volt aesthetic, hand-rolled SVG charts, no charting library.
 
 **Trend-spotting & credibility (Momentum pass).** The dashboard answers *who's
 moving*, not just *who's big*: per-brand monthly **mention-share** is normalized
@@ -97,11 +97,14 @@ The numbers come from a precomputed aggregate, `src/data/dashboard.json`
 (~15 KB), built from the cleaned CSVs by:
 
 ```bash
+pip install vaderSentiment            # optional — enables real sentiment (else a lexicon fallback)
 python data/scripts/build_dashboard_json.py   # reduces 129K+ records → one small JSON
 ```
 
 Nothing large is shipped to the browser — the 25 MB comment corpus is reduced
-to theme/momentum aggregates at build time. Regenerate the JSON after the data changes.
+to theme/momentum/flavor/sentiment aggregates at build time. Sentiment uses VADER
+when installed (the loves-vs-complaints split), else a built-in lexicon. Regenerate
+the JSON after the data changes.
 
 ### Waitlist capture
 

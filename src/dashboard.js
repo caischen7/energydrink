@@ -6,7 +6,7 @@
  */
 import './dashboard.css';
 import data from './data/dashboard.json';
-import { hBars, vBars, scatter, area, multiLine, fmtCompact, fmtInt, VOLT, ICE } from './charts.js';
+import { hBars, vBars, scatter, area, multiLine, stackedBars, fmtCompact, fmtInt, VOLT, ICE } from './charts.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -145,6 +145,24 @@ function priceVsRating() {
   );
 }
 
+/* flavor/descriptor demand ranked by mentions across the corpus */
+function flavorBoard() {
+  const fd = data.flavor_demand;
+  const rows = fd.map((d, i) => ({ label: d.flavor, value: d.mentions, color: i === 0 ? VOLT : undefined }));
+  const top = fd[0];
+  const two = fd[1];
+  const gem = fd.find((f) => f.flavor === 'Sour / Candy');
+  const mint = fd.find((f) => f.flavor === 'Mint / Menthol');
+  return panel(
+    'flavor',
+    6,
+    'FLAVOR DEMAND BOARD',
+    'MENTIONS ACROSS 125K COMMENTS + REVIEWS · BARS = DEMAND',
+    hBars(rows, { fmt: fmtInt, unit: 'mentions', labelW: 150, accent: '#8fa600' }),
+    `${top.flavor} (${fmtInt(top.mentions)} mentions, ${top.avg_rating}★) and ${two.flavor} (${fmtInt(two.mentions)}, ${two.avg_rating}★) lead demand — validating ION's Citrus Static & Blackberry Null.${gem ? ` "${gem.flavor}" is the sleeper: best-rated at ${gem.avg_rating}★ on only ${gem.products} SKUs — high satisfaction, low supply.` : ''}${mint ? ` Mint/menthol is weakest (${mint.avg_rating}★) — a flag if "Glacial Freeze" leans cooling.` : ''}`
+  );
+}
+
 function reviewRatings() {
   const d = data.review_ratings;
   const rows = [1, 2, 3, 4, 5].map((s) => ({
@@ -154,7 +172,7 @@ function reviewRatings() {
   }));
   return panel(
     'reviews',
-    6,
+    7,
     'REVIEW RATINGS',
     `${fmtInt(d.total)} REVIEWS · AVG ${d.avg}★ · ${d.verified_pct}% VERIFIED`,
     vBars(rows),
@@ -163,20 +181,22 @@ function reviewRatings() {
 }
 
 function voiceOfCustomer() {
-  const max = data.voice_of_customer[0].mentions;
   const rows = data.voice_of_customer.map((d) => ({
     label: d.theme,
-    value: d.mentions,
-    color: d.theme === 'Crash & Jitters' ? ICE : undefined,
+    pos: d.pos,
+    neu: d.neu,
+    neg: d.neg,
+    total: d.mentions,
   }));
   const crash = data.voice_of_customer.find((d) => d.theme === 'Crash & Jitters');
+  const crashNeg = Math.round((100 * crash.neg) / crash.mentions);
   return panel(
     'voc',
-    8,
-    'VOICE OF THE CUSTOMER',
-    `THEME FREQUENCY ACROSS ${fmtInt(data.kpis.youtube_comments)} COMMENTS + ${fmtInt(data.kpis.amazon_reviews)} REVIEWS`,
-    hBars(rows, { fmt: fmtInt, unit: 'mentions', labelW: 180, accent: '#8fa600' }),
-    `Taste and energy dominate the conversation. "Crash & Jitters" (${fmtInt(crash.mentions)}, in blue) is comparatively under-discussed — ION's no-crash protocol speaks to it. Note: this is mention <em>frequency</em>, not sentiment — a complaint and a compliment both count.`
+    9,
+    'LOVES vs COMPLAINTS',
+    `SENTIMENT (${data.sentiment_method}) BY THEME · ${fmtInt(data.kpis.youtube_comments)} COMMENTS + ${fmtInt(data.kpis.amazon_reviews)} REVIEWS`,
+    stackedBars(rows, { fmt: fmtInt, labelW: 150, legend: true }),
+    `Most themes run 75–82% positive — buyers love what exists, so winning means differentiation, not damage control. The exception: "Crash & Jitters" is <b class="volt">${crashNeg}% negative</b> — ~2× the category complaint rate, the clearest unmet need, and exactly what ION's no-crash protocol targets.`
   );
 }
 
@@ -189,7 +209,7 @@ function instagramEngagement() {
   const top = data.instagram_engagement[0];
   return panel(
     'ig',
-    7,
+    8,
     'SOCIAL ENGAGEMENT',
     'INSTAGRAM · TOTAL LIKES ON SAMPLED POSTS (15/BRAND)',
     hBars(rows, { unit: 'likes', accent: '#8fa600' }),
@@ -290,6 +310,7 @@ function main() {
     risingBrands(),
     priceVsRating(),
     categoryMomentum(),
+    flavorBoard(),
     reviewRatings(),
     instagramEngagement(),
     voiceOfCustomer(),

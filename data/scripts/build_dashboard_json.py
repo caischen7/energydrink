@@ -332,7 +332,7 @@ top_channels = sorted(
 )[:10]
 top_videos = sorted(top_videos, key=lambda x: -x["views"])[:10]
 
-# ---------------------------------------------------------------- voice of customer (reviews + comments)
+# ---------------------------------------------------------------- voice of customer + flavor demand + sentiment
 THEMES = [
     ("Taste & Flavor", r"\b(taste|tastes|tasty|flavou?r|flavou?rs|delicious|yummy)\b"),
     ("Energy & Focus", r"\b(energy|focus|focused|alert|awake|productiv\w*|boost)\b"),
@@ -343,18 +343,72 @@ THEMES = [
     ("Price / Value", r"\b(price|pricey|expensive|cheap|worth|value|overpriced)\b"),
     ("Hydration", r"\b(hydrat\w*|electrolyte\w*)\b"),
 ]
+# flavor / descriptor families — what the market actually asks for by name
+FLAVORS = [
+    ("Citrus", r"\b(citrus|lemon|lime|orange)\b"),
+    ("Berry", r"\b(berry|berries|strawberr\w*|blueberr\w*|raspberr\w*|blackberr\w*)\b"),
+    ("Watermelon", r"\bwatermelon\b"),
+    ("Tropical", r"\b(tropical|mango|pineapple|passion ?fruit|guava|kiwi)\b"),
+    ("Peach", r"\bpeach\w*\b"),
+    ("Grape", r"\bgrape\b"),
+    ("Cherry", r"\b(cherry|cherries)\b"),
+    ("Apple", r"\bapple\b"),
+    ("Mint / Menthol", r"\b(mint|menthol|spearmint|peppermint)\b"),
+    ("Cola", r"\bcola\b"),
+    ("Vanilla", r"\bvanilla\b"),
+    ("Coconut", r"\bcoconut\b"),
+    ("Ginger", r"\bginger\b"),
+    ("Sour / Candy", r"\b(sour|candy|gummy|gummi)\b"),
+]
 theme_re = [(name, re.compile(rx, re.I)) for name, rx in THEMES]
-voc = Counter()
+flavor_re = [(name, re.compile(rx, re.I)) for name, rx in FLAVORS]
 
-def scan(text):
+# sentiment: VADER if available (pip install vaderSentiment), else a small lexicon
+try:
+    from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+    _vader = SentimentIntensityAnalyzer()
+
+    def sentiment(t):
+        c = _vader.polarity_scores(t)["compound"]
+        return "pos" if c >= 0.05 else "neg" if c <= -0.05 else "neu"
+
+    SENT_METHOD = "VADER"
+except Exception:
+    _POS = set("love loved great good amazing awesome best delicious tasty perfect "
+               "excellent favorite smooth refreshing worth recommend nice happy".split())
+    _NEG = set("hate hated bad worst terrible awful gross disgusting nasty horrible "
+               "sick waste disappointed disappointing avoid yuck".split())
+
+    def sentiment(t):
+        toks = re.findall(r"[a-z']+", t.lower())
+        p = sum(w in _POS for w in toks)
+        n = sum(w in _NEG for w in toks)
+        return "pos" if p > n else "neg" if n > p else "neu"
+
+    SENT_METHOD = "lexicon"
+
+voc = Counter()
+flavor_counts = Counter()
+theme_sent = {name: Counter() for name, _ in THEMES}  # theme -> pos/neg/neu
+
+
+def process(text):
+    """Tally themes, flavors, and (for theme-matching text) sentiment in one pass."""
     if not text:
         return
-    for name, rx in theme_re:
+    for name, rx in flavor_re:
         if rx.search(text):
+            flavor_counts[name] += 1
+    hits = [name for name, rx in theme_re if rx.search(text)]
+    if hits:
+        s = sentiment(text)
+        for name in hits:
             voc[name] += 1
+            theme_sent[name][s] += 1
+
 
 for r in reviews:
-    scan((r.get("review_title") or "") + " " + (r.get("review_text") or ""))
+    process((r.get("review_title") or "") + " " + (r.get("review_text") or ""))
 
 # stream the big comments file so we never hold it all in memory
 cpath = os.path.join(DATA, "youtube/comments.csv")
@@ -363,9 +417,41 @@ if os.path.exists(cpath):
     with open(cpath, encoding="utf-8", errors="replace", newline="") as fh:
         for row in csv.DictReader(fh):
             n_comments += 1
-            scan(row.get("comment"))
-voice_of_customer = [{"theme": n, "mentions": voc[n]} for n, _ in THEMES]
+            process(row.get("comment"))
+
+voice_of_customer = [
+    {
+        "theme": n,
+        "mentions": voc[n],
+        "pos": theme_sent[n]["pos"],
+        "neg": theme_sent[n]["neg"],
+        "neu": theme_sent[n]["neu"],
+    }
+    for n, _ in THEMES
+]
 voice_of_customer.sort(key=lambda x: -x["mentions"])
+
+# avg Amazon product rating per flavor (a quality signal alongside demand volume)
+flavor_rating = defaultdict(list)
+for r in products:
+    blob = f"{r.get('title', '')} {r.get('description', '')} {r.get('feature_bullets', '')}"
+    rt = num(r.get("rating"))
+    for name, rx in flavor_re:
+        if rt is not None and rx.search(blob):
+            flavor_rating[name].append(rt)
+
+flavor_demand = sorted(
+    [
+        {
+            "flavor": n,
+            "mentions": flavor_counts[n],
+            "products": len(flavor_rating.get(n, [])),
+            "avg_rating": rnd(sum(flavor_rating[n]) / len(flavor_rating[n])) if flavor_rating.get(n) else None,
+        }
+        for n, _ in FLAVORS
+    ],
+    key=lambda x: -x["mentions"],
+)
 
 # ---------------------------------------------------------------- KPIs
 kpis = {
@@ -399,6 +485,8 @@ out = {
     "top_channels": top_channels,
     "top_videos": top_videos,
     "voice_of_customer": voice_of_customer,
+    "flavor_demand": flavor_demand,
+    "sentiment_method": SENT_METHOD,
 }
 
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
@@ -415,3 +503,6 @@ print(f"  yt_views_clean={kpis['youtube_views']:,} (raw={kpis['youtube_views_raw
 print(f"  SoV de-contam: excluded {sov_excluded['videos']} clips / {sov_excluded['views']:,} views")
 print(f"  top SoV: " + ", ".join(f"{s['brand']} {s['views']:,}" for s in sov[:4]))
 print(f"  momentum risers: " + ", ".join(f"{r['brand']} {r['delta']:+}pp" for r in mention_momentum["risers"][:3]))
+print(f"  top flavors: " + ", ".join(f"{f['flavor']} {f['mentions']:,}" for f in flavor_demand[:4]))
+print(f"  sentiment ({SENT_METHOD}) — " + ", ".join(
+    f"{v['theme']}: {round(100*v['pos']/(v['pos']+v['neg']+v['neu']))}%+" for v in voice_of_customer[:3]))
