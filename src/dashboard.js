@@ -4,6 +4,7 @@
  * panel with the SVG chart builders, wires the sortable cross-platform table,
  * counts up the KPI readouts, and reveals charts on scroll.
  */
+import '@fontsource-variable/inter';
 import './dashboard.css';
 import { hBars, vBars, scatter, area, multiLine, stackedBars, fmtCompact, fmtInt, VOLT, ICE } from './charts.js';
 import { requireAuth } from './auth.js';
@@ -90,7 +91,7 @@ function conceptInterest() {
     2,
     'CONCEPT INTEREST — WHAT TO LAUNCH',
     'MINTEL 2026 · % OF US ENERGY-DRINK CONSUMERS INTERESTED IN TRYING (n=766)',
-    hBars(rows, { fmt: (v) => v + '%', labelW: 210, accent: '#8fa600' }),
+    hBars(rows, { fmt: (v) => v + '%', labelW: 210, accent: '#c7c7cc' }),
     `Consumers most want ${t[0]}, ${t[1]} and ${t[2]} — all squarely in ION's lane (functional electrolytes, clean, natural). "Branded flavors" and "adaptogens" (~34%) are the rising white-space bets.`
   );
 }
@@ -115,7 +116,7 @@ function motivations() {
     3,
     'WHY THEY DRINK',
     'MINTEL 2026 · % FINDING EACH FACTOR MOTIVATING (TOP-2-BOX, n=766)',
-    hBars(rows, { fmt: (v) => v + '%', labelW: 200, accent: '#8fa600' }),
+    hBars(rows, { fmt: (v) => v + '%', labelW: 200, accent: '#c7c7cc' }),
     `Energy (${mv[0].pct}%), taste (${mv[1].pct}%) and focus (${mv[2].pct}%) lead — function and flavor matter almost equally. ION's pitch (sustained no-crash energy <em>plus</em> a designed flavor system) hits the top two motivations at once, rather than trading one for the other.`
   );
 }
@@ -134,7 +135,7 @@ function shareOfVoice() {
     4,
     'SHARE OF VOICE',
     'YOUTUBE REACH · FRACTIONAL ATTRIBUTION · MUSIC/NOISE REMOVED',
-    hBars(rows, { unit: 'views', accent: '#8fa600' }),
+    hBars(rows, { unit: 'views', accent: '#c7c7cc' }),
     `${top.brand} (${fmtCompact(top.views)}) and ${two.brand} (${fmtCompact(two.views)}) run neck-and-neck once ${exclB}B views of false-matched music clips are stripped out — attention is split between two legacy leaders, not monopolized.`
   );
 }
@@ -228,7 +229,7 @@ function flavorBoard() {
     9,
     'FLAVOR DEMAND BOARD',
     'MENTIONS ACROSS 125K COMMENTS + REVIEWS · BARS = DEMAND',
-    hBars(rows, { fmt: fmtInt, unit: 'mentions', labelW: 150, accent: '#8fa600' }),
+    hBars(rows, { fmt: fmtInt, unit: 'mentions', labelW: 150, accent: '#c7c7cc' }),
     `${top.flavor} (${fmtInt(top.mentions)} mentions, ${top.avg_rating}★) and ${two.flavor} (${fmtInt(two.mentions)}, ${two.avg_rating}★) lead demand — validating ION's Citrus Static & Blackberry Null.${gem ? ` "${gem.flavor}" is the sleeper: best-rated at ${gem.avg_rating}★ on only ${gem.products} SKUs — high satisfaction, low supply.` : ''}${mint ? ` Mint/menthol is weakest (${mint.avg_rating}★) — a flag if "Glacial Freeze" leans cooling.` : ''}`
   );
 }
@@ -238,7 +239,7 @@ function reviewRatings() {
   const rows = [1, 2, 3, 4, 5].map((s) => ({
     label: s + '★',
     value: d.dist[String(s)],
-    color: s >= 4 ? VOLT : '#5a5a5a',
+    color: s >= 4 ? VOLT : '#c7c7cc',
   }));
   return panel(
     'reviews',
@@ -282,7 +283,7 @@ function instagramEngagement() {
     11,
     'SOCIAL ENGAGEMENT',
     'INSTAGRAM · TOTAL LIKES ON SAMPLED POSTS (15/BRAND)',
-    hBars(rows, { unit: 'likes', accent: '#8fa600' }),
+    hBars(rows, { unit: 'likes', accent: '#c7c7cc' }),
     `${top.brand} leads on Instagram (${fmtCompact(top.likes)} likes) — newer challenger brands punch far above legacy players on social, proving the category rewards brand-led launches.`
   );
 }

@@ -17,8 +17,9 @@ launch page of a consumer technology company.
 - **Roadmap** — phases instead of features, `MINT_CAN` instead of "buy now"
 - **OS chrome** — hairline grid overlays, mono telemetry, live FPS + protocol clock, film grain
 
-One volt-green accent (`#c6ff00`) on near-black, ultra-expanded Archivo for the
-oversized display type, Space Mono for telemetry.
+**Design:** minimalist, Apple-inspired — white space, Inter (SF-style) type, a
+single restrained blue accent (`#0071e3`) on white, and the 3D can as the hero.
+(Earlier revisions used a dark "futuristic-OS" theme; the current look is light.)
 
 ## The 3D can
 
@@ -50,7 +51,7 @@ tabs, and degrades to a flat layout when WebGL is unavailable.
 
 - [Vite](https://vitejs.dev) — dev server / build
 - [three.js](https://threejs.org) — the vessel
-- Self-hosted variable fonts via Fontsource (Archivo `wdth`, Space Grotesk, Space Mono)
+- Self-hosted Inter (variable) via Fontsource — closest free match to Apple's SF
 - Zero animation libraries — reveals are IntersectionObserver + CSS, choreography is rAF
 
 ## Run

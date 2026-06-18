@@ -47,7 +47,7 @@ export function initScene(canvas) {
   const key = new THREE.DirectionalLight(0xffffff, 1.6);
   key.position.set(3, 4, 6);
   scene.add(key);
-  const rim = new THREE.PointLight(0xc6ff00, 26, 0, 1.8);
+  const rim = new THREE.PointLight(0xcfe0ff, 16, 0, 1.8);
   rim.position.set(-5, 2, -4);
   scene.add(rim);
   const fill = new THREE.PointLight(0xffffff, 8, 0, 2);

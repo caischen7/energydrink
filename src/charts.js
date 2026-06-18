@@ -5,10 +5,10 @@
  * (see dashboard.css) and gated by an IntersectionObserver in dashboard.js.
  */
 
-const VOLT = '#c6ff00';
-const ICE = '#9fd8ff';
-const DIM = '#6f6f6f';
-const LINE = '#262626';
+const VOLT = '#0071e3';
+const ICE = '#5e9ed6';
+const DIM = '#86868b';
+const LINE = '#d2d2d7';
 
 /* ---------- number formatting ---------- */
 export function fmtCompact(n) {
@@ -223,9 +223,9 @@ export function stackedBars(rows, opts = {}) {
   const H = rows.length * (rowH + gap);
   const max = Math.max(...rows.map((r) => r.total), 1);
   const SEG = [
-    ['pos', '#c6ff00', 'LOVES'],
-    ['neu', '#454545', 'NEUTRAL'],
-    ['neg', '#ff6b6b', 'COMPLAINTS'],
+    ['pos', '#0071e3', 'LOVES'],
+    ['neu', '#d2d2d7', 'NEUTRAL'],
+    ['neg', '#ff3b30', 'COMPLAINTS'],
   ];
 
   const bars = rows
@@ -265,7 +265,8 @@ export function stackedBars(rows, opts = {}) {
 }
 
 /* palette for multi-series brand lines — restrained, on-brand, still distinguishable */
-const SERIES_COLORS = ['#c6ff00', '#9fd8ff', '#eaeaea', '#a78bfa', '#ff9f43', '#ff6b9d'];
+/* Apple system colors — distinguishable but restrained for the multi-line chart */
+const SERIES_COLORS = ['#0071e3', '#34c759', '#5e5ce6', '#ff9f0a', '#ff375f', '#86868b'];
 
 /*
  * Multi-series line chart. months: ['YYYY-MM', ...]; series: [{brand, values:[…]}]
