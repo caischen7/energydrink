@@ -17,13 +17,19 @@ set -euo pipefail
 REGION="${GCP_REGION:-us-central1}"
 SERVICE="${SERVICE_NAME:-ion-liquid-hardware}"
 
-# Resolve the project: explicit env var wins, else the managed .cloud-config.json.
+# Resolve the project: explicit env var wins, then the managed .cloud-config.json,
+# then whatever `gcloud config set project` already points at.
 PROJECT="${GCP_PROJECT:-}"
 if [ -z "$PROJECT" ] && [ -f .cloud-config.json ]; then
   PROJECT="$(sed -nE 's/.*"project_id"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' .cloud-config.json)"
 fi
 if [ -z "$PROJECT" ]; then
-  echo "ERROR: no project. Set GCP_PROJECT=your-project-id (or provide .cloud-config.json)." >&2
+  PROJECT="$(gcloud config get-value project 2>/dev/null)"
+  [ "$PROJECT" = "(unset)" ] && PROJECT=""
+fi
+if [ -z "$PROJECT" ]; then
+  echo "ERROR: no project. Set GCP_PROJECT=your-project-id, provide .cloud-config.json," >&2
+  echo "       or run 'gcloud config set project <id>' first." >&2
   exit 1
 fi
 
