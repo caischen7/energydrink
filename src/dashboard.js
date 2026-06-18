@@ -7,6 +7,7 @@
 import './dashboard.css';
 import data from './data/dashboard.json';
 import { hBars, vBars, scatter, area, multiLine, stackedBars, fmtCompact, fmtInt, VOLT, ICE } from './charts.js';
+import { requireAuth } from './auth.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -413,4 +414,5 @@ function main() {
   $$('#kpis [data-count]').forEach(countUp);
 }
 
-main();
+/* gate the dashboard behind the login overlay (client-side deterrent — see auth.js) */
+requireAuth().then(main);

@@ -209,6 +209,80 @@
   opacity: calc(0.25 + 0.75 * (var(--w) / 100));
 }
 
+/* ---------- access gate ---------- */
+body.gated { overflow: hidden; }
+.gate {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: #050505;
+  display: grid;
+  place-items: center;
+  padding: var(--pad);
+  transition: opacity 0.45s ease, transform 0.45s var(--ease-out);
+}
+.gate.out { opacity: 0; transform: translateY(-2%); pointer-events: none; }
+.gate-card {
+  width: min(420px, 92vw);
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, #0e0e0e, #0a0a0a);
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  display: flex;
+  flex-direction: column;
+}
+.gate-brand {
+  font-family: var(--f-display);
+  font-stretch: 125%;
+  font-weight: 900;
+  font-size: 2.4rem;
+  line-height: 1;
+}
+.gate-brand sup { font-size: 0.28em; color: var(--volt); }
+.gate-head {
+  color: var(--dim);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  margin: 0.6rem 0 1.8rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 1rem;
+}
+.gate-label {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--dim);
+  margin-bottom: 0.5rem;
+}
+.gate-card input {
+  background: rgba(10, 10, 10, 0.8);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  caret-color: var(--volt);
+  font-family: var(--f-mono);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  padding: 0.9em 1em;
+  margin-bottom: 1.2rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.gate-card input:focus { border-color: var(--volt); }
+.gate-card input::placeholder { color: #3f3f3f; }
+.gate-card button {
+  background: var(--volt);
+  color: #000;
+  border: 0;
+  font-family: var(--f-mono);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  padding: 1em;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.gate-card button:hover { background: var(--ink); }
+.gate-out { min-height: 1.4em; margin-top: 1rem; font-size: 10px; letter-spacing: 0.08em; color: #ff6b6b; }
+.gate-out:empty { margin: 0; }
+
 /* ---------- methodology ---------- */
 .methodology { margin-top: 3.5rem; border-top: 1px solid var(--line); padding-top: 2rem; }
 .method-grid {

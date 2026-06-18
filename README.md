@@ -118,6 +118,20 @@ to theme/momentum/flavor/sentiment aggregates at build time. Sentiment uses VADE
 when installed (the loves-vs-complaints split), else a built-in lexicon. Regenerate
 the JSON after the data changes.
 
+### Dashboard login
+
+The dashboard is reachable via the **MARKET INTEL ↗** link in the landing-page top
+bar (visible at every screen width) or directly at `/dashboard.html`. It opens
+behind a login gate (`src/auth.js`) — username `energydrinks`, password checked
+against a SHA-256 hash so the plaintext isn't committed. Change it with
+`printf '%s' 'NEWPASS' | sha256sum` → update `PASS_HASH`.
+
+> ⚠️ **This login is a client-side deterrent, not real security.** The site is a
+> static bundle, so the check is bypassable via devtools and the data ships in the
+> JS regardless. To genuinely restrict the dashboard (e.g. the licensed market
+> data), gate it server-side — nginx Basic Auth on the `/dashboard.html` location,
+> or Cloud Run IAM / IAP.
+
 ### Waitlist capture
 
 The landing-page "JOIN THE PROTOCOL" form persists signups (deduped, with UTM +

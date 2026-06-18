@@ -173,6 +173,17 @@ body.cursor-hover .cursor {
 .bar-right { display: flex; align-items: center; gap: 1.25rem; }
 .sys { color: var(--dim); font-size: 10px; }
 
+/* persistent dashboard link — stays visible at every width (unlike the section nav) */
+.bar-intel {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--dim);
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+.bar-intel:hover, .bar-intel:focus-visible { color: var(--volt); }
+
 .btn-mint {
   display: inline-block;
   background: var(--volt);
