@@ -1,0 +1,16 @@
+# What `gcloud run deploy --source .` uploads to Cloud Build.
+# NOTE: when this file exists, gcloud uses it INSTEAD of .gitignore, so the
+# build artifacts that .gitignore covers must be repeated here.
+.git
+.github
+.gitignore
+
+# build artifacts / deps (rebuilt inside the container)
+node_modules
+dist
+.vite
+
+# not needed to build or serve the site
+.claude
+data
+docs

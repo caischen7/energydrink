@@ -62,6 +62,17 @@ npm run build    # static build in dist/
 npm run preview
 ```
 
+## Deploy
+
+Containerized for **Google Cloud Run** (`Dockerfile` + `deploy.sh`):
+
+```bash
+GCP_PROJECT=your-project-id ./deploy.sh   # Cloud Build → public Cloud Run URL
+```
+
+See [`docs/DEPLOY.md`](docs/DEPLOY.md) for prerequisites and the managed
+Google-Cloud-integration path.
+
 ## Structure
 
 ```

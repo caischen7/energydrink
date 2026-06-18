@@ -1,0 +1,10 @@
+# Keep the Docker build context (and COPY . .) limited to what the build needs.
+.git
+.github
+.claude
+node_modules
+dist
+data
+docs
+*.log
+npm-debug.log*

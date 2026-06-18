@@ -31,6 +31,10 @@ There is **no test runner, linter, or formatter configured**. Don't assume
 `npm test`/`npm run lint` exist — they don't. Verify changes by running the dev
 server and exercising the page.
 
+**Deploy:** the site is containerized for Google Cloud Run (`Dockerfile` +
+`nginx.conf` + `deploy.sh`): `GCP_PROJECT=… ./deploy.sh`. See `docs/DEPLOY.md`
+for the prerequisites and the managed Google-Cloud-integration path.
+
 ### Data pipeline (`data/`)
 ```bash
 pip install pandas openpyxl
