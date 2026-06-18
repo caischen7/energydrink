@@ -104,3 +104,59 @@ security caveat, and uninstall instructions.
 - Don't commit `node_modules/`, `dist/`, or `.vite/` (already in `.gitignore`).
 - Raw scraper data stays out of the repo — only regenerated CSVs under `data/`
   are tracked.
+
+## Project status & handoff (2026-06-18)
+
+Snapshot for continuing in a fresh session. Work lives on branch
+`claude/wizardly-cori-wy508l`, mirrored to `main`. The repo's default branch is
+still the auto-generated `claude/wizardly-galileo-w6grgo` — set `main` as
+default in repo Settings if desired (no API for it).
+
+### 1. Deploy — Google Cloud Run (setup DONE, not yet live)
+Committed: `Dockerfile` (Vite build → nginx on `$PORT`), `nginx.conf`,
+`deploy.sh`, `.dockerignore`, `.gcloudignore`, `docs/DEPLOY.md`. This Claude
+environment has **no `gcloud`/GCP credentials**, so deploy from **Google Cloud
+Shell** (the repo is private → authenticate first):
+```bash
+gh auth login                          # private repo; or use a PAT as password
+gh repo clone caischen7/energydrink
+cd energydrink && git checkout main    # deploy files live on main, not the default branch
+gcloud config set project <PROJECT_ID> # e.g. msbai-dwd-csc9720 (already has billing)
+./deploy.sh                            # → service "ion-liquid-hardware", prints public URL
+```
+Past failures were: HTTPS password auth on a private repo (dead — use `gh`/PAT),
+pasting the literal `YOUR_PROJECT_ID`, and running the *old* Citibike
+`deploy.sh`. The energydrink `deploy.sh` builds from this repo's Dockerfile (no
+Buildpacks) and deploys a public Cloud Run service.
+
+### 2. Data analysis + product recommendation (IN PROGRESS — the active task)
+Goal: analyze the energy-drink market data and recommend a **new energy drink
+concept/positioning** ("platform") to feature on the site.
+
+- The user uploaded a ~272 MB `02_Data/` research corpus. Per repo convention
+  raw data is **not committed** and it only exists in the ephemeral container,
+  so in a new session the user must **re-upload the zip** to use the new sources.
+- Already-cleaned CSVs are in the repo — analyze these directly:
+  `data/amazon/products.csv` (75), `data/amazon/reviews.csv` (552),
+  `data/instagram/posts.csv` (431), `data/youtube/videos.csv` (68,930),
+  `data/youtube/comments.csv` (150,514),
+  `data/combined/brand_mentions_by_platform.csv` (2,466),
+  `data/combined/brand_summary.csv` (23 brands — the key cross-platform table).
+- New sources in the upload, not yet in the pipeline: **Reddit** (r/EnergyDrinks
+  posts+comments), **Mintel 2026 US Energy Report** (Full Databook `.xlsx`),
+  **Catalyst** datasets (`.xlsx`), an industry-report **PDF**, a market **.pptx**,
+  a strategy **.docx**.
+
+Next steps to produce the recommendation:
+1. `pip install pandas openpyxl` (not installed in the base env).
+2. Competitive landscape from cleaned CSVs: brand strength (`brand_summary.csv`),
+   price points + ratings (`amazon/products.csv`), reach
+   (`brand_mentions_by_platform.csv`), social engagement.
+3. Mine `amazon/reviews.csv` + YouTube/Reddit comments for unmet needs
+   (sugar/crash/jitters, taste, "natural/clean", focus, hydration, price).
+4. Read the Mintel/Catalyst `.xlsx` + the PDF for market size, growth, segments,
+   and 2026 trends (use pandas/openpyxl; the PDF can be read with the Read tool).
+5. Synthesize a positioning rec (name, target, functional angle, flavor system,
+   price, channel) that fills white space **and** fits ION's futuristic brand,
+   then map it to the site's editions/colorways (`src/can.js` `COLORWAYS`,
+   `index.html` `.edition` rows — see the `add-ion-colorway` skill).

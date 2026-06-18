@@ -84,6 +84,18 @@ src/scene.js      renderer, scroll choreography, pointer physics
 src/fx.js         split-text reveals, counters, ticker, cursor, edition sync
 ```
 
+## Project status
+
+- **Deploy:** containerized for **Google Cloud Run** — `./deploy.sh` →
+  service `ion-liquid-hardware`. See [`docs/DEPLOY.md`](docs/DEPLOY.md)
+  (deploy from Google Cloud Shell; this repo is private so authenticate first).
+- **In progress:** a data-driven recommendation for a **new energy-drink
+  concept** to anchor the site, built from the market research in `data/`
+  (Amazon · Instagram · YouTube · Reddit · Mintel · Catalyst). Full state and
+  next steps for picking this up are in **[`CLAUDE.md`](CLAUDE.md)** →
+  "Project status & handoff". Note: the raw research corpus is **not committed**
+  (size + PII), so re-upload it in a new session to analyze the new sources.
+
 ---
 
 *ION BEVERAGE SYSTEMS © 2086 — not financial advice. Just water, evolved.*
