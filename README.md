@@ -73,15 +73,41 @@ GCP_PROJECT=your-project-id ./deploy.sh   # Cloud Build → public Cloud Run URL
 See [`docs/DEPLOY.md`](docs/DEPLOY.md) for prerequisites and the managed
 Google-Cloud-integration path.
 
+## Market Intel dashboard
+
+A second page — [`dashboard.html`](dashboard.html), linked from the nav as
+**MARKET INTEL** — turns the cleaned research in [`data/`](data/) into an
+`ION_OS` analytics terminal: share of voice, category momentum, an Amazon
+price × quality map, review sentiment, voice-of-the-customer theme mining
+across **125K+ comments**, Instagram engagement, and a sortable 23-brand
+cross-platform matrix. Same near-black + volt aesthetic, hand-rolled SVG
+charts, no charting library.
+
+The numbers come from a precomputed aggregate, `src/data/dashboard.json`
+(~11 KB), built from the cleaned CSVs by:
+
+```bash
+python data/scripts/build_dashboard_json.py   # reduces 129K+ records → one small JSON
+```
+
+Nothing large is shipped to the browser — the 25 MB comment corpus is reduced
+to theme counts at build time. Regenerate the JSON after the data changes.
+
 ## Structure
 
 ```
-index.html        page skeleton — hero, ticker, manifesto, specs, drop, protocol, join
-src/main.js       entry: fonts, boot sequence, wiring
-src/style.css     futuristic-OS design system
-src/can.js        procedural can + canvas label textures (3 colorways)
-src/scene.js      renderer, scroll choreography, pointer physics
-src/fx.js         split-text reveals, counters, ticker, cursor, edition sync
+index.html                 landing skeleton — hero, ticker, manifesto, specs, drop, protocol, join
+dashboard.html             market-intel terminal (charts + brand matrix)
+src/main.js                entry: fonts, boot sequence, wiring
+src/style.css              futuristic-OS design system (shared by both pages)
+src/can.js                 procedural can + canvas label textures (3 colorways)
+src/scene.js               renderer, scroll choreography, pointer physics
+src/fx.js                  split-text reveals, counters, ticker, cursor, edition sync
+src/dashboard.js           dashboard: panels, sortable table, count-up, scroll reveals
+src/dashboard.css          dashboard layout + chart styling (imports style.css)
+src/charts.js              dependency-free SVG chart builders (bars, scatter, area)
+src/data/dashboard.json    precomputed aggregate consumed by the dashboard
+data/scripts/build_dashboard_json.py   regenerates the aggregate from data/*.csv
 ```
 
 ## Project status

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <meta name="description" content="ION_OS // Market Intelligence — competitive analysis of the energy-drink category across Amazon, YouTube and Instagram. 129,000+ data points." />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <title>ION_OS // MARKET INTEL</title>
+</head>
+<body class="dash">
+
+  <canvas id="webgl" aria-hidden="true" hidden></canvas>
+  <div class="grid-overlay" aria-hidden="true"></div>
+  <div class="noise" aria-hidden="true"></div>
+
+  <header class="bar bar--top">
+    <a class="logo mono" href="./index.html" data-hover>ION<sup>®</sup></a>
+    <nav class="nav mono" aria-label="Dashboard sections">
+      <a href="#sov" data-hover>[01]&nbsp;VOICE</a>
+      <a href="#price-rating" data-hover>[03]&nbsp;PRICE×QUALITY</a>
+      <a href="#voc" data-hover>[05]&nbsp;CUSTOMER</a>
+      <a href="#matrix" data-hover>[07]&nbsp;MATRIX</a>
+    </nav>
+    <div class="bar-right mono">
+      <span class="sys"><i class="live-dot"></i>LIVE&nbsp;FEED</span>
+      <a class="btn-mint" href="./index.html" data-hover>← THE&nbsp;DROP</a>
+    </div>
+  </header>
+
+  <main class="dash-main">
+    <!-- header -->
+    <section class="dash-hero">
+      <div class="sec-label mono"><b class="volt">//</b> ION_OS — MARKET INTELLIGENCE TERMINAL</div>
+      <h1 class="dash-title">MARKET<br />INTEL</h1>
+      <p class="dash-sub">
+        Competitive telemetry for the energy-drink category — decoded from
+        <b class="volt">Amazon</b>, <b class="volt">YouTube</b> and
+        <b class="volt">Instagram</b>. Every figure below is computed from the
+        cleaned research corpus in <span class="mono dim">/data</span>.
+      </p>
+      <div id="kpis" class="kpi-strip"></div>
+    </section>
+
+    <!-- charts injected by dashboard.js -->
+    <div id="charts" class="charts-grid"></div>
+
+    <!-- cross-platform matrix -->
+    <section class="panel-card reveal matrix" id="matrix">
+      <header class="pc-head mono">
+        <span class="pc-id">07</span>
+        <h2 class="pc-title">CROSS-PLATFORM BRAND MATRIX</h2>
+        <span class="pc-meta">CLICK A COLUMN TO SORT · 23 BRANDS</span>
+      </header>
+      <div class="pc-body"><div id="brand-table" class="table-wrap"></div></div>
+      <footer class="pc-insight mono">
+        <b class="volt">&gt;</b> Legacy brands (Monster, Red Bull) win YouTube reach;
+        challengers (Prime, Alani Nu, Celsius) dominate social engagement and ratings —
+        the category rewards brand-led launches over raw scale.
+      </footer>
+    </section>
+
+    <!-- methodology -->
+    <section class="methodology mono">
+      <div class="sec-label"><b class="volt">//</b> METHODOLOGY</div>
+      <div class="method-grid">
+        <p><b class="volt">SOURCES.</b> Amazon product + review scrape, YouTube video
+          metadata + comment corpus, Instagram brand posts. Cleaned into
+          <span class="dim">/data/{amazon,instagram,youtube,combined}</span>.</p>
+        <p><b class="volt">PIPELINE.</b> <span class="dim">data/scripts/build_dashboard_json.py</span>
+          reduces 129K+ records (incl. a 25&nbsp;MB comment file) to a 10&nbsp;KB aggregate —
+          nothing large is shipped to the browser.</p>
+        <p><b class="volt">CAVEATS.</b> Share-of-voice = views of videos a brand is
+          mentioned in (attribution, not exact). Search-noise outlier channels are
+          excluded. Instagram is a 15-post-per-brand sample.</p>
+        <p><b class="volt">SO WHAT.</b> White space sits at premium price + top quality,
+          with a no-crash story in an under-discussed pain point — exactly where
+          <b class="volt">ION</b> is positioned.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="bar bar--bottom mono">
+    <span>ION_OS · MARKET INTEL</span>
+    <span class="dim">AGGREGATE GENERATED <i id="gen-at">—</i></span>
+    <span>129,015 DATA POINTS · 23 BRANDS</span>
+  </footer>
+
+  <noscript>
+    <div style="position:fixed;inset:0;z-index:999;background:#0a0a0a;color:#eaeaea;display:grid;place-items:center;font-family:monospace;text-align:center;padding:2rem;">
+      <p>ION_OS // MARKET INTEL<br /><br />THIS TERMINAL REQUIRES JAVASCRIPT.<br />ENABLE IT TO DECODE THE FEED.</p>
+    </div>
+  </noscript>
+
+  <script type="module" src="/src/dashboard.js"></script>
+</body>
+</html>
