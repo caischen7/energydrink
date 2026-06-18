@@ -12,5 +12,5 @@ dist
 
 # not needed to build or serve the site
 .claude
-data
-docs
+/data
+/docs
