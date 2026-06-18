@@ -168,7 +168,10 @@ Shell** (the repo is private → authenticate first):
 ```bash
 gh auth login                          # private repo; or use a PAT as password
 gh repo clone caischen7/energydrink
-cd energydrink && git checkout main    # deploy files live on main, not the default branch
+cd energydrink                         # a fresh clone is already on the default branch
+# IMPORTANT: deploy the DEFAULT branch (claude/wizardly-galileo-w6grgo) — it has the
+# full site incl. the dashboard + login. `main` is STALE (pre-dashboard); do NOT deploy it.
+git checkout claude/wizardly-galileo-w6grgo && git pull
 gcloud config set project <PROJECT_ID> # e.g. msbai-dwd-csc9720 (already has billing)
 ./deploy.sh                            # → service "ion-liquid-hardware", prints public URL
 ```
