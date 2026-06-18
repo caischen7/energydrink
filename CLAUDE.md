@@ -1,0 +1,179 @@
+# CLAUDE.md
+
+Guidance for Claude Code (and other agents) working in this repository.
+
+> **New agent picking this up?** Jump to **"Status & handoff"** at the bottom of
+> this file — it has the current state, the **active task** (data analysis →
+> recommend a new energy-drink concept for the site), and the exact next steps.
+> Quick sanity check first: `npm install && npm run build` should be green.
+
+## What this repo is
+
+Two loosely-related things live here:
+
+1. **`ION® — Liquid Hardware`** — a single-page marketing site for a fictional
+   futuristic hydration brand, built around one persistent, procedurally-generated
+   interactive 3D can (Vite + three.js, no framework). This is what `npm run dev`
+   builds and what `index.html` / `src/` contain.
+2. **Energy-drink market data** (`data/`) — cleaned CSV datasets scraped from
+   Amazon, Instagram, and YouTube, plus a Python script that regenerates them.
+   This is a separate data-analysis artifact and is **not** wired into the website.
+
+When a task mentions "the site", "the can", "the landing page" → work in `src/` +
+`index.html`. When it mentions "the data", "datasets", "brands", "scraping" → work
+in `data/`.
+
+## Commands
+
+### Website (root)
+```bash
+npm install
+npm run dev      # Vite dev server → http://localhost:5173
+npm run build    # static build → dist/
+npm run preview  # serve the built dist/
+```
+There is **no test runner, linter, or formatter configured**. Don't assume
+`npm test`/`npm run lint` exist — they don't. Verify changes by running the dev
+server and exercising the page.
+
+**Deploy:** the site is containerized for Google Cloud Run (`Dockerfile` +
+`nginx.conf` + `deploy.sh`): `GCP_PROJECT=… ./deploy.sh`. See `docs/DEPLOY.md`
+for the prerequisites and the managed Google-Cloud-integration path.
+
+### Data pipeline (`data/`)
+```bash
+pip install pandas openpyxl
+RAW_DATA_DIR=/path/to/unzipped/raw/data python data/scripts/build_clean_datasets.py
+```
+Raw scraper exports are **not committed** (large/messy); only the cleaned CSVs are.
+`RAW_DATA_DIR` must contain `Amazon data/`, `Instagram data/`, `Youtube data/`.
+See `data/README.md` for the full schema and cleaning notes.
+
+## Website architecture
+
+Entry point is `src/main.js`, loaded as a module from `index.html`. It runs the
+boot sequence, then wires up two independent layers:
+
+| File | Responsibility |
+| --- | --- |
+| `src/main.js` | Entry: imports fonts + CSS, runs the `ION_OS` boot overlay, dynamically imports `scene.js` (so a WebGL failure degrades gracefully), calls `initFx`. |
+| `src/scene.js` | The **WebGL layer**. One persistent three.js scene. Choreographs the can against scroll using per-section `POSES`, plus pointer parallax, drag-spin momentum, float bob, click pulse, FPS reporting. Exposes `setColorway / pulse / refresh / redrawLabels / onColorway / onFps`. |
+| `src/can.js` | The **procedural can**. Geometry is a primitive stack (cylinders/tori/circles + pull tab). Labels are drawn at runtime onto `CanvasTexture`s — one per colorway (`volt` / `void` / `glacier`) defined in `COLORWAYS`. No model files, no image assets. |
+| `src/fx.js` | The **DOM layer**. Split-word headline reveals, IntersectionObserver fade-ups, count-up stats, marquee ticker, custom cursor, `body[data-section]` scroll tracking, the edition-row ↔ 3D colorway sync, the header FPS/clock readout, and the fake "mint" form. No animation libraries. |
+| `src/style.css` | The futuristic-OS design system (CSS custom properties, grid overlays, telemetry styling, reduced-motion + no-WebGL fallbacks). |
+| `index.html` | Static page skeleton — sections in order: `hero`, `manifesto`, `specs`, `drop`, `protocol`, `join`. |
+
+### How the two layers talk
+`scene.js` and `fx.js` don't import each other. `main.js` passes the `scene`
+handle into `initFx(scene)`, and `fx.js` calls `scene.setColorway(...)` /
+`scene.onColorway(...)` / `scene.onFps(...)`. If WebGL is unavailable, `scene`
+is `null` and `fx.js` no-ops the 3D hooks while the DOM layer still works.
+
+### Things that will bite you
+- **Section order is duplicated** in `src/scene.js` (`SECTIONS`) and `src/fx.js`
+  (`SECTION_IDS`) and must match the `id`s in `index.html`. Change one → change all.
+- **Colorways** are the source of truth in `can.js` (`COLORWAYS`: `volt`, `void`,
+  `glacier`). The editions in `index.html` reference them via
+  `.edition[data-colorway="..."]`, and `fx.js` has a parallel `EDITION_HUD` map.
+- **Fonts load late.** Canvas labels are first drawn before webfonts arrive, then
+  repainted via `scene.redrawLabels()` on `document.fonts.ready`. Section offsets
+  are re-measured (`scene.refresh()`) for the same reason — don't remove these.
+- **Accessibility / perf are intentional:** honors `prefers-reduced-motion`, clamps
+  DPR at 2, pauses the rAF loop in hidden tabs (`visibilitychange`), and degrades to
+  a flat layout when WebGL is missing. Preserve these when editing the render loop.
+- The boot overlay only plays in full once per session (`sessionStorage`
+  `ion-booted`); it short-circuits on repeat visits and under reduced motion.
+
+### Conventions
+- Vanilla ES modules, no framework, no build step beyond Vite. No TypeScript.
+- 2-space indentation; `const $ = (s) => document.querySelector(s)` style helpers.
+- `vite.config.js` sets `base: './'` so the static build works from any subpath
+  (e.g. GitHub Pages) — keep asset references relative.
+- Brand voice in copy is crypto/OS-native ("MINT_CAN", "the ledger", `© 2086`).
+  Match it when editing visible text.
+
+## Agent skills (`.claude/skills/`)
+
+This repo vendors a curated set of agent skills under `.claude/skills/` — one
+repo-authored skill (`add-ion-colorway`) plus 21 skills selected for this
+frontend / marketing site from `anthropics/skills` (official),
+`alirezarezvani/claude-skills`, and `antigravity-awesome-skills` (both
+community / unverified). They are **tooling, not part of the website or data
+pipeline** — don't treat them as project source when building or editing the
+site. See `.claude/skills/INSTALLED.md` for the full list, provenance, the
+security caveat, and uninstall instructions.
+
+## Git / workflow
+
+- Commit and push only when the work is complete and the user has asked for it.
+- Don't commit `node_modules/`, `dist/`, or `.vite/` (already in `.gitignore`).
+- Raw scraper data stays out of the repo — only regenerated CSVs under `data/`
+  are tracked.
+
+## Status & handoff (updated 2026-06-18)
+
+**TL;DR for a new agent**
+- **Branches:** everything from this session is merged via **PR #2** into the
+  default branch `claude/wizardly-galileo-w6grgo`, and also lives on `main` and
+  `claude/wizardly-cori-wy508l` (all in sync) — so a fresh clone already has it
+  all. To continue, branch off the default (or `main`) and open a new PR. You can
+  set `main` as the default in repo Settings for a cleaner name (no API for it).
+- **Done & pushed:** this `CLAUDE.md`, the `README`, the curated
+  `.claude/skills/`, and the Google Cloud Run deploy setup. The build is green.
+- **👉 Active task = §2 below:** analyze the energy-drink market data and
+  **recommend a new energy-drink concept** to feature on the site. Most of the
+  cleaned data is already in `data/` and ready to analyze right now.
+- **Not active / parked:** §1 deploy (setup is finished; only the user can run
+  the live deploy — see §1). A "combine all the user's repos" idea was raised
+  and then **cancelled** — do not act on it.
+
+Detail follows.
+
+### 1. Deploy — Google Cloud Run (setup DONE, not yet live)
+Committed: `Dockerfile` (Vite build → nginx on `$PORT`), `nginx.conf`,
+`deploy.sh`, `.dockerignore`, `.gcloudignore`, `docs/DEPLOY.md`. This Claude
+environment has **no `gcloud`/GCP credentials**, so deploy from **Google Cloud
+Shell** (the repo is private → authenticate first):
+```bash
+gh auth login                          # private repo; or use a PAT as password
+gh repo clone caischen7/energydrink
+cd energydrink && git checkout main    # deploy files live on main, not the default branch
+gcloud config set project <PROJECT_ID> # e.g. msbai-dwd-csc9720 (already has billing)
+./deploy.sh                            # → service "ion-liquid-hardware", prints public URL
+```
+Past failures were: HTTPS password auth on a private repo (dead — use `gh`/PAT),
+pasting the literal `YOUR_PROJECT_ID`, and running the *old* Citibike
+`deploy.sh`. The energydrink `deploy.sh` builds from this repo's Dockerfile (no
+Buildpacks) and deploys a public Cloud Run service.
+
+### 2. Data analysis + product recommendation (IN PROGRESS — the active task)
+Goal: analyze the energy-drink market data and recommend a **new energy drink
+concept/positioning** ("platform") to feature on the site.
+
+- The user uploaded a ~272 MB `02_Data/` research corpus. Per repo convention
+  raw data is **not committed** and it only exists in the ephemeral container,
+  so in a new session the user must **re-upload the zip** to use the new sources.
+- Already-cleaned CSVs are in the repo — analyze these directly:
+  `data/amazon/products.csv` (75), `data/amazon/reviews.csv` (552),
+  `data/instagram/posts.csv` (431), `data/youtube/videos.csv` (68,930),
+  `data/youtube/comments.csv` (150,514),
+  `data/combined/brand_mentions_by_platform.csv` (2,466),
+  `data/combined/brand_summary.csv` (23 brands — the key cross-platform table).
+- New sources in the upload, not yet in the pipeline: **Reddit** (r/EnergyDrinks
+  posts+comments), **Mintel 2026 US Energy Report** (Full Databook `.xlsx`),
+  **Catalyst** datasets (`.xlsx`), an industry-report **PDF**, a market **.pptx**,
+  a strategy **.docx**.
+
+Next steps to produce the recommendation:
+1. `pip install pandas openpyxl` (not installed in the base env).
+2. Competitive landscape from cleaned CSVs: brand strength (`brand_summary.csv`),
+   price points + ratings (`amazon/products.csv`), reach
+   (`brand_mentions_by_platform.csv`), social engagement.
+3. Mine `amazon/reviews.csv` + YouTube/Reddit comments for unmet needs
+   (sugar/crash/jitters, taste, "natural/clean", focus, hydration, price).
+4. Read the Mintel/Catalyst `.xlsx` + the PDF for market size, growth, segments,
+   and 2026 trends (use pandas/openpyxl; the PDF can be read with the Read tool).
+5. Synthesize a positioning rec (name, target, functional angle, flavor system,
+   price, channel) that fills white space **and** fits ION's futuristic brand,
+   then map it to the site's editions/colorways (`src/can.js` `COLORWAYS`,
+   `index.html` `.edition` rows — see the `add-ion-colorway` skill).

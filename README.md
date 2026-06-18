@@ -62,6 +62,17 @@ npm run build    # static build in dist/
 npm run preview
 ```
 
+## Deploy
+
+Containerized for **Google Cloud Run** (`Dockerfile` + `deploy.sh`):
+
+```bash
+GCP_PROJECT=your-project-id ./deploy.sh   # Cloud Build → public Cloud Run URL
+```
+
+See [`docs/DEPLOY.md`](docs/DEPLOY.md) for prerequisites and the managed
+Google-Cloud-integration path.
+
 ## Structure
 
 ```
@@ -72,6 +83,20 @@ src/can.js        procedural can + canvas label textures (3 colorways)
 src/scene.js      renderer, scroll choreography, pointer physics
 src/fx.js         split-text reveals, counters, ticker, cursor, edition sync
 ```
+
+## Project status
+
+- **Deploy:** containerized for **Google Cloud Run** — `./deploy.sh` →
+  service `ion-liquid-hardware`. See [`docs/DEPLOY.md`](docs/DEPLOY.md)
+  (deploy from Google Cloud Shell; this repo is private so authenticate first).
+- **In progress:** a data-driven recommendation for a **new energy-drink
+  concept** to anchor the site, built from the market research in `data/`
+  (Amazon · Instagram · YouTube · Reddit · Mintel · Catalyst).
+
+**Working on this with an AI agent?** Current state, the active task, and exact
+next steps live in **[`CLAUDE.md`](CLAUDE.md)** → "Status & handoff". Note: the
+raw research corpus is **not committed** (size + PII), so re-upload it in a new
+session to analyze the new sources.
 
 ---
 
