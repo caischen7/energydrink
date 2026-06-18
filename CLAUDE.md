@@ -2,6 +2,11 @@
 
 Guidance for Claude Code (and other agents) working in this repository.
 
+> **New agent picking this up?** Jump to **"Status & handoff"** at the bottom of
+> this file — it has the current state, the **active task** (data analysis →
+> recommend a new energy-drink concept for the site), and the exact next steps.
+> Quick sanity check first: `npm install && npm run build` should be green.
+
 ## What this repo is
 
 Two loosely-related things live here:
@@ -105,12 +110,23 @@ security caveat, and uninstall instructions.
 - Raw scraper data stays out of the repo — only regenerated CSVs under `data/`
   are tracked.
 
-## Project status & handoff (2026-06-18)
+## Status & handoff (updated 2026-06-18)
 
-Snapshot for continuing in a fresh session. Work lives on branch
-`claude/wizardly-cori-wy508l`, mirrored to `main`. The repo's default branch is
-still the auto-generated `claude/wizardly-galileo-w6grgo` — set `main` as
-default in repo Settings if desired (no API for it).
+**TL;DR for a new agent**
+- **Branches:** work is on `claude/wizardly-cori-wy508l`, mirrored to `main`.
+  The repo's default branch is still `claude/wizardly-galileo-w6grgo` (set `main`
+  as default in repo Settings if wanted — no API for it). Develop on the
+  `claude/...` branch and keep `main` in sync.
+- **Done & pushed:** this `CLAUDE.md`, the `README`, the curated
+  `.claude/skills/`, and the Google Cloud Run deploy setup. The build is green.
+- **👉 Active task = §2 below:** analyze the energy-drink market data and
+  **recommend a new energy-drink concept** to feature on the site. Most of the
+  cleaned data is already in `data/` and ready to analyze right now.
+- **Not active / parked:** §1 deploy (setup is finished; only the user can run
+  the live deploy — see §1). A "combine all the user's repos" idea was raised
+  and then **cancelled** — do not act on it.
+
+Detail follows.
 
 ### 1. Deploy — Google Cloud Run (setup DONE, not yet live)
 Committed: `Dockerfile` (Vite build → nginx on `$PORT`), `nginx.conf`,
