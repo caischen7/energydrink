@@ -50,6 +50,47 @@ function panel(id, idx, title, meta, bodyHTML, insight) {
 }
 
 /* ---------- charts ---------- */
+function marketSize() {
+  const m = data.market;
+  const f = m.facts;
+  const series = m.size.map((d) => ({ label: String(d.year), value: d.revenue }));
+  return panel(
+    'market',
+    1,
+    'MARKET SIZE — THE PRIZE',
+    `GLOBAL ENERGY-DRINK REVENUE ($B) · ACTUALS 2018–2024 + FORECAST TO ${f.forecast_year} · STATISTA`,
+    area(series, { labelEvery: 2, fmt: (v) => '$' + Math.round(v) + 'B' }),
+    `A <b class="volt">$${f.total_2024_busd}B</b> global market in 2024 (incl. $${f.ooh_2024_busd}B out-of-home), forecast to $${f.forecast_busd}B by ${f.forecast_year}. Historical CAGR <b class="volt">${f.cagr_hist_pct}%</b> (2018–24) — a large, steadily compounding prize, not a fad.`
+  );
+}
+
+const CONCEPT_SHORT = (c) =>
+  c
+    .split(' (')[0]
+    .replace(/^Offers additional /, '')
+    .replace(/^Made with /, '')
+    .replace(/^Available in /, '')
+    .replace(/^Products with /, '')
+    .replace(/^Infused with /, '')
+    .replace(/^Customizable energy.*/, 'Customizable caffeine')
+    .replace(/^Limited-edition /, 'LTO ')
+    .replace(/^(\w)/, (m) => m.toUpperCase());
+
+/* Mintel: which energy-drink concepts consumers want to try (the "what to launch" signal) */
+function conceptInterest() {
+  const ci = data.concept_interest;
+  const rows = ci.map((d, i) => ({ label: CONCEPT_SHORT(d.concept), value: d.pct, color: i === 0 ? VOLT : undefined }));
+  const t = ci.slice(0, 3).map((d) => `${CONCEPT_SHORT(d.concept).toLowerCase()} (${d.pct}%)`);
+  return panel(
+    'concept',
+    2,
+    'CONCEPT INTEREST — WHAT TO LAUNCH',
+    'MINTEL 2026 · % OF US ENERGY-DRINK CONSUMERS INTERESTED IN TRYING (n=766)',
+    hBars(rows, { fmt: (v) => v + '%', labelW: 210, accent: '#8fa600' }),
+    `Consumers most want ${t[0]}, ${t[1]} and ${t[2]} — all squarely in ION's lane (functional electrolytes, clean, natural). "Branded flavors" and "adaptogens" (~34%) are the rising white-space bets.`
+  );
+}
+
 function shareOfVoice() {
   const rows = data.share_of_voice.slice(0, 12).map((d, i) => ({
     label: d.brand,
@@ -61,7 +102,7 @@ function shareOfVoice() {
   const exclB = (data.sov_excluded.views / 1e9).toFixed(1);
   return panel(
     'sov',
-    1,
+    3,
     'SHARE OF VOICE',
     'YOUTUBE REACH · FRACTIONAL ATTRIBUTION · MUSIC/NOISE REMOVED',
     hBars(rows, { unit: 'views', accent: '#8fa600' }),
@@ -76,7 +117,7 @@ function mentionMomentum() {
   const r = mm.risers[0];
   return panel(
     'momentum',
-    2,
+    4,
     'BRAND MOMENTUM',
     `TRAILING-12-MO SHARE OF YT MENTIONS · ${mm.months[0]} → ${mm.complete_through}`,
     multiLine(mm.months, series, { labelEvery: 12 }),
@@ -93,7 +134,7 @@ function risingBrands() {
   const fallers = mm.fallers.filter((m) => m.delta < 0).map((m) => row(m, false)).join('');
   return panel(
     'rising',
-    3,
+    5,
     'WHO’S MOVING',
     'Δ MENTION SHARE · LATEST 12-MO vs PRIOR 12-MO',
     `<div class="rank-cols">
@@ -111,7 +152,7 @@ function categoryMomentum() {
   const last = cm.t12m_videos[cm.t12m_videos.length - 1];
   return panel(
     'yt-trend',
-    5,
+    7,
     'CATEGORY MOMENTUM',
     `TRAILING-12-MO ENERGY-DRINK UPLOADS · THRU ${cm.complete_through}`,
     area(series, { labelEvery: 12, fmt: fmtInt }),
@@ -129,7 +170,7 @@ function priceVsRating() {
   }));
   return panel(
     'price-rating',
-    4,
+    6,
     'PRICE × QUALITY MAP',
     'AMAZON · BUBBLE = TOTAL RATINGS (MARKET TRACTION)',
     scatter(pts, {
@@ -155,7 +196,7 @@ function flavorBoard() {
   const mint = fd.find((f) => f.flavor === 'Mint / Menthol');
   return panel(
     'flavor',
-    6,
+    8,
     'FLAVOR DEMAND BOARD',
     'MENTIONS ACROSS 125K COMMENTS + REVIEWS · BARS = DEMAND',
     hBars(rows, { fmt: fmtInt, unit: 'mentions', labelW: 150, accent: '#8fa600' }),
@@ -172,7 +213,7 @@ function reviewRatings() {
   }));
   return panel(
     'reviews',
-    7,
+    9,
     'REVIEW RATINGS',
     `${fmtInt(d.total)} REVIEWS · AVG ${d.avg}★ · ${d.verified_pct}% VERIFIED`,
     vBars(rows),
@@ -192,7 +233,7 @@ function voiceOfCustomer() {
   const crashNeg = Math.round((100 * crash.neg) / crash.mentions);
   return panel(
     'voc',
-    9,
+    12,
     'LOVES vs COMPLAINTS',
     `SENTIMENT (${data.sentiment_method}) BY THEME · ${fmtInt(data.kpis.youtube_comments)} COMMENTS + ${fmtInt(data.kpis.amazon_reviews)} REVIEWS`,
     stackedBars(rows, { fmt: fmtInt, labelW: 150, legend: true }),
@@ -209,11 +250,32 @@ function instagramEngagement() {
   const top = data.instagram_engagement[0];
   return panel(
     'ig',
-    8,
+    10,
     'SOCIAL ENGAGEMENT',
     'INSTAGRAM · TOTAL LIKES ON SAMPLED POSTS (15/BRAND)',
     hBars(rows, { unit: 'likes', accent: '#8fa600' }),
     `${top.brand} leads on Instagram (${fmtCompact(top.likes)} likes) — newer challenger brands punch far above legacy players on social, proving the category rewards brand-led launches.`
+  );
+}
+
+/* Reddit r/EnergyDrinks: brand chatter + sentiment (recent-window snapshot, not a trend) */
+function redditPulse() {
+  const rb = data.reddit.brands.slice(0, 10);
+  const m = data.reddit.meta;
+  const rows = rb.map((d) => ({ label: d.brand, pos: d.pos, neu: d.neu, neg: d.neg, total: d.mentions }));
+  const top = rb[0];
+  // brand with the highest complaint ratio among the well-discussed ones
+  const grumpy = rb
+    .filter((d) => d.mentions >= 20)
+    .map((d) => ({ brand: d.brand, negPct: Math.round((100 * d.neg) / d.mentions) }))
+    .sort((a, b) => b.negPct - a.negPct)[0];
+  return panel(
+    'reddit',
+    11,
+    'REDDIT COMMUNITY PULSE',
+    `r/ENERGYDRINKS · MENTIONS + SENTIMENT · ${m.date_start}→${m.date_end} SNAPSHOT`,
+    stackedBars(rows, { fmt: fmtInt, labelW: 120, legend: true }),
+    `${top.brand} drives the most chatter (${top.mentions} mentions). ${grumpy ? `${grumpy.brand} draws the most heat — ${grumpy.negPct}% negative, a quality opening for a challenger.` : ''} Note: a ~3-week sample, so read it as a current snapshot, not a trend.`
   );
 }
 
@@ -305,6 +367,8 @@ function countUp(el) {
 function main() {
   renderKpis();
   $('#charts').innerHTML = [
+    marketSize(),
+    conceptInterest(),
     shareOfVoice(),
     mentionMomentum(),
     risingBrands(),
@@ -313,6 +377,7 @@ function main() {
     flavorBoard(),
     reviewRatings(),
     instagramEngagement(),
+    redditPulse(),
     voiceOfCustomer(),
   ].join('');
   renderTable();

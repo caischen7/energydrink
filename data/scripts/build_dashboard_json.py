@@ -453,6 +453,47 @@ flavor_demand = sorted(
     key=lambda x: -x["mentions"],
 )
 
+# ---------------------------------------------------------------- external sources (market, Mintel, Reddit)
+# These come from data/market/* and data/reddit/*, cleaned by
+# build_external_datasets.py (raw corpus not committed). Read the committed CSVs.
+def _rows(path):
+    p = os.path.join(DATA, path)
+    return list(csv.DictReader(open(p, encoding="utf-8"))) if os.path.exists(p) else []
+
+
+def _kv(path):
+    return {r["key"]: r["value"] for r in _rows(path)}
+
+
+market_facts = _kv("market/market_facts.csv")
+market_size = [
+    {
+        "year": int(r["year"]),
+        "revenue": float(r["revenue_busd"]),
+        "change": float(r["yoy_change_pct"]) if r["yoy_change_pct"] else None,
+    }
+    for r in _rows("market/market_size.csv")
+]
+concept_interest = [
+    {"concept": r["concept"], "pct": float(r["interest_pct"])}
+    for r in _rows("market/concept_interest.csv")
+]
+motivations = [
+    {"factor": r["factor"], "pct": float(r["top2box_pct"])}
+    for r in _rows("market/motivations.csv")
+]
+reddit_meta = _kv("reddit/meta.csv")
+reddit_brands = [
+    {
+        "brand": r["brand"],
+        "mentions": int(r["mentions"]),
+        "pos": int(r["pos"]),
+        "neg": int(r["neg"]),
+        "neu": int(r["neu"]),
+    }
+    for r in _rows("reddit/brand_pulse.csv")
+]
+
 # ---------------------------------------------------------------- KPIs
 kpis = {
     "brands": len(brands),
@@ -487,6 +528,10 @@ out = {
     "voice_of_customer": voice_of_customer,
     "flavor_demand": flavor_demand,
     "sentiment_method": SENT_METHOD,
+    "market": {"size": market_size, "facts": market_facts},
+    "concept_interest": concept_interest,
+    "motivations": motivations,
+    "reddit": {"meta": reddit_meta, "brands": reddit_brands},
 }
 
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
@@ -506,3 +551,10 @@ print(f"  momentum risers: " + ", ".join(f"{r['brand']} {r['delta']:+}pp" for r 
 print(f"  top flavors: " + ", ".join(f"{f['flavor']} {f['mentions']:,}" for f in flavor_demand[:4]))
 print(f"  sentiment ({SENT_METHOD}) — " + ", ".join(
     f"{v['theme']}: {round(100*v['pos']/(v['pos']+v['neg']+v['neu']))}%+" for v in voice_of_customer[:3]))
+if market_facts:
+    print(f"  market: ${market_facts.get('total_2024_busd')}B (2024) → ${market_facts.get('forecast_busd')}B ({market_facts.get('forecast_year')}), "
+          f"CAGR {market_facts.get('cagr_hist_pct')}% hist")
+if concept_interest:
+    print(f"  top concept: {concept_interest[0]['concept'][:40]} ({concept_interest[0]['pct']}%)")
+if reddit_brands:
+    print(f"  reddit pulse: {len(reddit_brands)} brands, top {reddit_brands[0]['brand']} ({reddit_brands[0]['mentions']} mentions)")

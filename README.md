@@ -77,10 +77,12 @@ Google-Cloud-integration path.
 
 A second page — [`dashboard.html`](dashboard.html), linked from the nav as
 **MARKET INTEL** — turns the cleaned research in [`data/`](data/) into an
-`ION_OS` analytics terminal: share of voice, **brand momentum** (trailing-12-mo
-trend lines), a **rising/cooling leaderboard**, category momentum, an Amazon
-price × quality map, a **flavor demand board**, review ratings, Instagram
-engagement, a **loves-vs-complaints sentiment** breakdown mined across
+`ION_OS` analytics terminal across 13 panels: **market size** ($98B → $107B
+forecast, Statista), **concept interest** (Mintel — what consumers want to try),
+share of voice, **brand momentum** (trailing-12-mo trend lines), a
+**rising/cooling leaderboard**, category momentum, an Amazon price × quality map,
+a **flavor demand board**, review ratings, Instagram engagement, a **Reddit
+community pulse**, a **loves-vs-complaints sentiment** breakdown mined across
 **125K+ comments**, and a sortable 23-brand cross-platform matrix. Same
 near-black + volt aesthetic, hand-rolled SVG charts, no charting library.
 
@@ -99,6 +101,16 @@ The numbers come from a precomputed aggregate, `src/data/dashboard.json`
 ```bash
 pip install vaderSentiment            # optional — enables real sentiment (else a lexicon fallback)
 python data/scripts/build_dashboard_json.py   # reduces 129K+ records → one small JSON
+```
+
+The **external sources** (market size, Mintel survey, Reddit) are cleaned by a
+separate step into `data/market/` and `data/reddit/` (the raw corpus — Mintel /
+Catalyst `.xlsx`, Reddit dumps — is **not** committed, per repo convention):
+
+```bash
+pip install openpyxl vaderSentiment
+RAW_DATA_DIR=/path/to/unzipped/02_Data python data/scripts/build_external_datasets.py
+python data/scripts/build_dashboard_json.py   # folds them into the aggregate
 ```
 
 Nothing large is shipped to the browser — the 25 MB comment corpus is reduced

@@ -1,0 +1,7 @@
+key,value
+posts,1000
+comments,1000
+date_start,2026-05-21
+date_end,2026-06-09
+sentiment_method,VADER
+subreddit,r/EnergyDrinks

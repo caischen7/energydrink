@@ -54,6 +54,17 @@ Raw scraper exports are **not committed** (large/messy); only the cleaned CSVs a
 `RAW_DATA_DIR` must contain `Amazon data/`, `Instagram data/`, `Youtube data/`.
 See `data/README.md` for the full schema and cleaning notes.
 
+### External sources (`data/market/`, `data/reddit/`)
+```bash
+pip install openpyxl vaderSentiment
+RAW_DATA_DIR=/path/to/unzipped/02_Data python data/scripts/build_external_datasets.py
+```
+Cleans the market reports (Statista/Catalyst `Revenue` sheet → market size; Mintel
+databook `Q6`/`Q4` → concept interest + motivations) and Reddit r/EnergyDrinks
+(brand mentions + VADER sentiment, **aggregates only — no usernames/raw text**)
+into small committed CSVs. Raw corpus is **not** committed. Rerun the dashboard
+aggregate afterwards.
+
 ### Dashboard aggregate (`src/data/dashboard.json`)
 ```bash
 python data/scripts/build_dashboard_json.py   # stdlib only; reads data/, writes src/data/dashboard.json

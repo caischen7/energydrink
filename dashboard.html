@@ -17,11 +17,11 @@
   <header class="bar bar--top">
     <a class="logo mono" href="./index.html" data-hover>ION<sup>®</sup></a>
     <nav class="nav mono" aria-label="Dashboard sections">
-      <a href="#sov" data-hover>[01]&nbsp;VOICE</a>
-      <a href="#momentum" data-hover>[02]&nbsp;MOMENTUM</a>
-      <a href="#flavor" data-hover>[06]&nbsp;FLAVOR</a>
-      <a href="#voc" data-hover>[09]&nbsp;SENTIMENT</a>
-      <a href="#matrix" data-hover>[10]&nbsp;MATRIX</a>
+      <a href="#market" data-hover>[01]&nbsp;MARKET</a>
+      <a href="#concept" data-hover>[02]&nbsp;CONCEPTS</a>
+      <a href="#momentum" data-hover>[04]&nbsp;MOMENTUM</a>
+      <a href="#flavor" data-hover>[08]&nbsp;FLAVOR</a>
+      <a href="#matrix" data-hover>[13]&nbsp;MATRIX</a>
     </nav>
     <div class="bar-right mono">
       <span class="sys"><i class="live-dot"></i>LIVE&nbsp;FEED</span>
@@ -36,9 +36,11 @@
       <h1 class="dash-title">MARKET<br />INTEL</h1>
       <p class="dash-sub">
         Competitive telemetry for the energy-drink category — decoded from
-        <b class="volt">Amazon</b>, <b class="volt">YouTube</b> and
-        <b class="volt">Instagram</b>. Every figure below is computed from the
-        cleaned research corpus in <span class="mono dim">/data</span>.
+        <b class="volt">Amazon</b>, <b class="volt">YouTube</b>,
+        <b class="volt">Instagram</b>, <b class="volt">Reddit</b>, and the
+        <b class="volt">Mintel</b> + <b class="volt">Statista</b> market reports.
+        Every figure below is computed from the cleaned research corpus in
+        <span class="mono dim">/data</span>.
       </p>
       <div id="kpis" class="kpi-strip"></div>
     </section>
@@ -49,7 +51,7 @@
     <!-- cross-platform matrix -->
     <section class="panel-card reveal matrix" id="matrix">
       <header class="pc-head mono">
-        <span class="pc-id">10</span>
+        <span class="pc-id">13</span>
         <h2 class="pc-title">CROSS-PLATFORM BRAND MATRIX</h2>
         <span class="pc-meta">CLICK A COLUMN TO SORT · 23 BRANDS</span>
       </header>
@@ -66,8 +68,10 @@
       <div class="sec-label"><b class="volt">//</b> METHODOLOGY</div>
       <div class="method-grid">
         <p><b class="volt">SOURCES.</b> Amazon product + review scrape, YouTube video
-          metadata + comment corpus, Instagram brand posts. Cleaned into
-          <span class="dim">/data/{amazon,instagram,youtube,combined}</span>.</p>
+          metadata + comment corpus, Instagram brand posts, Reddit r/EnergyDrinks,
+          and market size + survey data (Statista Market Insights, Mintel 2026 US
+          Energy Report, n=766–2,000). Cleaned into
+          <span class="dim">/data/{amazon,instagram,youtube,reddit,market,combined}</span>.</p>
         <p><b class="volt">PIPELINE.</b> <span class="dim">data/scripts/build_dashboard_json.py</span>
           reduces 129K+ records (incl. a 25&nbsp;MB comment file) to a 10&nbsp;KB aggregate —
           nothing large is shipped to the browser.</p>
