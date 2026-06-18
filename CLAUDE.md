@@ -113,10 +113,11 @@ security caveat, and uninstall instructions.
 ## Status & handoff (updated 2026-06-18)
 
 **TL;DR for a new agent**
-- **Branches:** work is on `claude/wizardly-cori-wy508l`, mirrored to `main`.
-  The repo's default branch is still `claude/wizardly-galileo-w6grgo` (set `main`
-  as default in repo Settings if wanted — no API for it). Develop on the
-  `claude/...` branch and keep `main` in sync.
+- **Branches:** everything from this session is merged via **PR #2** into the
+  default branch `claude/wizardly-galileo-w6grgo`, and also lives on `main` and
+  `claude/wizardly-cori-wy508l` (all in sync) — so a fresh clone already has it
+  all. To continue, branch off the default (or `main`) and open a new PR. You can
+  set `main` as the default in repo Settings for a cleaner name (no API for it).
 - **Done & pushed:** this `CLAUDE.md`, the `README`, the curated
   `.claude/skills/`, and the Google Cloud Run deploy setup. The build is green.
 - **👉 Active task = §2 below:** analyze the energy-drink market data and
