@@ -85,14 +85,14 @@ is `null` and `fx.js` no-ops the 3D hooks while the DOM layer still works.
 
 ## Agent skills (`.claude/skills/`)
 
-This repo vendors a large set of agent skills under `.claude/skills/` — one
-repo-authored skill (`add-ion-colorway`) plus ~344 skills installed from
-`anthropics/skills` (official), `alirezarezvani/claude-skills`, and one skill
-from `antigravity-awesome-skills` (both community / unverified). They are
-**tooling, not part of the website or data pipeline** — don't treat them as
-project source when building or editing the site. See
-`.claude/skills/INSTALLED.md` for provenance, the security caveat, and
-uninstall instructions.
+This repo vendors a curated set of agent skills under `.claude/skills/` — one
+repo-authored skill (`add-ion-colorway`) plus 21 skills selected for this
+frontend / marketing site from `anthropics/skills` (official),
+`alirezarezvani/claude-skills`, and `antigravity-awesome-skills` (both
+community / unverified). They are **tooling, not part of the website or data
+pipeline** — don't treat them as project source when building or editing the
+site. See `.claude/skills/INSTALLED.md` for the full list, provenance, the
+security caveat, and uninstall instructions.
 
 ## Git / workflow
 
