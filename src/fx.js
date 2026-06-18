@@ -229,21 +229,98 @@ function initReadout() {
   return { setFps: (v) => { fps = v; } };
 }
 
-/* ---------- terminal form ---------- */
+/* ---------- terminal form: real capture ----------
+ * Persists signups to localStorage (deduped) with UTM + referrer, and — if a
+ * backend is configured at build time via VITE_WAITLIST_ENDPOINT — POSTs the
+ * record there too. No address is discarded; wiring a real ESP is one env var. */
+const WAITLIST_KEY = 'ion_waitlist';
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function readWaitlist() {
+  try {
+    return JSON.parse(localStorage.getItem(WAITLIST_KEY)) || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+/* deterministic per-email "node id" — stable across submits, not a fresh fake each time */
+function nodeId(email) {
+  let h = 2166136261;
+  for (let i = 0; i < email.length; i++) {
+    h ^= email.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return String(((h >>> 0) % 9000) + 1000).padStart(5, '0');
+}
+
+function captureUtm() {
+  const p = new URLSearchParams(location.search);
+  const utm = {};
+  ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'].forEach((k) => {
+    if (p.get(k)) utm[k] = p.get(k);
+  });
+  return utm;
+}
+
 function initForm() {
   const form = $('#join-form');
   const out = $('#term-out');
   if (!form) return;
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const email = $('#join-email').value.trim();
-    if (!email) return;
-    const serial = String(Math.floor(Math.random() * 9000) + 1000).padStart(5, '0');
-    out.textContent = `> ADDRESS LOGGED :: SLOT #${serial} RESERVED :: WELCOME TO THE PROTOCOL ✓`;
-    $('#join-email').disabled = true;
-    const btn = $('button', form);
+  const input = $('#join-email');
+  const btn = $('button', form);
+
+  const lock = () => {
+    input.disabled = true;
     btn.textContent = 'MINTED ✓';
     btn.disabled = true;
+  };
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = input.value.trim().toLowerCase();
+    if (!EMAIL_RE.test(email)) {
+      out.textContent = '> ERR :: INVALID ADDRESS FORMAT — RETRY';
+      input.focus();
+      return;
+    }
+    const list = readWaitlist();
+    const slot = nodeId(email);
+    if (list.some((r) => r.email === email)) {
+      out.textContent = `> ALREADY ON THE ALLOWLIST :: NODE #${slot} ✓`;
+      lock();
+      return;
+    }
+
+    const record = {
+      email,
+      slot,
+      ts: new Date().toISOString(),
+      utm: captureUtm(),
+      ref: document.referrer || null,
+    };
+    list.push(record);
+    try {
+      localStorage.setItem(WAITLIST_KEY, JSON.stringify(list));
+    } catch (e) {
+      /* private mode — still forward below if configured */
+    }
+
+    const endpoint = import.meta.env.VITE_WAITLIST_ENDPOINT;
+    if (endpoint) {
+      out.textContent = '> TRANSMITTING…';
+      try {
+        await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(record),
+        });
+      } catch (err) {
+        console.warn('[ION] waitlist POST failed; address stored locally.', err);
+      }
+    }
+    out.textContent = `> ADDRESS LOGGED :: NODE #${slot} :: WELCOME TO THE PROTOCOL ✓`;
+    lock();
   });
 }
 

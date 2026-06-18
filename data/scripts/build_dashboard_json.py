@@ -70,6 +70,134 @@ posts = rd("instagram/posts.csv")
 videos = rd("youtube/videos.csv")
 summary = rd("combined/brand_summary.csv")
 
+# ================================================================
+# YouTube de-contamination + momentum
+# ----------------------------------------------------------------
+# Brand names that are common words ("Monster", "Bang", "Ghost", "Prime",
+# "Reign") false-match music/entertainment clips — e.g. Eminem's "The Monster"
+# (1.0B views) was being credited to Monster Energy. We (1) drop obvious
+# non-energy clips and (2) split each video's views across the brands it
+# mentions (fractional attribution) so shares can't sum to >100%.
+# ================================================================
+MUSIC_RE = re.compile(
+    r"\b(lyrics?|remix|ft\.|feat\.|official\s*(music)?\s*video|official\s*audio|"
+    r"vevo|soundtrack|album|mixtape|\bprod\.|\bost\b)\b|\(audio\)|\[official",
+    re.I,
+)
+# the scrape cutoff; the final calendar month is partial, so trends end here
+DATA_END = "2026-05"
+COMPLETE_THROUGH = "2026-04"
+
+
+def ym(s):
+    """'YYYY-MM' from a date-ish string, else None."""
+    m = re.match(r"\s*(\d{4})-(\d{2})", s or "")
+    return f"{m.group(1)}-{m.group(2)}" if m else None
+
+
+def brands_of(v):
+    return [b.strip() for b in re.split(r"[;,]", v.get("brands_mentioned") or "") if b.strip()]
+
+
+def is_noise(v):
+    """True for clips that are clearly not about energy drinks (music, etc.)."""
+    return bool(MUSIC_RE.search(f"{v.get('title', '')} {v.get('channel', '')}"))
+
+
+def month_range(end, n):
+    """List of n consecutive 'YYYY-MM' ending at `end` (inclusive)."""
+    y, mo = int(end[:4]), int(end[5:7])
+    out = []
+    for _ in range(n):
+        out.append(f"{y:04d}-{mo:02d}")
+        mo -= 1
+        if mo == 0:
+            mo, y = 12, y - 1
+    return list(reversed(out))
+
+
+yt_clean = defaultdict(lambda: {"views": 0.0, "videos": 0})  # de-contaminated per-brand reach
+brand_month = defaultdict(Counter)                            # brand -> ym -> mention count
+month_total = Counter()                                       # ym -> total brand mentions
+cat_month = Counter()                                         # ym -> energy-drink videos uploaded
+sov_excluded = {"videos": 0, "views": 0}
+total_yt_views = 0
+
+for v in videos:
+    views = int(num(v.get("view_count")) or 0)
+    total_yt_views += views
+    noise = is_noise(v)
+    m = ym(v.get("upload_date"))
+    if not noise and m:
+        cat_month[m] += 1  # creator output proxy (any non-noise energy video)
+    bl = brands_of(v)
+    if not bl:
+        continue
+    if noise:
+        sov_excluded["videos"] += 1
+        sov_excluded["views"] += views
+        continue
+    frac = views / len(bl)  # fractional attribution across co-mentioned brands
+    for b in bl:
+        yt_clean[b]["views"] += frac
+        yt_clean[b]["videos"] += 1
+        if m:
+            brand_month[b][m] += 1
+            month_total[m] += 1
+
+yt_views_clean_total = int(round(sum(d["views"] for d in yt_clean.values())))
+
+# ---- trailing-12-month mention share (normalizes out corpus-recency skew) ----
+MONTHS = month_range(COMPLETE_THROUGH, 60)
+
+
+def t12m_share_series(brand):
+    out_ = []
+    for m in MONTHS:
+        win = month_range(m, 12)
+        n_ = sum(brand_month[brand].get(w, 0) for w in win)
+        d_ = sum(month_total.get(w, 0) for w in win)
+        out_.append(round(100 * n_ / d_, 1) if d_ else 0)
+    return out_
+
+
+def share_at(brand, end_month):
+    win = month_range(end_month, 12)
+    n_ = sum(brand_month[brand].get(w, 0) for w in win)
+    d_ = sum(month_total.get(w, 0) for w in win)
+    return (100 * n_ / d_) if d_ else 0
+
+
+recent_win = month_range(COMPLETE_THROUGH, 24)
+recent_counts = {b: sum(brand_month[b].get(w, 0) for w in recent_win) for b in brand_month}
+top_mom_brands = sorted(recent_counts, key=lambda b: -recent_counts[b])[:6]
+prev_anchor = month_range(COMPLETE_THROUGH, 13)[0]  # 12 months before the latest complete month
+
+movers = []
+for b, c in recent_counts.items():
+    if c < 3:  # min-n gate: ignore brands with too few recent mentions
+        continue
+    now, then = share_at(b, COMPLETE_THROUGH), share_at(b, prev_anchor)
+    movers.append({"brand": b, "now": round(now, 1), "delta": round(now - then, 1)})
+
+mention_momentum = {
+    "months": MONTHS,
+    "complete_through": COMPLETE_THROUGH,
+    "data_end": DATA_END,
+    "metric": "trailing-12-month share of energy-drink video mentions (%)",
+    "brands": [
+        {"brand": b, "share": t12m_share_series(b), "recent": recent_counts[b]}
+        for b in top_mom_brands
+    ],
+    "risers": sorted(movers, key=lambda x: -x["delta"])[:5],
+    "fallers": sorted(movers, key=lambda x: x["delta"])[:5],
+}
+category_momentum = {
+    "months": MONTHS,
+    "complete_through": COMPLETE_THROUGH,
+    "t12m_videos": [sum(cat_month.get(w, 0) for w in month_range(m, 12)) for m in MONTHS],
+}
+
 # ---------------------------------------------------------------- brands (cross-platform table)
 brands = []
 for r in summary:
@@ -88,9 +216,20 @@ for r in summary:
         "yt_avg_views": int(num(r["youtube_avg_views"]) or 0),
     })
 
-# ---------------------------------------------------------------- share of voice (YT views)
+# Override YouTube columns with the de-contaminated reach computed from videos.csv
+# so the matrix and Share of Voice agree and neither is inflated by music clips.
+for b in brands:
+    c = yt_clean.get(b["brand"])
+    if c and c["videos"]:
+        b["yt_views"] = int(round(c["views"]))
+        b["yt_videos"] = c["videos"]
+        b["yt_avg_views"] = int(round(c["views"] / c["videos"]))
+    else:
+        b["yt_views"] = b["yt_videos"] = b["yt_avg_views"] = 0
+
+# ---------------------------------------------------------------- share of voice (de-contaminated YT reach)
 sov = sorted(
-    [{"brand": b["brand"], "views": b["yt_views"]} for b in brands if b["yt_views"] > 0],
+    [{"brand": b, "views": int(round(d["views"]))} for b, d in yt_clean.items() if d["views"] >= 1],
     key=lambda x: -x["views"],
 )
 
@@ -163,14 +302,14 @@ instagram_engagement = sorted(
 )
 top_hashtags = [{"tag": t, "count": c} for t, c in hashtags.most_common(14)]
 
-# ---------------------------------------------------------------- youtube trend + channels + top videos
+# ---------------------------------------------------------------- youtube yearly trend + channels (legacy/compat)
 yt_years = defaultdict(lambda: {"videos": 0, "views": 0})
 channels = defaultdict(lambda: {"views": 0, "videos": 0})
 top_videos = []
-total_yt_views = 0
 for r in videos:
+    if is_noise(r):
+        continue
     v = int(num(r.get("view_count")) or 0)
-    total_yt_views += v
     y = year_of(r.get("upload_date"))
     if y and 2008 <= y <= 2026:
         yt_years[y]["videos"] += 1
@@ -236,7 +375,8 @@ kpis = {
     "instagram_posts": len(posts),
     "youtube_videos": len(videos),
     "youtube_comments": n_comments,
-    "youtube_views": total_yt_views,
+    "youtube_views": yt_views_clean_total,   # energy-context reach (de-contaminated)
+    "youtube_views_raw": total_yt_views,     # raw, incl. music/noise — for transparency
     "data_points": len(products) + len(reviews) + len(posts) + len(videos) + n_comments,
 }
 
@@ -246,6 +386,9 @@ out = {
     "kpis": kpis,
     "brands": brands,
     "share_of_voice": sov,
+    "sov_excluded": sov_excluded,
+    "mention_momentum": mention_momentum,
+    "category_momentum": category_momentum,
     "price_vs_rating": price_vs_rating,
     "review_ratings": review_ratings,
     "review_trend": review_trend,
@@ -267,4 +410,8 @@ print(f"Wrote {OUT} ({size_kb:.1f} KB)")
 print(f"  brands={kpis['brands']} products={kpis['amazon_products']} "
       f"reviews={kpis['amazon_reviews']} ig_posts={kpis['instagram_posts']} "
       f"yt_videos={kpis['youtube_videos']} yt_comments={kpis['youtube_comments']}")
-print(f"  yt_views={kpis['youtube_views']:,} data_points={kpis['data_points']:,}")
+print(f"  yt_views_clean={kpis['youtube_views']:,} (raw={kpis['youtube_views_raw']:,}) "
+      f"data_points={kpis['data_points']:,}")
+print(f"  SoV de-contam: excluded {sov_excluded['videos']} clips / {sov_excluded['views']:,} views")
+print(f"  top SoV: " + ", ".join(f"{s['brand']} {s['views']:,}" for s in sov[:4]))
+print(f"  momentum risers: " + ", ".join(f"{r['brand']} {r['delta']:+}pp" for r in mention_momentum["risers"][:3]))

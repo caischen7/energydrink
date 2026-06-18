@@ -54,6 +54,17 @@ Raw scraper exports are **not committed** (large/messy); only the cleaned CSVs a
 `RAW_DATA_DIR` must contain `Amazon data/`, `Instagram data/`, `Youtube data/`.
 See `data/README.md` for the full schema and cleaning notes.
 
+### Dashboard aggregate (`src/data/dashboard.json`)
+```bash
+python data/scripts/build_dashboard_json.py   # stdlib only; reads data/, writes src/data/dashboard.json
+```
+Reduces the cleaned CSVs (incl. the 25 MB comment corpus) to a ~15 KB aggregate
+the dashboard imports. Key methodology baked in here: **fractional attribution**
++ a music/entertainment noise filter for share-of-voice (strips false brand-name
+matches like Eminem's *"The Monster"*), and **trailing-12-month mention-share**
+momentum that excludes the partial final scrape month (`COMPLETE_THROUGH`).
+Rerun after the cleaned CSVs change.
+
 ## Website architecture
 
 Entry point is `src/main.js`, loaded as a module from `index.html`. It runs the
@@ -67,7 +78,7 @@ boot sequence, then wires up two independent layers:
 | `src/fx.js` | The **DOM layer**. Split-word headline reveals, IntersectionObserver fade-ups, count-up stats, marquee ticker, custom cursor, `body[data-section]` scroll tracking, the edition-row ↔ 3D colorway sync, the header FPS/clock readout, and the fake "mint" form. No animation libraries. |
 | `src/style.css` | The futuristic-OS design system (CSS custom properties, grid overlays, telemetry styling, reduced-motion + no-WebGL fallbacks). Shared by both pages. |
 | `index.html` | Static page skeleton — sections in order: `hero`, `manifesto`, `specs`, `drop`, `protocol`, `join`. Nav links to the dashboard. |
-| `dashboard.html` + `src/dashboard.js` / `src/dashboard.css` / `src/charts.js` | The **Market Intel page**. `dashboard.js` renders KPI count-ups, six chart panels, and a sortable cross-platform brand table from `src/data/dashboard.json`; `charts.js` has dependency-free SVG builders (hBars/vBars/scatter/area); `dashboard.css` `@import`s `style.css` then adds the terminal layout. Registered as a second Vite input in `vite.config.js`. |
+| `dashboard.html` + `src/dashboard.js` / `src/dashboard.css` / `src/charts.js` | The **Market Intel page**. `dashboard.js` renders KPI count-ups, eight chart panels (share of voice, brand momentum, rising/cooling leaderboard, price×quality, category momentum, review ratings, IG engagement, voice-of-customer) and a sortable cross-platform brand table from `src/data/dashboard.json`; `charts.js` has dependency-free SVG builders (hBars/vBars/scatter/area/multiLine); `dashboard.css` `@import`s `style.css` then adds the terminal layout. Registered as a second Vite input in `vite.config.js`. |
 
 ### How the two layers talk
 `scene.js` and `fx.js` don't import each other. `main.js` passes the `scene`

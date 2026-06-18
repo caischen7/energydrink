@@ -6,7 +6,7 @@
  */
 import './dashboard.css';
 import data from './data/dashboard.json';
-import { hBars, vBars, scatter, area, fmtCompact, fmtInt, VOLT, ICE } from './charts.js';
+import { hBars, vBars, scatter, area, multiLine, fmtCompact, fmtInt, VOLT, ICE } from './charts.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -21,7 +21,7 @@ function renderKpis() {
     ['IG POSTS', k.instagram_posts, ''],
     ['YT VIDEOS', k.youtube_videos, ''],
     ['YT COMMENTS MINED', k.youtube_comments, ''],
-    ['TOTAL YT REACH', k.youtube_views, 'VIEWS'],
+    ['ENERGY-CTX REACH', k.youtube_views, 'VIEWS'],
     ['DATA POINTS', k.data_points, ''],
   ];
   $('#kpis').innerHTML = cells
@@ -57,28 +57,65 @@ function shareOfVoice() {
     color: i === 0 ? VOLT : undefined,
   }));
   const top = data.share_of_voice[0];
+  const two = data.share_of_voice[1];
+  const exclB = (data.sov_excluded.views / 1e9).toFixed(1);
   return panel(
     'sov',
     1,
     'SHARE OF VOICE',
-    'YOUTUBE REACH · VIEWS OF VIDEOS MENTIONING BRAND',
+    'YOUTUBE REACH · FRACTIONAL ATTRIBUTION · MUSIC/NOISE REMOVED',
     hBars(rows, { unit: 'views', accent: '#8fa600' }),
-    `${top.brand} commands ${fmtCompact(top.views)} views — ~${(top.views / data.share_of_voice[1].views).toFixed(1)}× the #2 brand. Category attention is hyper-concentrated.`
+    `${top.brand} (${fmtCompact(top.views)}) and ${two.brand} (${fmtCompact(two.views)}) run neck-and-neck once ${exclB}B views of false-matched music clips are stripped out — attention is split between two legacy leaders, not monopolized.`
   );
 }
 
-function youtubeTrend() {
-  const series = data.youtube_trend
-    .filter((d) => d.year >= 2016)
-    .map((d) => ({ label: `'${String(d.year).slice(2)}`, value: d.views }));
-  const v25 = data.youtube_trend.find((d) => d.year === 2025);
+/* per-brand trailing-12-month mention share over time */
+function mentionMomentum() {
+  const mm = data.mention_momentum;
+  const series = mm.brands.map((b) => ({ brand: b.brand, values: b.share }));
+  const r = mm.risers[0];
+  return panel(
+    'momentum',
+    2,
+    'BRAND MOMENTUM',
+    `TRAILING-12-MO SHARE OF YT MENTIONS · ${mm.months[0]} → ${mm.complete_through}`,
+    multiLine(mm.months, series, { labelEvery: 12 }),
+    `Who's winning attention over time, normalized for the growing corpus. ${r.brand} has the steepest climb (${r.delta > 0 ? '+' : ''}${r.delta}pp YoY) — a rising challenger here is an earlier signal than raw size.`
+  );
+}
+
+/* rising / cooling leaderboard */
+function risingBrands() {
+  const mm = data.mention_momentum;
+  const row = (m, up) =>
+    `<li><span class="rk-b">${m.brand}</span><span class="rk-d ${up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${Math.abs(m.delta)}pp</span><span class="rk-n mono dim">${m.now}% now</span></li>`;
+  const risers = mm.risers.filter((m) => m.delta > 0).map((m) => row(m, true)).join('');
+  const fallers = mm.fallers.filter((m) => m.delta < 0).map((m) => row(m, false)).join('');
+  return panel(
+    'rising',
+    3,
+    'WHO’S MOVING',
+    'Δ MENTION SHARE · LATEST 12-MO vs PRIOR 12-MO',
+    `<div class="rank-cols">
+      <div class="rank-col"><h4 class="mono volt">▲ RISING</h4><ol class="rank">${risers}</ol></div>
+      <div class="rank-col"><h4 class="mono dim">▼ COOLING</h4><ol class="rank">${fallers}</ol></div>
+    </div>`,
+    `${mm.risers[0].brand} is gaining fastest (${mm.risers[0].delta > 0 ? '+' : ''}${mm.risers[0].delta}pp); ${mm.fallers[0].brand} is fading (${mm.fallers[0].delta}pp). Watch the climbers — that's where the next breakout forms.`
+  );
+}
+
+function categoryMomentum() {
+  const cm = data.category_momentum;
+  const series = cm.months.map((m, i) => ({ label: m, value: cm.t12m_videos[i] }));
+  const first = cm.t12m_videos[0];
+  const last = cm.t12m_videos[cm.t12m_videos.length - 1];
   return panel(
     'yt-trend',
-    2,
+    5,
     'CATEGORY MOMENTUM',
-    'YOUTUBE VIEWS BY UPLOAD YEAR',
-    area(series),
-    `Creator output peaked in 2025 (${v25 ? fmtCompact(v25.views) : '—'} views across ${v25 ? v25.videos : '—'} videos) — the category is still accelerating on social.`
+    `TRAILING-12-MO ENERGY-DRINK UPLOADS · THRU ${cm.complete_through}`,
+    area(series, { labelEvery: 12, fmt: fmtInt }),
+    `Creator output ${(last / first).toFixed(1)}×'d (${fmtInt(first)} → ${fmtInt(last)} videos per rolling year) and is still climbing. The incomplete final month is excluded, so this is real growth — not a scrape artifact.`
   );
 }
 
@@ -92,7 +129,7 @@ function priceVsRating() {
   }));
   return panel(
     'price-rating',
-    3,
+    4,
     'PRICE × QUALITY MAP',
     'AMAZON · BUBBLE = TOTAL RATINGS (MARKET TRACTION)',
     scatter(pts, {
@@ -117,8 +154,8 @@ function reviewRatings() {
   }));
   return panel(
     'reviews',
-    4,
-    'REVIEW SENTIMENT',
+    6,
+    'REVIEW RATINGS',
     `${fmtInt(d.total)} REVIEWS · AVG ${d.avg}★ · ${d.verified_pct}% VERIFIED`,
     vBars(rows),
     `${Math.round((d.dist['5'] / d.rated) * 100)}% of reviews are 5★ — buyers love what exists. Winning means differentiation, not fixing dissatisfaction.`
@@ -135,11 +172,11 @@ function voiceOfCustomer() {
   const crash = data.voice_of_customer.find((d) => d.theme === 'Crash & Jitters');
   return panel(
     'voc',
-    5,
+    8,
     'VOICE OF THE CUSTOMER',
-    `THEME MENTIONS ACROSS ${fmtInt(data.kpis.youtube_comments)} COMMENTS + ${fmtInt(data.kpis.amazon_reviews)} REVIEWS`,
+    `THEME FREQUENCY ACROSS ${fmtInt(data.kpis.youtube_comments)} COMMENTS + ${fmtInt(data.kpis.amazon_reviews)} REVIEWS`,
     hBars(rows, { fmt: fmtInt, unit: 'mentions', labelW: 180, accent: '#8fa600' }),
-    `Taste and energy dominate the conversation. "Crash & Jitters" (${fmtInt(crash.mentions)}, in blue) is comparatively under-discussed — ION's no-crash protocol speaks directly to it.`
+    `Taste and energy dominate the conversation. "Crash & Jitters" (${fmtInt(crash.mentions)}, in blue) is comparatively under-discussed — ION's no-crash protocol speaks to it. Note: this is mention <em>frequency</em>, not sentiment — a complaint and a compliment both count.`
   );
 }
 
@@ -152,9 +189,9 @@ function instagramEngagement() {
   const top = data.instagram_engagement[0];
   return panel(
     'ig',
-    6,
+    7,
     'SOCIAL ENGAGEMENT',
-    'INSTAGRAM · TOTAL LIKES ON SAMPLED POSTS',
+    'INSTAGRAM · TOTAL LIKES ON SAMPLED POSTS (15/BRAND)',
     hBars(rows, { unit: 'likes', accent: '#8fa600' }),
     `${top.brand} leads on Instagram (${fmtCompact(top.likes)} likes) — newer challenger brands punch far above legacy players on social, proving the category rewards brand-led launches.`
   );
@@ -249,11 +286,13 @@ function main() {
   renderKpis();
   $('#charts').innerHTML = [
     shareOfVoice(),
-    youtubeTrend(),
+    mentionMomentum(),
+    risingBrands(),
     priceVsRating(),
+    categoryMomentum(),
     reviewRatings(),
-    voiceOfCustomer(),
     instagramEngagement(),
+    voiceOfCustomer(),
   ].join('');
   renderTable();
   $('#gen-at').textContent = new Date(data.generated_at).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';

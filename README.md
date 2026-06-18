@@ -77,21 +77,42 @@ Google-Cloud-integration path.
 
 A second page — [`dashboard.html`](dashboard.html), linked from the nav as
 **MARKET INTEL** — turns the cleaned research in [`data/`](data/) into an
-`ION_OS` analytics terminal: share of voice, category momentum, an Amazon
-price × quality map, review sentiment, voice-of-the-customer theme mining
+`ION_OS` analytics terminal: share of voice, **brand momentum** (trailing-12-mo
+trend lines), a **rising/cooling leaderboard**, category momentum, an Amazon
+price × quality map, review ratings, voice-of-the-customer theme mining
 across **125K+ comments**, Instagram engagement, and a sortable 23-brand
 cross-platform matrix. Same near-black + volt aesthetic, hand-rolled SVG
 charts, no charting library.
 
+**Trend-spotting & credibility (Momentum pass).** The dashboard answers *who's
+moving*, not just *who's big*: per-brand monthly **mention-share** is normalized
+for the growing corpus, smoothed over trailing-12-month windows, and the partial
+final scrape month is excluded so trends don't show a false cliff. Share of voice
+uses **fractional attribution** (a video's views split across the brands it names)
+and strips music/entertainment false-matches — ~1.2B phantom views (e.g. Eminem's
+*"The Monster"*, which had inflated Monster Energy ~10×) are removed, so Red Bull
+and Monster correctly land neck-and-neck.
+
 The numbers come from a precomputed aggregate, `src/data/dashboard.json`
-(~11 KB), built from the cleaned CSVs by:
+(~15 KB), built from the cleaned CSVs by:
 
 ```bash
 python data/scripts/build_dashboard_json.py   # reduces 129K+ records → one small JSON
 ```
 
 Nothing large is shipped to the browser — the 25 MB comment corpus is reduced
-to theme counts at build time. Regenerate the JSON after the data changes.
+to theme/momentum aggregates at build time. Regenerate the JSON after the data changes.
+
+### Waitlist capture
+
+The landing-page "JOIN THE PROTOCOL" form persists signups (deduped, with UTM +
+referrer) to `localStorage`. To forward them to a real backend/ESP, set a build-time
+env var — the form then POSTs each record as JSON and still stores it locally as a
+fallback:
+
+```bash
+VITE_WAITLIST_ENDPOINT=https://your-endpoint.example/subscribe npm run build
+```
 
 ## Structure
 

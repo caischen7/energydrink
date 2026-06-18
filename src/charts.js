@@ -182,8 +182,13 @@ export function area(series, opts = {}) {
     grid += `<line x1="${padL}" y1="${y}" x2="${padL + iw}" y2="${y}" class="c-grid"/>
       <text x="${padL - 10}" y="${y}" class="c-lbl" text-anchor="end" dominant-baseline="middle">${fmt(v)}</text>`;
   }
+  const every = opts.labelEvery || 1;
   const xlabels = series
-    .map((s, i) => `<text x="${sx(i)}" y="${H - padB + 24}" class="c-lbl" text-anchor="middle">${esc(s.label)}</text>`)
+    .map((s, i) =>
+      i % every === 0 || i === n - 1
+        ? `<text x="${sx(i)}" y="${H - padB + 24}" class="c-lbl" text-anchor="middle">${esc(s.label)}</text>`
+        : ''
+    )
     .join('');
   const dots = pts
     .map(
@@ -201,4 +206,68 @@ export function area(series, opts = {}) {
   </svg>`;
 }
 
-export { VOLT, ICE, DIM, LINE };
+/* palette for multi-series brand lines — restrained, on-brand, still distinguishable */
+const SERIES_COLORS = ['#c6ff00', '#9fd8ff', '#eaeaea', '#a78bfa', '#ff9f43', '#ff6b9d'];
+
+/*
+ * Multi-series line chart. months: ['YYYY-MM', ...]; series: [{brand, values:[…]}]
+ * opts: { labelEvery, yFmt, yUnit }
+ */
+export function multiLine(months, series, opts = {}) {
+  const W = 800;
+  const H = 380;
+  const padL = 46;
+  const padR = 16;
+  const padB = 70;
+  const padT = 18;
+  const iw = W - padL - padR;
+  const ih = H - padB - padT;
+  const n = months.length;
+  const every = opts.labelEvery || 12;
+  const max = Math.max(...series.flatMap((s) => s.values), 1) * 1.12;
+  const sx = (i) => padL + (n === 1 ? iw / 2 : (i / (n - 1)) * iw);
+  const sy = (v) => padT + ih - (v / max) * ih;
+  const yUnit = opts.yUnit || '%';
+
+  let grid = '';
+  for (let i = 0; i <= 4; i++) {
+    const v = (max * i) / 4;
+    const y = sy(v);
+    grid += `<line x1="${padL}" y1="${y}" x2="${padL + iw}" y2="${y}" class="c-grid"/>
+      <text x="${padL - 8}" y="${y}" class="c-lbl" text-anchor="end" dominant-baseline="middle">${v.toFixed(0)}${yUnit}</text>`;
+  }
+  let xl = '';
+  months.forEach((m, i) => {
+    if (i % every === 0 || i === n - 1) {
+      xl += `<text x="${sx(i)}" y="${H - padB + 22}" class="c-lbl" text-anchor="middle">${esc(m)}</text>`;
+    }
+  });
+
+  const lines = series
+    .map((s, si) => {
+      const color = s.color || SERIES_COLORS[si % SERIES_COLORS.length];
+      const pts = s.values.map((v, i) => [sx(i), sy(v)]);
+      const path = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+      const len = pts.reduce((a, p, i) => (i ? a + Math.hypot(p[0] - pts[i - 1][0], p[1] - pts[i - 1][1]) : 0), 0);
+      const end = pts[pts.length - 1];
+      return `<path d="${path}" fill="none" stroke="${color}" stroke-width="2.25" class="c-mline" style="--len:${len.toFixed(0)}">
+          <title>${esc(s.brand)}</title></path>
+        <circle cx="${end[0]}" cy="${end[1]}" r="3" fill="${color}"/>`;
+    })
+    .join('');
+
+  const legend = series
+    .map((s, si) => {
+      const color = s.color || SERIES_COLORS[si % SERIES_COLORS.length];
+      const perRow = Math.ceil(series.length / 1);
+      const x = padL + si * (iw / perRow);
+      return `<g transform="translate(${x.toFixed(0)} ${H - 20})">
+        <rect width="16" height="3" y="-4" fill="${color}"/>
+        <text x="22" y="0" class="c-lbl" dominant-baseline="middle">${esc(s.brand)}</text></g>`;
+    })
+    .join('');
+
+  return `<svg viewBox="0 0 ${W} ${H}" class="chart" preserveAspectRatio="xMidYMid meet" role="img">${grid}${xl}${lines}${legend}</svg>`;
+}
+
+export { VOLT, ICE, DIM, LINE, SERIES_COLORS };
