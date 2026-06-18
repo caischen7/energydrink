@@ -77,9 +77,9 @@ Google-Cloud-integration path.
 
 A second page — [`dashboard.html`](dashboard.html), linked from the nav as
 **MARKET INTEL** — turns the cleaned research in [`data/`](data/) into an
-`ION_OS` analytics terminal across 13 panels: **market size** ($98B → $107B
+`ION_OS` analytics terminal across 14 panels: **market size** ($98B → $107B
 forecast, Statista), **concept interest** (Mintel — what consumers want to try),
-share of voice, **brand momentum** (trailing-12-mo trend lines), a
+**why-they-drink motivations** (Mintel), share of voice, **brand momentum** (trailing-12-mo trend lines), a
 **rising/cooling leaderboard**, category momentum, an Amazon price × quality map,
 a **flavor demand board**, review ratings, Instagram engagement, a **Reddit
 community pulse**, a **loves-vs-complaints sentiment** breakdown mined across

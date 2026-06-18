@@ -91,6 +91,31 @@ function conceptInterest() {
   );
 }
 
+const MOTIV_SHORT = (f) =>
+  f
+    .replace(/^To /, '')
+    .replace(/^Because I /, '')
+    .replace(/^As an? /, '')
+    .replace(/^For the sense of /, '')
+    .replace(/^For /, '')
+    .replace(/^Out of /, '')
+    .replace(/"/g, '')
+    .replace(/^(\w)/, (m) => m.toUpperCase());
+
+/* Mintel: why people drink energy drinks (top-2-box motivation) — the messaging angle */
+function motivations() {
+  const mv = data.motivations;
+  const rows = mv.map((d, i) => ({ label: MOTIV_SHORT(d.factor), value: d.pct, color: i === 0 ? VOLT : undefined }));
+  return panel(
+    'motivations',
+    3,
+    'WHY THEY DRINK',
+    'MINTEL 2026 · % FINDING EACH FACTOR MOTIVATING (TOP-2-BOX, n=766)',
+    hBars(rows, { fmt: (v) => v + '%', labelW: 200, accent: '#8fa600' }),
+    `Energy (${mv[0].pct}%), taste (${mv[1].pct}%) and focus (${mv[2].pct}%) lead — function and flavor matter almost equally. ION's pitch (sustained no-crash energy <em>plus</em> a designed flavor system) hits the top two motivations at once, rather than trading one for the other.`
+  );
+}
+
 function shareOfVoice() {
   const rows = data.share_of_voice.slice(0, 12).map((d, i) => ({
     label: d.brand,
@@ -102,7 +127,7 @@ function shareOfVoice() {
   const exclB = (data.sov_excluded.views / 1e9).toFixed(1);
   return panel(
     'sov',
-    3,
+    4,
     'SHARE OF VOICE',
     'YOUTUBE REACH · FRACTIONAL ATTRIBUTION · MUSIC/NOISE REMOVED',
     hBars(rows, { unit: 'views', accent: '#8fa600' }),
@@ -117,7 +142,7 @@ function mentionMomentum() {
   const r = mm.risers[0];
   return panel(
     'momentum',
-    4,
+    5,
     'BRAND MOMENTUM',
     `TRAILING-12-MO SHARE OF YT MENTIONS · ${mm.months[0]} → ${mm.complete_through}`,
     multiLine(mm.months, series, { labelEvery: 12 }),
@@ -134,7 +159,7 @@ function risingBrands() {
   const fallers = mm.fallers.filter((m) => m.delta < 0).map((m) => row(m, false)).join('');
   return panel(
     'rising',
-    5,
+    6,
     'WHO’S MOVING',
     'Δ MENTION SHARE · LATEST 12-MO vs PRIOR 12-MO',
     `<div class="rank-cols">
@@ -152,7 +177,7 @@ function categoryMomentum() {
   const last = cm.t12m_videos[cm.t12m_videos.length - 1];
   return panel(
     'yt-trend',
-    7,
+    8,
     'CATEGORY MOMENTUM',
     `TRAILING-12-MO ENERGY-DRINK UPLOADS · THRU ${cm.complete_through}`,
     area(series, { labelEvery: 12, fmt: fmtInt }),
@@ -170,7 +195,7 @@ function priceVsRating() {
   }));
   return panel(
     'price-rating',
-    6,
+    7,
     'PRICE × QUALITY MAP',
     'AMAZON · BUBBLE = TOTAL RATINGS (MARKET TRACTION)',
     scatter(pts, {
@@ -196,7 +221,7 @@ function flavorBoard() {
   const mint = fd.find((f) => f.flavor === 'Mint / Menthol');
   return panel(
     'flavor',
-    8,
+    9,
     'FLAVOR DEMAND BOARD',
     'MENTIONS ACROSS 125K COMMENTS + REVIEWS · BARS = DEMAND',
     hBars(rows, { fmt: fmtInt, unit: 'mentions', labelW: 150, accent: '#8fa600' }),
@@ -213,7 +238,7 @@ function reviewRatings() {
   }));
   return panel(
     'reviews',
-    9,
+    10,
     'REVIEW RATINGS',
     `${fmtInt(d.total)} REVIEWS · AVG ${d.avg}★ · ${d.verified_pct}% VERIFIED`,
     vBars(rows),
@@ -233,7 +258,7 @@ function voiceOfCustomer() {
   const crashNeg = Math.round((100 * crash.neg) / crash.mentions);
   return panel(
     'voc',
-    12,
+    13,
     'LOVES vs COMPLAINTS',
     `SENTIMENT (${data.sentiment_method}) BY THEME · ${fmtInt(data.kpis.youtube_comments)} COMMENTS + ${fmtInt(data.kpis.amazon_reviews)} REVIEWS`,
     stackedBars(rows, { fmt: fmtInt, labelW: 150, legend: true }),
@@ -250,7 +275,7 @@ function instagramEngagement() {
   const top = data.instagram_engagement[0];
   return panel(
     'ig',
-    10,
+    11,
     'SOCIAL ENGAGEMENT',
     'INSTAGRAM · TOTAL LIKES ON SAMPLED POSTS (15/BRAND)',
     hBars(rows, { unit: 'likes', accent: '#8fa600' }),
@@ -271,7 +296,7 @@ function redditPulse() {
     .sort((a, b) => b.negPct - a.negPct)[0];
   return panel(
     'reddit',
-    11,
+    12,
     'REDDIT COMMUNITY PULSE',
     `r/ENERGYDRINKS · MENTIONS + SENTIMENT · ${m.date_start}→${m.date_end} SNAPSHOT`,
     stackedBars(rows, { fmt: fmtInt, labelW: 120, legend: true }),
@@ -369,6 +394,7 @@ function main() {
   $('#charts').innerHTML = [
     marketSize(),
     conceptInterest(),
+    motivations(),
     shareOfVoice(),
     mentionMomentum(),
     risingBrands(),

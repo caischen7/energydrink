@@ -92,7 +92,7 @@
   min-width: 0;
 }
 /* full-width panels */
-#market, #concept, #sov, #momentum, #yt-trend, #flavor, #reddit, #voc, #matrix { grid-column: 1 / -1; }
+#market, #concept, #motivations, #sov, #momentum, #yt-trend, #flavor, #reddit, #voc, #matrix { grid-column: 1 / -1; }
 
 .pc-head {
   display: flex;
