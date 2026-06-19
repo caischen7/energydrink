@@ -1,4 +1,4 @@
-# ION® — LIQUID HARDWARE
+# Bogus Banana — Ridiculously Good Energy
 
 A futuristic hydration brand where the product **is** the experience. The landing
 page is built around one persistent, interactive 3D can instead of product

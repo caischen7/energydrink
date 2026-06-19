@@ -11,7 +11,7 @@ Guidance for Claude Code (and other agents) working in this repository.
 
 Two loosely-related things live here:
 
-1. **`ION® — Liquid Hardware`** — a single-page marketing site for a fictional
+1. **`Bogus Banana`** — a single-page marketing site for a fictional energy-drink
    futuristic hydration brand, built around one persistent, procedurally-generated
    interactive 3D can (Vite + three.js, no framework). This is what `npm run dev`
    builds and what `index.html` / `src/` contain.

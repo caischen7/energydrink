@@ -1,5 +1,5 @@
 /*
- * ION_OS // MARKET INTEL — dashboard logic.
+ * Bogus Banana // Market Intel — dashboard logic.
  * Fetches the precomputed aggregate (public/data/dashboard.json, nginx-guarded), renders every
  * panel with the SVG chart builders, wires the sortable cross-platform table,
  * counts up the KPI readouts, and reveals charts on scroll.
@@ -92,7 +92,7 @@ function conceptInterest() {
     'CONCEPT INTEREST — WHAT TO LAUNCH',
     'MINTEL 2026 · % OF US ENERGY-DRINK CONSUMERS INTERESTED IN TRYING (n=766)',
     hBars(rows, { fmt: (v) => v + '%', labelW: 210, accent: '#c7c7cc' }),
-    `Consumers most want ${t[0]}, ${t[1]} and ${t[2]} — all squarely in ION's lane (functional electrolytes, clean, natural). "Branded flavors" and "adaptogens" (~34%) are the rising white-space bets.`
+    `Consumers most want ${t[0]}, ${t[1]} and ${t[2]} — all squarely in Bogus Banana's lane (functional electrolytes, clean, natural). "Branded flavors" and "adaptogens" (~34%) are the rising white-space bets.`
   );
 }
 
@@ -117,7 +117,7 @@ function motivations() {
     'WHY THEY DRINK',
     'MINTEL 2026 · % FINDING EACH FACTOR MOTIVATING (TOP-2-BOX, n=766)',
     hBars(rows, { fmt: (v) => v + '%', labelW: 200, accent: '#c7c7cc' }),
-    `Energy (${mv[0].pct}%), taste (${mv[1].pct}%) and focus (${mv[2].pct}%) lead — function and flavor matter almost equally. ION's pitch (sustained no-crash energy <em>plus</em> a designed flavor system) hits the top two motivations at once, rather than trading one for the other.`
+    `Energy (${mv[0].pct}%), taste (${mv[1].pct}%) and focus (${mv[2].pct}%) lead — function and flavor matter almost equally. Bogus Banana's pitch (sustained no-crash energy <em>plus</em> a designed flavor system) hits the top two motivations at once, rather than trading one for the other.`
   );
 }
 
@@ -212,7 +212,7 @@ function priceVsRating() {
       yMin: 3.8,
       yMax: 5,
     }),
-    'High-traction brands cluster at 4.5–4.7★ and $19–$31. Few combine premium price with top ratings — the upper-right quadrant is open for a serialized, premium ION position.'
+    'High-traction brands cluster at 4.5–4.7★ and $19–$31. Few combine premium price with top ratings — the upper-right quadrant is open for a premium Bogus Banana position.'
   );
 }
 
@@ -230,7 +230,7 @@ function flavorBoard() {
     'FLAVOR DEMAND BOARD',
     'MENTIONS ACROSS 125K COMMENTS + REVIEWS · BARS = DEMAND',
     hBars(rows, { fmt: fmtInt, unit: 'mentions', labelW: 150, accent: '#c7c7cc' }),
-    `${top.flavor} (${fmtInt(top.mentions)} mentions, ${top.avg_rating}★) and ${two.flavor} (${fmtInt(two.mentions)}, ${two.avg_rating}★) lead demand — validating ION's Citrus Static & Blackberry Null.${gem ? ` "${gem.flavor}" is the sleeper: best-rated at ${gem.avg_rating}★ on only ${gem.products} SKUs — high satisfaction, low supply.` : ''}${mint ? ` Mint/menthol is weakest (${mint.avg_rating}★) — a flag if "Glacial Freeze" leans cooling.` : ''}`
+    `${top.flavor} (${fmtInt(top.mentions)} mentions, ${top.avg_rating}★) and ${two.flavor} (${fmtInt(two.mentions)}, ${two.avg_rating}★) lead demand — validating Bogus Banana's Original Blast & Midnight Berry.${gem ? ` "${gem.flavor}" is the sleeper: best-rated at ${gem.avg_rating}★ on only ${gem.products} SKUs — high satisfaction, low supply.` : ''}${mint ? ` Mint/menthol is weakest (${mint.avg_rating}★) — a flag if "Frozen Banana" leans cooling.` : ''}`
   );
 }
 
@@ -267,7 +267,7 @@ function voiceOfCustomer() {
     'LOVES vs COMPLAINTS',
     `SENTIMENT (${data.sentiment_method}) BY THEME · ${fmtInt(data.kpis.youtube_comments)} COMMENTS + ${fmtInt(data.kpis.amazon_reviews)} REVIEWS`,
     stackedBars(rows, { fmt: fmtInt, labelW: 150, legend: true }),
-    `Most themes run 75–82% positive — buyers love what exists, so winning means differentiation, not damage control. The exception: "Crash & Jitters" is <b class="volt">${crashNeg}% negative</b> — ~2× the category complaint rate, the clearest unmet need, and exactly what ION's no-crash protocol targets.`
+    `Most themes run 75–82% positive — buyers love what exists, so winning means differentiation, not damage control. The exception: "Crash & Jitters" is <b class="volt">${crashNeg}% negative</b> — ~2× the category complaint rate, the clearest unmet need, and exactly what Bogus Banana's no-crash promise targets.`
   );
 }
 

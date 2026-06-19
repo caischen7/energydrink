@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Bogus Banana mascot">
+  <defs>
+    <linearGradient id="bbBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F7711F"/>
+      <stop offset="1" stop-color="#E5251C"/>
+    </linearGradient>
+  </defs>
+  <!-- ground shadow -->
+  <ellipse cx="60" cy="111" rx="29" ry="4.2" fill="#000" opacity="0.12"/>
+  <!-- flexing arms -->
+  <g fill="none" stroke="#ECA56C" stroke-width="11" stroke-linecap="round">
+    <path d="M42 64 C 30 67, 21 66, 18.5 51"/>
+    <path d="M78 64 C 90 67, 99 66, 101.5 51"/>
+  </g>
+  <circle cx="17.5" cy="47.5" r="8.5" fill="#ECA56C"/>
+  <circle cx="102.5" cy="47.5" r="8.5" fill="#ECA56C"/>
+  <!-- can body -->
+  <rect x="40" y="30" width="40" height="72" rx="11" fill="url(#bbBody)"/>
+  <!-- can top + pull tab -->
+  <rect x="55.5" y="19" width="9" height="8" rx="2.5" fill="#C4C9D0"/>
+  <ellipse cx="60" cy="30.5" rx="20" ry="5" fill="#DCDFE4"/>
+  <ellipse cx="60" cy="30.5" rx="13" ry="3" fill="#A7ADB6"/>
+  <!-- lightning bolt -->
+  <path d="M63.5 70 L54 85.5 L60 85.5 L57 97 L69.5 80.5 L62.5 80.5 Z" fill="#fff"/>
+  <!-- face -->
+  <g fill="none" stroke="#2A1A12" stroke-width="2.6" stroke-linecap="round">
+    <path d="M64 52.5 q4 -4.5 8.4 0"/>
+    <path d="M49.5 60 q10.5 9 21 0"/>
+  </g>
+  <ellipse cx="52" cy="51.5" rx="2.7" ry="3.5" fill="#2A1A12"/>
+  <circle cx="47" cy="60.5" r="3" fill="#FF9E86" opacity="0.55"/>
+  <circle cx="73" cy="60.5" r="3" fill="#FF9E86" opacity="0.55"/>
+</svg>

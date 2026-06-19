@@ -1,8 +1,8 @@
 {
-  "name": "ion-liquid-hardware",
+  "name": "bogus-banana",
   "private": true,
   "version": "0.1.0",
-  "description": "ION® — Liquid Hardware. A futuristic hydration brand landing page built around an interactive 3D can.",
+  "description": "Bogus Banana — ridiculously good energy. Minimalist marketing site built around an interactive 3D can.",
   "type": "module",
   "scripts": {
     "dev": "vite",

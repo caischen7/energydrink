@@ -161,9 +161,9 @@ function trackSections() {
 
 /* ---------- editions <-> 3D colorway ---------- */
 const EDITION_HUD = {
-  volt: 'VOLT-001 / 10000',
-  void: 'VOID-002 / 02500',
-  glacier: 'GLCR-003 / 00500',
+  volt: 'BB-01 · ORIGINAL',
+  void: 'BB-02 · MIDNIGHT BERRY',
+  glacier: 'BB-03 · FROZEN BANANA',
 };
 
 function initEditions(setColorway) {
@@ -287,7 +287,7 @@ function initForm() {
     const list = readWaitlist();
     const slot = nodeId(email);
     if (list.some((r) => r.email === email)) {
-      out.textContent = `> ALREADY ON THE ALLOWLIST :: NODE #${slot} ✓`;
+      out.textContent = `> ALREADY ON THE LIST :: #${slot} ✓`;
       lock();
       return;
     }
@@ -319,7 +319,7 @@ function initForm() {
         console.warn('[ION] waitlist POST failed; address stored locally.', err);
       }
     }
-    out.textContent = `> ADDRESS LOGGED :: NODE #${slot} :: WELCOME TO THE PROTOCOL ✓`;
+    out.textContent = `> YOU'RE ON THE LIST :: #${slot} :: WELCOME TO THE BUNCH ✓`;
     lock();
   });
 }

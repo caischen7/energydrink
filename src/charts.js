@@ -1,5 +1,5 @@
 /*
- * Dependency-free SVG chart builders for the ION_OS market-intel dashboard.
+ * Dependency-free SVG chart builders for the Bogus Banana market-intel dashboard.
  * Each function returns an <svg> string injected via innerHTML. Charts use a
  * fixed viewBox and scale to their container; entrance animation is CSS-driven
  * (see dashboard.css) and gated by an IntersectionObserver in dashboard.js.

@@ -1,5 +1,5 @@
 /* ============================================================
-   ION_OS // MARKET INTEL — dashboard surface (minimalist light).
+   Bogus Banana // Market Intel — dashboard surface (minimalist light).
    Inherits the design system from style.css; adds the data
    layout + chart styling on white.
    ============================================================ */
@@ -243,13 +243,17 @@ body.gated { overflow: hidden; }
   flex-direction: column;
 }
 .gate-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
   font-family: var(--f-display);
   font-weight: 700;
-  font-size: 2.2rem;
+  font-size: 1.7rem;
   line-height: 1;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.03em;
   color: var(--ink);
 }
+.gate-mark { width: 40px; height: 40px; display: block; }
 .gate-brand sup { font-size: 0.28em; color: var(--accent); }
 .gate-head {
   color: var(--dim);

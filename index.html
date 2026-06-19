@@ -3,28 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0a0a0a" />
-  <meta name="description" content="ION® — Liquid Hardware. Structured hydration for the next epoch. 480mg electrolyte stack, zero sugar, 10,000 serialized genesis cans. Not a beverage — a protocol." />
-  <meta property="og:title" content="ION® — LIQUID HARDWARE" />
-  <meta property="og:description" content="Structured hydration for the next epoch. Genesis drop: 10,000 serialized units." />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="description" content="Bogus Banana — ridiculously good energy. 480mg electrolyte stack, 120mg clean caffeine, zero sugar, no crash. Grab a can." />
+  <meta property="og:title" content="Bogus Banana — Ridiculously Good Energy" />
+  <meta property="og:description" content="480mg electrolyte stack, clean caffeine, zero sugar, no crash. Energy, peeled." />
   <meta property="og:type" content="website" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <title>ION® — LIQUID HARDWARE</title>
+  <link rel="icon" type="image/svg+xml" href="/mascot.svg" />
+  <title>Bogus Banana — Ridiculously Good Energy</title>
 </head>
 <body data-section="hero">
 
-  <!-- ============ BOOT SEQUENCE ============ -->
+  <!-- ============ SPLASH ============ -->
   <div id="boot" role="status" aria-label="Loading">
     <div class="boot-core">
-      <div class="boot-logo">ION<sup>®</sup></div>
-      <div class="boot-log" id="boot-log" aria-hidden="true"></div>
+      <img class="boot-mark" src="/mascot.svg" alt="" />
+      <div class="boot-logo">Bogus Banana</div>
       <div class="boot-bar"><i id="boot-bar"></i></div>
-      <div class="boot-meta mono">
-        <span>HYDRATION_PROTOCOL v4.2.0</span>
-        <span id="boot-pct">0%</span>
-      </div>
     </div>
-    <div class="boot-skip mono" aria-hidden="true">[ CLICK TO SKIP ]</div>
   </div>
 
   <!-- ============ FIXED LAYERS ============ -->
@@ -35,42 +30,46 @@
 
   <!-- ============ TOP BAR ============ -->
   <header class="bar bar--top">
-    <a class="logo mono" href="#hero" data-hover>ION<sup>®</sup></a>
-    <nav class="nav mono" aria-label="Sections">
-      <a href="#manifesto" data-hover>[01]&nbsp;MANIFESTO</a>
-      <a href="#specs" data-hover>[02]&nbsp;SPECS</a>
-      <a href="#drop" data-hover>[03]&nbsp;THE&nbsp;DROP</a>
-      <a href="#protocol" data-hover>[04]&nbsp;PROTOCOL</a>
+    <a class="logo" href="#hero" data-hover>
+      <img class="logo-mark" src="/mascot.svg" alt="" />
+      <span>Bogus&nbsp;Banana</span>
+    </a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#manifesto" data-hover>Story</a>
+      <a href="#specs" data-hover>Specs</a>
+      <a href="#drop" data-hover>Flavors</a>
+      <a href="#protocol" data-hover>Inside</a>
     </nav>
-    <div class="bar-right mono">
+    <div class="bar-right">
       <span class="sys" id="sys-readout">SYS&nbsp;··FPS</span>
-      <a class="bar-intel" href="./dashboard.html" data-hover>MARKET&nbsp;INTEL&nbsp;↗</a>
-      <a class="btn-mint" href="#join" data-hover>MINT_CAN</a>
+      <a class="bar-intel" href="./dashboard.html" data-hover>Market&nbsp;Intel&nbsp;↗</a>
+      <a class="btn-mint" href="#join" data-hover>Get a can</a>
     </div>
   </header>
 
   <main>
     <!-- ============ 00 / HERO ============ -->
     <section id="hero" class="panel panel--hero" data-canvas="front">
-      <h1 class="mega" aria-label="ION — liquid hardware">
-        <span class="mega-word" aria-hidden="true">ION</span>
+      <h1 class="mega" aria-label="Bogus Banana">
+        <span class="mega-word" aria-hidden="true">BOGUS</span>
+        <span class="mega-word" aria-hidden="true">BANANA</span>
       </h1>
-      <p class="hero-sub mono">
-        <span>STRUCTURED&nbsp;HYDRATION</span>
-        <span class="volt">//</span>
-        <span>LIQUID&nbsp;HARDWARE</span>
+      <p class="hero-sub">
+        <span>RIDICULOUSLY&nbsp;GOOD&nbsp;ENERGY</span>
+        <span class="volt">·</span>
+        <span>ZERO&nbsp;BULL</span>
       </p>
       <div class="hero-hud mono" aria-hidden="true">
         <div class="hud-cell">
-          <span class="hud-k">EDITION</span>
-          <span class="hud-v" id="hud-edition">VOLT-001 / 10000</span>
+          <span class="hud-k">FLAVOR</span>
+          <span class="hud-v" id="hud-edition">BB-01 · ORIGINAL</span>
         </div>
         <div class="hud-cell hud-cell--mid">
-          <span class="scroll-hint">SCROLL&nbsp;TO&nbsp;DECRYPT<i class="scroll-tick">▼</i></span>
+          <span class="scroll-hint">SCROLL TO EXPLORE<i class="scroll-tick">▼</i></span>
         </div>
         <div class="hud-cell hud-cell--right">
-          <span class="hud-k">VESSEL</span>
-          <span class="hud-v">473&nbsp;ML&nbsp;·&nbsp;AL-99&nbsp;·&nbsp;4°C</span>
+          <span class="hud-k">CAN</span>
+          <span class="hud-v">473 ML · ZERO SUGAR · 4°C</span>
         </div>
       </div>
       <div class="hero-frame" aria-hidden="true">
@@ -82,176 +81,177 @@
     <div class="ticker mono" aria-hidden="true">
       <div class="ticker-track" id="ticker-track">
         <span class="ticker-run">
-          ION/H₂O <b class="volt">▲ 99.9%</b> PURITY&ensp;·&ensp;BLOCK #8,421,007&ensp;·&ensp;000 SUGAR&ensp;·&ensp;480MG ELECTROLYTE STACK&ensp;·&ensp;MINT OPEN&ensp;·&ensp;PH 9.1&ensp;·&ensp;GENESIS SUPPLY 10,000 UNITS&ensp;·&ensp;NO CRASH PROTOCOL&ensp;·&ensp;SERVE COLD, HODL COLDER&ensp;·&ensp;
+          BOGUS&nbsp;BANANA <b class="volt">⚡</b> RIDICULOUSLY GOOD ENERGY&ensp;·&ensp;000 SUGAR&ensp;·&ensp;480MG ELECTROLYTE STACK&ensp;·&ensp;120MG CLEAN CAFFEINE&ensp;·&ensp;NO CRASH&ensp;·&ensp;PH 9.1&ensp;·&ensp;SERVE COLD&ensp;·&ensp;FLEX YOUR THIRST&ensp;·&ensp;ENERGY, PEELED&ensp;·&ensp;
         </span>
       </div>
     </div>
 
-    <!-- ============ 01 / MANIFESTO ============ -->
+    <!-- ============ 01 / STORY ============ -->
     <section id="manifesto" class="panel panel--manifesto">
-      <div class="sec-label mono"><b class="volt">//</b> 01 — MANIFESTO</div>
+      <div class="sec-label mono"><b class="volt">·</b> 01 — STORY</div>
       <h2 class="headline split" data-split>
-        NOT A BEVERAGE.<br />LIQUID HARDWARE.
+        BIG ENERGY.<br />ZERO BULL.
       </h2>
       <div class="manifesto-body">
         <p class="reveal">
-          Water shipped its last update 4.5 billion years ago. We forked it.
+          We got tired of energy drinks that taste like regret and hit like a
+          freight train. So we made one that doesn't.
         </p>
         <p class="reveal mono dim">
-          ION is a structured hydration system: a triple-channel electrolyte
-          stack running on alkaline architecture, sealed in serialized
-          aluminium. No sugar. No crash. No legacy code.
+          Bogus Banana is a triple-channel electrolyte stack with clean,
+          cold-extracted caffeine and absolutely zero sugar. Big flavor, smooth
+          lift, no crash, no nonsense.
         </p>
         <div class="manifesto-sig mono reveal">
-          <span class="volt">&gt;</span> EVERY CAN IS A NODE. <span class="cursor-blink">▮</span>
+          <span class="volt">&gt;</span> CRACK ONE OPEN. <span class="cursor-blink">▮</span>
         </div>
       </div>
     </section>
 
     <!-- ============ 02 / SPECS ============ -->
     <section id="specs" class="panel panel--specs">
-      <div class="sec-label mono"><b class="volt">//</b> 02 — TECH SPECS</div>
-      <h2 class="headline headline--right split" data-split>RUNS ON<br />IONS.</h2>
+      <div class="sec-label mono"><b class="volt">·</b> 02 — SPECS</div>
+      <h2 class="headline headline--right split" data-split>RUNS ON<br />BANANAS.</h2>
       <div class="spec-grid">
         <article class="spec-card reveal" data-hover>
-          <header class="mono"><span>ELECTROLYTE_STACK</span><span class="volt">[A1]</span></header>
+          <header class="mono"><span>ELECTROLYTE STACK</span><span class="volt">[A1]</span></header>
           <div class="spec-num"><b data-count="480">000</b><small>MG</small></div>
-          <p class="mono dim">NA+ / K+ / MG2+ — TRIPLE-CHANNEL DELIVERY, OSMOTICALLY TUNED.</p>
+          <p class="mono dim">Na+ / K+ / Mg2+ — triple-channel hydration, properly balanced.</p>
         </article>
         <article class="spec-card reveal" data-hover>
-          <header class="mono"><span>GLYCEMIC_PAYLOAD</span><span class="volt">[B2]</span></header>
+          <header class="mono"><span>SUGAR</span><span class="volt">[B2]</span></header>
           <div class="spec-num"><b data-count="0" data-pad="3">000</b><small>G</small></div>
-          <p class="mono dim">ZERO SUGAR. CLEAN EXECUTION. NOTHING TO ROLL BACK.</p>
+          <p class="mono dim">Zero sugar. Zero guilt. All the flavor stays.</p>
         </article>
         <article class="spec-card reveal" data-hover>
-          <header class="mono"><span>PH_BALANCE</span><span class="volt">[C3]</span></header>
+          <header class="mono"><span>PH BALANCE</span><span class="volt">[C3]</span></header>
           <div class="spec-num"><b data-count="9.1" data-decimals="1">0.0</b><small>PH</small></div>
-          <p class="mono dim">IONIZED ALKALINE BUFFER. STABLE UNDER LOAD.</p>
+          <p class="mono dim">Smooth alkaline buffer. Easy on the stomach.</p>
         </article>
         <article class="spec-card reveal" data-hover>
-          <header class="mono"><span>FOCUS_COMPOUND</span><span class="volt">[D4]</span></header>
+          <header class="mono"><span>CLEAN CAFFEINE</span><span class="volt">[D4]</span></header>
           <div class="spec-num"><b data-count="120">000</b><small>MG</small></div>
-          <p class="mono dim">COLD-EXTRACTED GREEN CAFFEINE + L-THEANINE. NO-CRASH PROTOCOL.</p>
+          <p class="mono dim">Cold-extracted green caffeine + L-theanine. The no-crash combo.</p>
         </article>
         <article class="spec-card reveal" data-hover>
-          <header class="mono"><span>THERMAL_TARGET</span><span class="volt">[E5]</span></header>
+          <header class="mono"><span>SERVE AT</span><span class="volt">[E5]</span></header>
           <div class="spec-num"><b data-count="4">0</b><small>°C</small></div>
-          <p class="mono dim">PEAK CONDUCTIVITY AT FOUR DEGREES. COLD CHAIN VERIFIED.</p>
+          <p class="mono dim">Best ice-cold. Tastes like a victory lap.</p>
         </article>
         <article class="spec-card reveal" data-hover>
-          <header class="mono"><span>GENESIS_SUPPLY</span><span class="volt">[F6]</span></header>
-          <div class="spec-num"><b data-count="10000" data-group="true">00000</b><small>UNITS</small></div>
-          <p class="mono dim">SERIALIZED RUN. ENGRAVED, NUMBERED, NEVER REPRINTED.</p>
+          <header class="mono"><span>FIRST BATCH</span><span class="volt">[F6]</span></header>
+          <div class="spec-num"><b data-count="10000" data-group="true">00000</b><small>CANS</small></div>
+          <p class="mono dim">Our launch run. Once they're gone, they're gone.</p>
         </article>
       </div>
     </section>
 
-    <!-- ============ 03 / THE DROP ============ -->
+    <!-- ============ 03 / FLAVORS ============ -->
     <section id="drop" class="panel panel--drop">
-      <div class="sec-label mono"><b class="volt">//</b> 03 — THE DROP</div>
-      <h2 class="headline split" data-split>GENESIS<br />SERIES.</h2>
-      <p class="drop-note mono dim reveal">THREE COLORWAYS. ONE LEDGER. HOVER TO INSPECT THE VESSEL.</p>
+      <div class="sec-label mono"><b class="volt">·</b> 03 — FLAVORS</div>
+      <h2 class="headline split" data-split>THE<br />LINEUP.</h2>
+      <p class="drop-note mono dim reveal">Three flavors. Hover a row to spin the can.</p>
       <ul class="editions">
         <li class="edition reveal" data-colorway="volt" data-hover tabindex="0">
-          <span class="ed-id mono">VOLT-001</span>
-          <span class="ed-name">CITRUS&nbsp;STATIC</span>
-          <span class="ed-rarity mono"><i class="tag tag--volt">GENESIS</i></span>
-          <span class="ed-supply mono">10,000&nbsp;MINTED</span>
-          <span class="ed-status mono volt">● OPEN</span>
+          <span class="ed-id mono">BB-01</span>
+          <span class="ed-name">ORIGINAL&nbsp;BLAST</span>
+          <span class="ed-rarity mono"><i class="tag tag--volt">ORIGINAL</i></span>
+          <span class="ed-supply mono">THE&nbsp;CLASSIC</span>
+          <span class="ed-status mono volt">● IN STOCK</span>
         </li>
         <li class="edition reveal" data-colorway="void" data-hover tabindex="0">
-          <span class="ed-id mono">VOID-002</span>
-          <span class="ed-name">BLACKBERRY&nbsp;NULL</span>
-          <span class="ed-rarity mono"><i class="tag">RARE</i></span>
-          <span class="ed-supply mono">2,500&nbsp;MINTED</span>
-          <span class="ed-status mono dim">◐ Q3·2086</span>
+          <span class="ed-id mono">BB-02</span>
+          <span class="ed-name">MIDNIGHT&nbsp;BERRY</span>
+          <span class="ed-rarity mono"><i class="tag">NEW</i></span>
+          <span class="ed-supply mono">LIMITED</span>
+          <span class="ed-status mono volt">● IN STOCK</span>
         </li>
         <li class="edition reveal" data-colorway="glacier" data-hover tabindex="0">
-          <span class="ed-id mono">GLCR-003</span>
-          <span class="ed-name">GLACIAL&nbsp;FREEZE</span>
-          <span class="ed-rarity mono"><i class="tag tag--ice">ULTRA</i></span>
-          <span class="ed-supply mono">500&nbsp;MINTED</span>
-          <span class="ed-status mono dim">○ LOCKED</span>
+          <span class="ed-id mono">BB-03</span>
+          <span class="ed-name">FROZEN&nbsp;BANANA</span>
+          <span class="ed-rarity mono"><i class="tag tag--ice">SEASONAL</i></span>
+          <span class="ed-supply mono">SUMMER&nbsp;ONLY</span>
+          <span class="ed-status mono dim">◐ SOON</span>
         </li>
       </ul>
     </section>
 
-    <!-- ============ 04 / PROTOCOL (HYDRONOMICS + ROADMAP) ============ -->
+    <!-- ============ 04 / WHAT'S INSIDE ============ -->
     <section id="protocol" class="panel panel--protocol">
-      <div class="sec-label mono"><b class="volt">//</b> 04 — PROTOCOL</div>
-      <h2 class="headline split" data-split>HYDRO-<br />NOMICS.</h2>
+      <div class="sec-label mono"><b class="volt">·</b> 04 — WHAT'S INSIDE</div>
+      <h2 class="headline split" data-split>WHAT'S<br />INSIDE.</h2>
 
       <div class="hydronomics">
         <div class="hbar reveal" data-hover>
-          <div class="hbar-head mono"><span>STRUCTURED H₂O</span><span class="volt" data-bar-pct>64%</span></div>
+          <div class="hbar-head mono"><span>Filtered water</span><span class="volt" data-bar-pct>64%</span></div>
           <div class="hbar-track"><i class="hbar-fill" style="--w:64%"></i></div>
         </div>
         <div class="hbar reveal" data-hover>
-          <div class="hbar-head mono"><span>ELECTROLYTE STACK</span><span class="volt" data-bar-pct>21%</span></div>
+          <div class="hbar-head mono"><span>Electrolyte stack</span><span class="volt" data-bar-pct>21%</span></div>
           <div class="hbar-track"><i class="hbar-fill" style="--w:21%"></i></div>
         </div>
         <div class="hbar reveal" data-hover>
-          <div class="hbar-head mono"><span>FOCUS COMPOUNDS</span><span class="volt" data-bar-pct>9%</span></div>
+          <div class="hbar-head mono"><span>Clean caffeine + B-vitamins</span><span class="volt" data-bar-pct>9%</span></div>
           <div class="hbar-track"><i class="hbar-fill" style="--w:9%"></i></div>
         </div>
         <div class="hbar reveal" data-hover>
-          <div class="hbar-head mono"><span>VAPOR — UNALLOCATED</span><span class="volt" data-bar-pct>6%</span></div>
+          <div class="hbar-head mono"><span>Natural flavor</span><span class="volt" data-bar-pct>6%</span></div>
           <div class="hbar-track"><i class="hbar-fill" style="--w:6%"></i></div>
         </div>
       </div>
 
       <ol class="roadmap mono">
         <li class="phase reveal" data-hover>
-          <span class="ph-id">PHASE_01</span>
-          <span class="ph-name">GENESIS DROP — 10,000 SERIALIZED CANS</span>
+          <span class="ph-id">01</span>
+          <span class="ph-name">LAUNCH — ORIGINAL BLAST, 10,000 CANS</span>
           <span class="ph-status volt">[ LIVE ]</span>
         </li>
         <li class="phase reveal" data-hover>
-          <span class="ph-id">PHASE_02</span>
-          <span class="ph-name">FLAVOR FORK — HOLDERS VOTE SKU-002 ON-CHAIN</span>
-          <span class="ph-status dim">[ Q3 ]</span>
+          <span class="ph-id">02</span>
+          <span class="ph-name">FANS VOTE ON THE NEXT FLAVOR</span>
+          <span class="ph-status dim">[ SOON ]</span>
         </li>
         <li class="phase reveal" data-hover>
-          <span class="ph-id">PHASE_03</span>
-          <span class="ph-name">VENDING NODES — AUTONOMOUS 4°C DISPENSARIES</span>
+          <span class="ph-id">03</span>
+          <span class="ph-name">HIT THE SHELVES NATIONWIDE</span>
           <span class="ph-status dim">[ Q4 ]</span>
         </li>
         <li class="phase reveal" data-hover>
-          <span class="ph-id">PHASE_04</span>
-          <span class="ph-name">DAO TASTING — THE NETWORK DECIDES WHAT THIRST MEANS</span>
-          <span class="ph-status dim">[ 2087 ]</span>
+          <span class="ph-id">04</span>
+          <span class="ph-name">WORLD DOMINATION (POLITELY)</span>
+          <span class="ph-status dim">[ 2027 ]</span>
         </li>
       </ol>
     </section>
 
     <!-- ============ 05 / JOIN ============ -->
     <section id="join" class="panel panel--join">
-      <h2 class="mega-2 split" data-split>JOIN THE<br />PROTOCOL</h2>
+      <h2 class="mega-2 split" data-split>JOIN THE<br />BUNCH</h2>
       <form class="term-form mono" id="join-form" autocomplete="off" novalidate>
-        <label class="term-label" for="join-email"><span class="volt">&gt;</span>&nbsp;ENTER_ADDRESS:</label>
+        <label class="term-label" for="join-email"><span class="volt">&gt;</span>&nbsp;Your email</label>
         <div class="term-row">
-          <input id="join-email" type="email" required placeholder="you@network.eth" spellcheck="false" />
-          <button type="submit" data-hover>SUBMIT&nbsp;↵</button>
+          <input id="join-email" type="email" required placeholder="you@email.com" spellcheck="false" />
+          <button type="submit" data-hover>Join&nbsp;↵</button>
         </div>
         <p class="term-out volt mono" id="term-out" role="status"></p>
       </form>
       <div class="join-meta mono dim">
-        <span>NO SPAM. ONLY DROPS.</span>
-        <span>GENESIS ALLOWLIST — 10,000 SLOTS</span>
+        <span>NO SPAM. JUST GOOD STUFF.</span>
+        <span>BE FIRST TO GRAB A CAN</span>
       </div>
     </section>
   </main>
 
   <!-- ============ FOOTER ============ -->
   <footer class="bar bar--bottom mono">
-    <span>ION BEVERAGE SYSTEMS © 2086</span>
-    <span class="dim">NOT FINANCIAL ADVICE. JUST WATER, EVOLVED.</span>
-    <span>DRINK RESPONSIBLY · HYDRATE PERPETUALLY</span>
+    <span>BOGUS BANANA CO. © 2026</span>
+    <span class="dim">DELICIOUSLY OVERPOWERED.</span>
+    <span>DRINK RESPONSIBLY · FLEX OFTEN</span>
   </footer>
 
   <noscript>
-    <div style="position:fixed;inset:0;z-index:999;background:#0a0a0a;color:#eaeaea;display:grid;place-items:center;font-family:monospace;text-align:center;padding:2rem;">
-      <p>ION® — LIQUID HARDWARE<br /><br />THIS VESSEL REQUIRES JAVASCRIPT TO RENDER.<br />ENABLE IT TO ENTER THE PROTOCOL.</p>
+    <div style="position:fixed;inset:0;z-index:999;background:#fff;color:#1d1d1f;display:grid;place-items:center;font-family:system-ui,sans-serif;text-align:center;padding:2rem;">
+      <p>Bogus Banana<br /><br />This page needs JavaScript to render the can. Please enable it.</p>
     </div>
   </noscript>
 

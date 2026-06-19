@@ -1,5 +1,5 @@
 /*
- * Dashboard access gate (ION_OS // RESTRICTED).
+ * Dashboard access gate (Bogus Banana // RESTRICTED).
  *
  * Two layers, one styled login:
  *   1. Client-side check (instant UX + gates local dev where there's no server).
@@ -38,8 +38,8 @@ function overlay() {
   el.className = 'gate';
   el.innerHTML = `
     <form class="gate-card mono" autocomplete="off" novalidate>
-      <div class="gate-brand">ION<sup>®</sup></div>
-      <div class="gate-head"><span class="volt">//</span> RESTRICTED — MARKET INTEL TERMINAL</div>
+      <div class="gate-brand"><img class="gate-mark" src="/mascot.svg" alt="" /><span>Bogus Banana</span></div>
+      <div class="gate-head"><span class="volt">·</span> RESTRICTED — MARKET INTEL</div>
       <label class="gate-label" for="gate-user"><span class="volt">&gt;</span> OPERATOR_ID</label>
       <input id="gate-user" type="text" spellcheck="false" autocapitalize="off" placeholder="username" />
       <label class="gate-label" for="gate-pass"><span class="volt">&gt;</span> ACCESS_KEY</label>

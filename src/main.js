@@ -1,4 +1,4 @@
-/* ION® — self-hosted Inter (closest free match to SF) */
+/* Bogus Banana — self-hosted Inter (closest free match to SF) */
 import '@fontsource-variable/inter';
 
 import './style.css';

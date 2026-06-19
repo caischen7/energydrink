@@ -5,38 +5,38 @@
 import * as THREE from 'three';
 
 export const COLORWAYS = {
-  // refined, Apple-product finishes that read against a white page
+  // Bogus Banana flavors — the hero (volt) matches the red-orange mascot
   volt: {
-    bg: '#2b2b2f',                  // graphite
-    ink: '#f5f5f7',
-    accent: '#0a84ff',
-    dim: 'rgba(245,245,247,0.55)',
-    metal: 0xc8ccd2,
-    flash: 0x0a84ff,
-    label: 'VOLT-001',
-    flavor: 'CITRUS STATIC',
+    bg: '#ef4a23',                  // original — red-orange (mascot)
+    ink: '#ffffff',
+    accent: '#ffd23f',              // banana yellow
+    dim: 'rgba(255,255,255,0.6)',
+    metal: 0xe2e4e8,
+    flash: 0xffd23f,
+    label: 'BB-01',
+    flavor: 'ORIGINAL BLAST',
     serial: 'Nº 000001 / 10000',
   },
   void: {
-    bg: '#0f2038',                  // deep navy
-    ink: '#f5f5f7',
-    accent: '#5e9ed6',
-    dim: 'rgba(245,245,247,0.5)',
+    bg: '#4a1d40',                  // midnight berry — deep plum
+    ink: '#ffffff',
+    accent: '#ffd23f',
+    dim: 'rgba(255,255,255,0.55)',
     metal: 0x9aa0a8,
-    flash: 0x5e9ed6,
-    label: 'VOID-002',
-    flavor: 'BLACKBERRY NULL',
+    flash: 0xffd23f,
+    label: 'BB-02',
+    flavor: 'MIDNIGHT BERRY',
     serial: 'Nº 000001 / 02500',
   },
   glacier: {
-    bg: '#eef3fb',
-    ink: '#1d1d1f',
-    accent: '#0071e3',
-    dim: 'rgba(29,29,31,0.5)',
+    bg: '#ffcf33',                  // frozen banana — yellow
+    ink: '#3a2a10',
+    accent: '#ef4a23',
+    dim: 'rgba(58,42,16,0.55)',
     metal: 0xeaeaec,
-    flash: 0x5e9ed6,
-    label: 'GLCR-003',
-    flavor: 'GLACIAL FREEZE',
+    flash: 0xef4a23,
+    label: 'BB-03',
+    flavor: 'FROZEN BANANA',
     serial: 'Nº 000001 / 00500',
   },
 };
@@ -63,13 +63,8 @@ function drawLabel(ctx, c) {
   ctx.fillStyle = c.bg;
   ctx.fillRect(0, 0, W, H);
 
-  const mono = (px) => `${px}px "Space Mono", monospace`;
-  const display = (px) => `900 ${px}px "Archivo Variable", "Arial Black", sans-serif`;
-  try {
-    ctx.fontStretch = 'ultra-expanded';
-  } catch (e) {
-    /* older canvas impl — expanded type is a progressive enhancement */
-  }
+  const mono = (px) => `${px}px "Inter Variable", system-ui, sans-serif`;
+  const display = (px) => `800 ${px}px "Inter Variable", system-ui, sans-serif`;
 
   for (let p = 0; p < 2; p++) {
     const ox = p * panelW;
@@ -81,7 +76,7 @@ function drawLabel(ctx, c) {
     ctx.font = mono(24);
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';
-    ctx.fillText('ION BEVERAGE SYSTEMS — EST. 2086', ox + pad, 96);
+    ctx.fillText('BOGUS BANANA CO. — EST. 2026', ox + pad, 96);
     ctx.textAlign = 'right';
     ctx.fillText('473 ML / 16 FL OZ', ox + panelW - pad, 96);
     ctx.fillStyle = c.ink;
@@ -91,18 +86,18 @@ function drawLabel(ctx, c) {
     ctx.textAlign = 'left';
     ctx.fillStyle = c.ink;
     ctx.font = display(338);
-    ctx.fillText('ION', ox + pad - 10, 462);
+    ctx.fillText('BB', ox + pad - 10, 462);
     ctx.font = mono(40);
-    ctx.fillText('®', ox + pad + 660, 220);
+    ctx.fillText('®', ox + pad + 430, 220);
 
     ctx.font = mono(34);
     ctx.fillStyle = c.ink;
     let ls = 0;
     try {
-      ctx.letterSpacing = '22px';
+      ctx.letterSpacing = '14px';
       ls = 1;
     } catch (e) { /* no letterSpacing support */ }
-    ctx.fillText(ls ? 'LIQUID HARDWARE' : 'L I Q U I D  H A R D W A R E', ox + pad, 548);
+    ctx.fillText(ls ? 'BOGUS BANANA' : 'B O G U S  B A N A N A', ox + pad, 548);
     try { ctx.letterSpacing = '0px'; } catch (e) { /* noop */ }
 
     /* accent bar + edition */
@@ -118,10 +113,10 @@ function drawLabel(ctx, c) {
     ctx.font = mono(23);
     ctx.fillStyle = c.dim;
     const specs = [
-      'STRUCTURED HYDRATION SYSTEM // ALKALINE ARCH. PH 9.1',
+      'ENERGY + ELECTROLYTE DRINK :: PH 9.1',
       'ELECTROLYTE STACK 480MG :: NA+ / K+ / MG2+',
-      'GLYCEMIC PAYLOAD 000G :: FOCUS COMPOUND 120MG',
-      'SERVE AT 4°C :: SHAKE NOTHING :: TRUST THE LEDGER',
+      'ZERO SUGAR :: CLEAN CAFFEINE 120MG',
+      'SERVE COLD :: NO CRASH :: FLEX YOUR THIRST',
     ];
     specs.forEach((s, i) => ctx.fillText(s, ox + pad, 688 + i * 40));
 
@@ -164,7 +159,7 @@ function drawLabel(ctx, c) {
     ctx.font = mono(22);
     ctx.fillStyle = c.dim;
     ctx.textAlign = 'center';
-    ctx.fillText('GENESIS DROP — DO NOT RESELL THIRST', 0, 0);
+    ctx.fillText('BOGUS BANANA — RIDICULOUSLY GOOD ENERGY', 0, 0);
     ctx.restore();
   }
 
