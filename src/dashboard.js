@@ -6,8 +6,11 @@
  */
 import '@fontsource-variable/inter';
 import './dashboard.css';
-import { hBars, vBars, scatter, area, multiLine, stackedBars, fmtCompact, fmtInt, VOLT, ICE } from './charts.js';
+import { hBars, vBars, scatter, area, multiLine, stackedBars, panel, fmtCompact, fmtInt, VOLT, ICE } from './charts.js';
 import { requireAuth } from './auth.js';
+import { opportunityFinder } from './dashboard/opportunity-finder.js';
+import { formulationMap } from './dashboard/formulation-map.js';
+import { dollarShareTam } from './dashboard/dollar-share-tam.js';
 
 /* populated by requireAuth() once the visitor authenticates (data is fetched
    from the nginx-guarded /data/dashboard.json, not bundled into this file) */
@@ -38,20 +41,6 @@ function renderKpis() {
       </div>`
     )
     .join('');
-}
-
-/* ---------- panel scaffold ---------- */
-function panel(id, idx, title, meta, bodyHTML, insight) {
-  return `
-  <section class="panel-card reveal" id="${id}">
-    <header class="pc-head mono">
-      <span class="pc-id">${String(idx).padStart(2, '0')}</span>
-      <h2 class="pc-title">${title}</h2>
-      <span class="pc-meta">${meta}</span>
-    </header>
-    <div class="pc-body">${bodyHTML}</div>
-    ${insight ? `<footer class="pc-insight mono"><b class="volt">&gt;</b> ${insight}</footer>` : ''}
-  </section>`;
 }
 
 /* ---------- charts ---------- */
@@ -411,6 +400,9 @@ function main(loaded) {
     instagramEngagement(),
     redditPulse(),
     voiceOfCustomer(),
+    opportunityFinder(data),
+    formulationMap(data),
+    dollarShareTam(data),
   ].join('');
   renderTable();
   $('#gen-at').textContent = new Date(data.generated_at).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';

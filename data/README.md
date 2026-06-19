@@ -22,9 +22,49 @@ data/
   combined/
     brand_mentions_by_platform.csv   long-format table: one row per (platform, brand, item)
     brand_summary.csv                one row per brand, aggregated across all 3 platforms
+  market/
+    brand_dollar_share.csv           US retail dollar/case-volume share by brand (cited, see _meta)
+    brand_dollar_share_meta.csv      source/as-of/geography notes for the above
+  nutrition/
+    brand_nutrition.csv              caffeine/sugar/calories per serving by brand, from public labels
+  reddit/
+    (one-time corpus dump — see build_external_datasets.py, not a live API)
   scripts/
-    build_clean_datasets.py          regenerates everything above from raw exports
+    build_clean_datasets.py          regenerates the amazon/instagram/youtube/combined data above
+    build_external_datasets.py       cleans raw Statista/Mintel/Reddit exports into market/ and reddit/
+    build_dashboard_json.py          aggregates everything into public/data/dashboard.json
+    fetch_google_trends.py           NOT WIRED IN — runnable pytrends loader, needs real network
+    fetch_sec_edgar.py               NOT WIRED IN — runnable SEC EDGAR loader, needs real network
 ```
+
+## Opportunity-finding data (new)
+
+Added after a board review (`docs/board-review-opportunities.md`) of the
+live dashboard concluded it was purely descriptive — it shows what's
+happening but never ranks where the open space is. Two new curated CSVs
+plus two new loader scripts target that gap:
+
+- **`market/brand_dollar_share.csv`** — real US dollar share by brand
+  (Monster, Red Bull, Celsius, All others), so a flavor/spec gap found
+  elsewhere on the dashboard can be sized against who actually owns
+  distribution today. Figures are a cited midpoint across public trackers
+  (see `brand_dollar_share_meta.csv`) — public reporting on this varies by
+  methodology, so treat as directional, not exact.
+- **`nutrition/brand_nutrition.csv`** — caffeine/sugar/calories per serving
+  for 15 tracked brands, sourced from public nutrition labels. Deliberately
+  excludes brands without a confidently-sourced label (rather than
+  guessing) — see `source_note` per row.
+- **`scripts/fetch_google_trends.py`** — pulls Google Search interest
+  (via `pytrends`) for tracked brands as a cleaner "do people actually want
+  this" signal than mention-share, which can spike from one viral video.
+- **`scripts/fetch_sec_edgar.py`** — pulls real quarterly revenue for
+  Celsius (CELH) and Monster (MNST) from SEC EDGAR's free public API, the
+  one hard/audited growth signal among everything else here.
+
+Both loaders are runnable but not wired into `build_dashboard_json.py` —
+this sandbox has no outbound network to test them against the live APIs.
+Run them from a normal connection, then fold the resulting CSV into the
+aggregate the same way `market/` and `nutrition/` already are.
 
 ## Cleaning notes
 

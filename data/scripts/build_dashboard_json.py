@@ -494,6 +494,24 @@ reddit_brands = [
     for r in _rows("reddit/brand_pulse.csv")
 ]
 
+# ---------------------------------------------------------------- nutrition + dollar share (board-driven additions)
+nutrition = [
+    {
+        "brand": r["brand"],
+        "serving_oz": num(r["serving_oz"]),
+        "caffeine_mg": num(r["caffeine_mg"]),
+        "sugar_g": num(r["sugar_g"]),
+        "calories": num(r["calories"]),
+        "sweetener": r["sweetener"],
+    }
+    for r in _rows("nutrition/brand_nutrition.csv")
+]
+dollar_share_meta = _kv("market/brand_dollar_share_meta.csv")
+dollar_share = [
+    {"brand": r["brand"], "pct": num(r["dollar_share_pct"])}
+    for r in _rows("market/brand_dollar_share.csv")
+]
+
 # ---------------------------------------------------------------- KPIs
 kpis = {
     "brands": len(brands),
@@ -528,15 +546,21 @@ out = {
     "voice_of_customer": voice_of_customer,
     "flavor_demand": flavor_demand,
     "sentiment_method": SENT_METHOD,
-    "market": {"size": market_size, "facts": market_facts},
+    "market": {
+        "size": market_size,
+        "facts": market_facts,
+        "dollar_share": dollar_share,
+        "dollar_share_meta": dollar_share_meta,
+    },
     "concept_interest": concept_interest,
     "motivations": motivations,
     "reddit": {"meta": reddit_meta, "brands": reddit_brands},
+    "nutrition": nutrition,
 }
 
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 with open(OUT, "w", encoding="utf-8") as fh:
-    json.dump(out, fh, separators=(",", ":"), ensure_ascii=False)
+    json.dump(out, fh, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
 
 size_kb = os.path.getsize(OUT) / 1024
 print(f"Wrote {OUT} ({size_kb:.1f} KB)")

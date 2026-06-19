@@ -25,6 +25,20 @@ export function fmtInt(n) {
 const esc = (s) =>
   String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+/* ---------- panel scaffold (shared by dashboard.js and src/dashboard/*.js) ---------- */
+export function panel(id, idx, title, meta, bodyHTML, insight) {
+  return `
+  <section class="panel-card reveal" id="${id}">
+    <header class="pc-head mono">
+      <span class="pc-id">${String(idx).padStart(2, '0')}</span>
+      <h2 class="pc-title">${title}</h2>
+      <span class="pc-meta">${meta}</span>
+    </header>
+    <div class="pc-body">${bodyHTML}</div>
+    ${insight ? `<footer class="pc-insight mono"><b class="volt">&gt;</b> ${insight}</footer>` : ''}
+  </section>`;
+}
+
 /*
  * Horizontal bars with a label column. rows: [{label, value, color?}]
  * opts: { fmt, unit, accent }
