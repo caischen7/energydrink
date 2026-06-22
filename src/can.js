@@ -55,6 +55,18 @@ function mulberry32(seed) {
 const LABEL_W = 2048;
 const LABEL_H = 1024;
 
+/* mascot artwork painted onto the label; loads async then triggers a relabel */
+const mascotImg = typeof Image !== 'undefined' ? new Image() : null;
+let mascotReady = false;
+let mascotOnReady = null;
+if (mascotImg) {
+  mascotImg.onload = () => {
+    mascotReady = true;
+    if (mascotOnReady) mascotOnReady();
+  };
+  mascotImg.src = '/mascot.svg';
+}
+
 function drawLabel(ctx, c) {
   const W = LABEL_W;
   const H = LABEL_H;
@@ -83,15 +95,35 @@ function drawLabel(ctx, c) {
     ctx.fillRect(ox + pad, 122, innerW, 3);
 
     /* wordmark */
+    /* mascot emblem — white badge so it reads on any flavor color */
+    const ecx = ox + pad + 150;
+    const ecy = 348;
+    const er = 152;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(ecx, ecy, er, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = c.accent;
+    ctx.stroke();
+    if (mascotReady && mascotImg) {
+      const ms = 250;
+      ctx.drawImage(mascotImg, ecx - ms / 2, ecy - ms / 2 + 4, ms, ms);
+    } else {
+      ctx.fillStyle = c.bg;
+      ctx.font = display(150);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('BB', ecx, ecy);
+      ctx.textBaseline = 'alphabetic';
+    }
+    ctx.restore();
+
+    /* wordmark */
     ctx.textAlign = 'left';
     ctx.fillStyle = c.ink;
-    ctx.font = display(338);
-    ctx.fillText('BB', ox + pad - 10, 462);
-    ctx.font = mono(40);
-    ctx.fillText('®', ox + pad + 430, 220);
-
     ctx.font = mono(34);
-    ctx.fillStyle = c.ink;
     let ls = 0;
     try {
       ctx.letterSpacing = '14px';
@@ -266,13 +298,15 @@ export function buildCan(maxAnisotropy) {
     return true;
   }
 
-  /* canvas fonts may finish loading after first draw — repaint labels */
+  /* canvas fonts / mascot art may finish loading after first draw — repaint labels */
   function redrawLabels() {
     for (const [name, c] of Object.entries(COLORWAYS)) {
       drawLabel(labels[name].canvas.getContext('2d'), c);
       labels[name].tex.needsUpdate = true;
     }
   }
+  mascotOnReady = redrawLabels;
+  if (mascotReady) redrawLabels();
 
   return {
     group,
