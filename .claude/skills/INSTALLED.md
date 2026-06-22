@@ -1,16 +1,19 @@
 # Installed skills — provenance & maintenance
 
-A **curated set of 22 skills** lives under `.claude/skills/`, chosen for this
+A **curated set of 23 skills** lives under `.claude/skills/`, chosen for this
 repo's frontend / marketing landing-page work. One skill (`add-ion-colorway`)
-is authored in this repo; the other 21 are vendored from three public sources
+is authored in this repo; the other 22 are vendored from four public sources
 and committed here so they persist (this environment is ephemeral — only
 committed files survive).
 
 > [!CAUTION]
-> The `anthropics/skills` set is official. `alirezarezvani/claude-skills` and
-> `antigravity-awesome-skills` are **community, unverified** (`risk: unknown`).
-> Skills are instructions an agent may auto-load based on their `description`;
-> review one before relying on it and treat bundled scripts as untrusted code.
+> The `anthropics/skills` set is official. `alirezarezvani/claude-skills`,
+> `antigravity-awesome-skills`, and `ipeirotis/cloud-bootstrap` are **community,
+> unverified** (`risk: unknown`). Skills are instructions an agent may auto-load
+> based on their `description`; review one before relying on it and treat bundled
+> scripts as untrusted code. **`cloud-bootstrap` handles cloud credentials and
+> bundles `install.sh`/`update.sh` — review before use; never commit unencrypted
+> credentials.**
 
 ## Repo-authored (1)
 
@@ -32,6 +35,17 @@ committed files survive).
 
 - frontend-ui-dark-ts (the single skill explicitly requested; React/Tailwind/
   Framer Motion — not directly used by this vanilla three.js site)
+
+## ipeirotis/cloud-bootstrap — community — `f8984b7` (1)
+
+- **cloud-bootstrap** (v1.4.0) — manages encrypted cloud-provider credentials
+  (GCP / AWS / Azure) committed to the repo so they **persist across Claude Code
+  sessions**; triggers on "set up cloud credentials", cloud-auth failures (401/403),
+  or detecting `.cloud-config.json` / `.cloud-credentials.*.enc`. Directly relevant
+  here: it's the mechanism that would let a future session authenticate to GCP and
+  run `./deploy.sh` without the manual Cloud Shell step. Vendored whole (incl.
+  `references/`, `workflows/`, `install.sh`, `update.sh`). Handles secrets — see the
+  CAUTION above.
 
 ## Notes
 
