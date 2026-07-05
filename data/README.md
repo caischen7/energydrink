@@ -93,16 +93,22 @@ python data/scripts/scrape_walmart.py                 # auto-picks a backend
 python data/scripts/scrape_walmart.py --help          # all knobs
 ```
 
-Two backends:
+Three backends (auto-picked: `serpapi` if `SERPAPI_KEY` is set, else `browser`
+if Playwright is installed, else `direct`):
 
-- **`direct`** — parses walmart.com's embedded `__NEXT_DATA__` JSON with polite
-  rate-limiting. Walmart's bot protection (PerimeterX) blocks datacenter/cloud
-  IPs, so **run this from a normal residential connection** (your laptop) — it
-  will not work from sandboxed cloud environments, whose egress allowlists
-  usually block walmart.com anyway. The script detects both cases and says so.
+- **`browser`** (recommended) — drives a real Chromium via Playwright, which
+  passes Walmart's bot protection from a residential connection. If the
+  "Robot or human?" press-and-hold challenge appears, solve it once in the
+  opened window and the run continues. One-time setup:
+  `pip3 install playwright && python3 -m playwright install chromium`.
+- **`direct`** — zero-install urllib fetch of the same pages. Usually gets
+  challenged even from residential IPs (PerimeterX fingerprints the TLS
+  client), and cloud sandboxes typically can't reach walmart.com at all; the
+  script detects both and exits with a clear `BLOCKED:` message.
 - **`serpapi`** — SerpAPI's `walmart` + `walmart_product_reviews` engines;
-  works from anywhere but needs `SERPAPI_KEY` exported (free tier: 100
-  searches/mo at serpapi.com).
+  works from anywhere but needs `SERPAPI_KEY` exported. Free tier is 100
+  searches/mo and every search/review page is one call, so budget e.g.
+  `--search-pages 1 --max-products 6 --review-pages 2` (~65 calls).
 
 Default queries are the same four brand terms as the Amazon corpus plus a
 generic `"energy drink"` query so Walmart's own category bestsellers surface.

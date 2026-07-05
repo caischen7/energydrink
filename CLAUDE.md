@@ -56,15 +56,18 @@ See `data/README.md` for the full schema and cleaning notes.
 
 ### Walmart scraper (`data/walmart/`)
 ```bash
-python data/scripts/scrape_walmart.py    # stdlib only; writes data/walmart/{products,reviews}.csv
+pip install playwright && python -m playwright install chromium   # once
+python data/scripts/scrape_walmart.py    # writes data/walmart/{products,reviews}.csv
 ```
 Scrapes Walmart energy-drink products + reviews (schemas mirror `data/amazon/`).
-Two backends: `direct` (parses walmart.com `__NEXT_DATA__`; **must run from a
-residential IP** — Walmart's bot protection and cloud-sandbox egress allowlists
-both block it from cloud containers, including this one) and `serpapi` (needs
-`SERPAPI_KEY`). Walmart publishes no unit-sales data; the script captures the
-public proxies (review counts, ratings, badges, "N+ bought since yesterday").
-See `data/README.md` § "Walmart scraper".
+Backends: `browser` (recommended — real Chromium via Playwright beats Walmart's
+bot protection from a **residential IP**; solve the press-and-hold challenge in
+the window if it appears), `direct` (stdlib urllib; almost always challenged —
+PerimeterX fingerprints the TLS client), `serpapi` (needs `SERPAPI_KEY`; 100
+free searches/mo). None work from cloud containers like this one (egress
+allowlist blocks walmart.com). Walmart publishes no unit-sales data; the script
+captures the public proxies (review counts, ratings, badges, "N+ bought since
+yesterday"). See `data/README.md` § "Walmart scraper".
 
 ### External sources (`data/market/`, `data/reddit/`)
 ```bash

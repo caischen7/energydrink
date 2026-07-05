@@ -1,19 +1,28 @@
 #!/usr/bin/env python3
 """Scrape Walmart.com energy-drink products + customer reviews into clean CSVs.
 
-Stdlib only (no pip installs). Two backends:
+Three backends:
 
-  direct   — fetches walmart.com search/review pages and parses the embedded
-             __NEXT_DATA__ JSON. Works from a normal residential connection;
-             Walmart's bot protection (PerimeterX) blocks most datacenter /
-             cloud IPs, so this will NOT work from a typical cloud container.
-  serpapi  — uses SerpAPI's Walmart engines (search + product reviews).
-             Works from anywhere but needs an API key in $SERPAPI_KEY
-             (https://serpapi.com, engine=walmart / walmart_product_reviews).
+  browser  — RECOMMENDED. Drives a real Chromium via Playwright, which passes
+             Walmart's bot protection from a residential connection. If the
+             "Robot or human?" press-and-hold challenge appears, solve it once
+             in the opened browser window and the scrape continues. Setup:
+               pip3 install playwright
+               python3 -m playwright install chromium
+  direct   — stdlib-only urllib fetch of the same pages. Kept as a zero-install
+             fallback, but Walmart's bot protection (PerimeterX) fingerprints
+             the TLS client, so plain Python requests are usually challenged
+             even from residential IPs. Expect BLOCKED.
+  serpapi  — SerpAPI's Walmart engines (search + product reviews). Works from
+             anywhere but needs an API key in $SERPAPI_KEY (https://serpapi.com;
+             free tier is 100 searches/month — budget with --max-products /
+             --review-pages: each search page and each review page is 1 search).
 
 Usage:
   python data/scripts/scrape_walmart.py                        # auto backend
-  python data/scripts/scrape_walmart.py --backend serpapi
+  python data/scripts/scrape_walmart.py --backend browser
+  python data/scripts/scrape_walmart.py --backend serpapi \
+      --search-pages 1 --max-products 6 --review-pages 2       # ~65 API calls
   python data/scripts/scrape_walmart.py --terms "Red Bull energy drink" \
       --max-products 20 --review-pages 3
 
@@ -241,11 +250,11 @@ def extract_next_data(html):
     return json.loads(m.group(1))
 
 
-def direct_search(term, page, sleep):
+def direct_search(term, page, sleep, get=http_get):
     url = "https://www.walmart.com/search?" + urllib.parse.urlencode(
         {"q": term, "page": page}
     )
-    data = extract_next_data(http_get(url))
+    data = extract_next_data(get(url))
     polite_sleep(sleep)
 
     # Products live under itemStacks[*].items[*]; rather than hard-coding the
@@ -305,12 +314,12 @@ def direct_product_row(it, term):
     }
 
 
-def direct_reviews(item_id, page, sleep):
+def direct_reviews(item_id, page, sleep, get=http_get):
     url = (
         f"https://www.walmart.com/reviews/product/{item_id}?"
         + urllib.parse.urlencode({"page": page, "sort": "submission-desc"})
     )
-    data = extract_next_data(http_get(url))
+    data = extract_next_data(get(url))
     polite_sleep(sleep)
 
     reviews = []
@@ -347,6 +356,64 @@ def direct_review_row(r, product, term):
         "verified_purchase": verified,
         "helpful_votes": to_int(r.get("positiveFeedback")),
     }
+
+
+# --------------------------------------------------------------------------
+# Browser backend — real Chromium via Playwright (best against bot protection)
+# --------------------------------------------------------------------------
+
+class BrowserFetcher:
+    """Fetches pages in a real Chromium; reuses one window for the whole run."""
+
+    def __init__(self, headless=False):
+        try:
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            raise SystemExit(
+                "The browser backend needs Playwright:\n"
+                "  pip3 install playwright\n"
+                "  python3 -m playwright install chromium"
+            )
+        self._headless = headless
+        self._pw = sync_playwright().start()
+        self._browser = self._pw.chromium.launch(
+            headless=headless,
+            args=["--disable-blink-features=AutomationControlled"],
+        )
+        self._page = self._browser.new_context(
+            viewport={"width": 1366, "height": 900}, locale="en-US"
+        ).new_page()
+
+    def get(self, url):
+        self._page.goto(url, wait_until="domcontentloaded", timeout=60_000)
+        try:
+            self._page.wait_for_selector(
+                "script#__NEXT_DATA__", state="attached", timeout=10_000
+            )
+        except Exception:
+            html = self._page.content()
+            if "Robot or human" in html or "px-captcha" in html:
+                if self._headless:
+                    raise BlockedError(
+                        "Walmart challenge appeared in headless mode — rerun "
+                        "without --headless and solve it in the window."
+                    )
+                print(
+                    "  >> Walmart 'Robot or human?' challenge — press & hold "
+                    "the button in the browser window; waiting up to 3 min..."
+                )
+            # Wait for either a solved challenge or a slow page.
+            self._page.wait_for_selector(
+                "script#__NEXT_DATA__", state="attached", timeout=180_000
+            )
+        return self._page.content()
+
+    def close(self):
+        try:
+            self._browser.close()
+            self._pw.stop()
+        except Exception:
+            pass
 
 
 # --------------------------------------------------------------------------
@@ -417,8 +484,12 @@ def serpapi_review_row(r, product, term):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--backend", choices=["auto", "direct", "serpapi"],
+    ap.add_argument("--backend",
+                    choices=["auto", "browser", "direct", "serpapi"],
                     default="auto")
+    ap.add_argument("--headless", action="store_true",
+                    help="browser backend: hide the window (challenges can't "
+                         "be solved manually then)")
     ap.add_argument("--terms", nargs="+", default=DEFAULT_TERMS)
     ap.add_argument("--search-pages", type=int, default=2,
                     help="search result pages per term (default 2, ~40 items)")
@@ -434,17 +505,28 @@ def main():
     api_key = os.environ.get("SERPAPI_KEY", "").strip()
     backend = args.backend
     if backend == "auto":
-        backend = "serpapi" if api_key else "direct"
+        if api_key:
+            backend = "serpapi"
+        else:
+            try:
+                import playwright  # noqa: F401
+                backend = "browser"
+            except ImportError:
+                backend = "direct"
     if backend == "serpapi" and not api_key:
-        sys.exit("SERPAPI_KEY is not set — export it or use --backend direct.")
+        sys.exit("SERPAPI_KEY is not set — export it, or use --backend browser.")
     print(f"Backend: {backend}")
+
+    fetcher = BrowserFetcher(headless=args.headless) if backend == "browser" else None
+    get = fetcher.get if fetcher else http_get
+    walmart = backend in ("browser", "direct")
 
     products, product_ids = [], set()
     for term in args.terms:
         kept = 0
         for page in range(1, args.search_pages + 1):
-            if backend == "direct":
-                raw_items = direct_search(term, page, args.sleep)
+            if walmart:
+                raw_items = direct_search(term, page, args.sleep, get)
                 rows = [direct_product_row(it, term) for it in raw_items]
             else:
                 raw_items = serpapi_search(term, page, api_key)
@@ -468,8 +550,8 @@ def main():
         got = 0
         for page in range(1, args.review_pages + 1):
             try:
-                if backend == "direct":
-                    raw = direct_reviews(product["item_id"], page, args.sleep)
+                if walmart:
+                    raw = direct_reviews(product["item_id"], page, args.sleep, get)
                     rows = [direct_review_row(r, product, term) for r in raw]
                 else:
                     raw = serpapi_reviews(product["item_id"], page, api_key)
@@ -493,6 +575,8 @@ def main():
         print(f"  [{i}/{len(products)}] {product['item_id']}: {got} reviews")
     write_csv(os.path.join(args.out, "reviews.csv"), REVIEW_COLUMNS, reviews)
 
+    if fetcher:
+        fetcher.close()
     print("Done. Next: rerun `python data/scripts/build_dashboard_json.py` if "
           "you wire Walmart into the dashboard aggregate.")
 
