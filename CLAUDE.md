@@ -54,6 +54,18 @@ Raw scraper exports are **not committed** (large/messy); only the cleaned CSVs a
 `RAW_DATA_DIR` must contain `Amazon data/`, `Instagram data/`, `Youtube data/`.
 See `data/README.md` for the full schema and cleaning notes.
 
+### Walmart scraper (`data/walmart/`)
+```bash
+python data/scripts/scrape_walmart.py    # stdlib only; writes data/walmart/{products,reviews}.csv
+```
+Scrapes Walmart energy-drink products + reviews (schemas mirror `data/amazon/`).
+Two backends: `direct` (parses walmart.com `__NEXT_DATA__`; **must run from a
+residential IP** — Walmart's bot protection and cloud-sandbox egress allowlists
+both block it from cloud containers, including this one) and `serpapi` (needs
+`SERPAPI_KEY`). Walmart publishes no unit-sales data; the script captures the
+public proxies (review counts, ratings, badges, "N+ bought since yesterday").
+See `data/README.md` § "Walmart scraper".
+
 ### External sources (`data/market/`, `data/reddit/`)
 ```bash
 pip install openpyxl vaderSentiment
