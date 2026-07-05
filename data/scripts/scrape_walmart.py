@@ -380,10 +380,24 @@ def direct_review_row(r, product, term):
 # Browser backend — real Chromium via Playwright (best against bot protection)
 # --------------------------------------------------------------------------
 
-class BrowserFetcher:
-    """Fetches pages in a real Chromium; reuses one window for the whole run."""
+# Chromium's automation fingerprint is the easiest tell; hide the obvious ones.
+_STEALTH_JS = """
+Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+window.chrome = window.chrome || {runtime: {}};
+Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
+Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});
+"""
 
-    def __init__(self, headless=False):
+
+class BrowserFetcher:
+    """Fetches pages in a real Chromium; reuses one window for the whole run.
+
+    Uses a persistent profile dir so the human-verification cookie set by
+    solving the press-and-hold challenge is reused on later runs — solve it
+    once and you'll usually never see it again.
+    """
+
+    def __init__(self, headless=False, profile_dir=None, auto_hold=True):
         try:
             from playwright.sync_api import sync_playwright
         except ImportError:
@@ -393,18 +407,79 @@ class BrowserFetcher:
                 "  python3 -m playwright install chromium"
             )
         self._headless = headless
-        self._pw = sync_playwright().start()
-        self._browser = self._pw.chromium.launch(
-            headless=headless,
-            args=["--disable-blink-features=AutomationControlled"],
+        self._auto_hold = auto_hold
+        profile_dir = profile_dir or os.path.expanduser(
+            "~/.cache/energydrink-walmart-profile"
         )
-        self._page = self._browser.new_context(
-            viewport={"width": 1366, "height": 900}, locale="en-US"
-        ).new_page()
+        os.makedirs(profile_dir, exist_ok=True)
+        self._pw = sync_playwright().start()
+        # A persistent context keeps cookies/localStorage between runs.
+        self._context = self._pw.chromium.launch_persistent_context(
+            profile_dir,
+            headless=headless,
+            viewport={"width": 1366, "height": 900},
+            locale="en-US",
+            user_agent=UA,
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--disable-features=IsolateOrigins,site-per-process",
+            ],
+        )
+        self._context.add_init_script(_STEALTH_JS)
+        self._page = (
+            self._context.pages[0] if self._context.pages
+            else self._context.new_page()
+        )
         # Keep every response of the current navigation; reviews are often
         # fetched client-side via GraphQL rather than server-rendered.
         self._responses = []
         self._page.on("response", self._responses.append)
+
+    def _looks_challenged(self):
+        try:
+            html = self._page.content()
+        except Exception:
+            return False
+        return "Robot or human" in html or "px-captcha" in html
+
+    def _try_auto_hold(self):
+        """Best-effort: press and hold the challenge button.
+
+        PerimeterX scores the *motion* of the hold, so a synthetic hold often
+        still fails — this is a convenience attempt, not a guaranteed bypass.
+        Returns True only if the challenge cleared afterwards.
+        """
+        for frame in self._page.frames:
+            for sel in ("#px-captcha", "[id*=px-captcha]", "button",
+                        "div[role=button]"):
+                try:
+                    btn = frame.query_selector(sel)
+                except Exception:
+                    btn = None
+                if not btn:
+                    continue
+                try:
+                    box = btn.bounding_box()
+                    if not box:
+                        continue
+                    x = box["x"] + box["width"] / 2
+                    y = box["y"] + box["height"] / 2
+                    self._page.mouse.move(x, y)
+                    self._page.mouse.down()
+                    # Hold ~10s with tiny jitter to look less robotic.
+                    for _ in range(20):
+                        self._page.mouse.move(
+                            x + random.uniform(-1.5, 1.5),
+                            y + random.uniform(-1.5, 1.5),
+                        )
+                        time.sleep(0.5)
+                    self._page.mouse.up()
+                    self._page.wait_for_timeout(3000)
+                    if not self._looks_challenged():
+                        return True
+                except Exception:
+                    continue
+        return False
 
     def get(self, url):
         self._responses.clear()
@@ -414,17 +489,23 @@ class BrowserFetcher:
                 "script#__NEXT_DATA__", state="attached", timeout=10_000
             )
         except Exception:
-            html = self._page.content()
-            if "Robot or human" in html or "px-captcha" in html:
-                if self._headless:
-                    raise BlockedError(
-                        "Walmart challenge appeared in headless mode — rerun "
-                        "without --headless and solve it in the window."
-                    )
-                print(
-                    "  >> Walmart 'Robot or human?' challenge — press & hold "
-                    "the button in the browser window; waiting up to 3 min..."
-                )
+            if self._looks_challenged():
+                cleared = False
+                if self._auto_hold:
+                    print("  >> Walmart challenge — attempting auto press-and-"
+                          "hold...")
+                    cleared = self._try_auto_hold()
+                if not cleared:
+                    if self._headless:
+                        raise BlockedError(
+                            "Walmart challenge appeared and auto-hold failed in "
+                            "headless mode — rerun without --headless and solve "
+                            "it once in the window (the profile is saved, so "
+                            "later runs should skip it)."
+                        )
+                    print("  >> Solve the press-and-hold in the browser window; "
+                          "waiting up to 3 min... (only needed once — the "
+                          "profile is saved for next time)")
             # Wait for either a solved challenge or a slow page.
             self._page.wait_for_selector(
                 "script#__NEXT_DATA__", state="attached", timeout=180_000
@@ -453,7 +534,7 @@ class BrowserFetcher:
 
     def close(self):
         try:
-            self._browser.close()
+            self._context.close()
             self._pw.stop()
         except Exception:
             pass
@@ -533,6 +614,13 @@ def main():
     ap.add_argument("--headless", action="store_true",
                     help="browser backend: hide the window (challenges can't "
                          "be solved manually then)")
+    ap.add_argument("--profile-dir", default=None,
+                    help="browser backend: Chromium profile dir to persist the "
+                         "human-verification cookie across runs (default "
+                         "~/.cache/energydrink-walmart-profile)")
+    ap.add_argument("--no-auto-hold", action="store_true",
+                    help="browser backend: don't attempt the automated press-"
+                         "and-hold; wait for you to solve it manually")
     ap.add_argument("--terms", nargs="+", default=DEFAULT_TERMS)
     ap.add_argument("--search-pages", type=int, default=2,
                     help="search result pages per term (default 2, ~40 items)")
@@ -560,7 +648,11 @@ def main():
         sys.exit("SERPAPI_KEY is not set — export it, or use --backend browser.")
     print(f"Backend: {backend}")
 
-    fetcher = BrowserFetcher(headless=args.headless) if backend == "browser" else None
+    fetcher = (
+        BrowserFetcher(headless=args.headless, profile_dir=args.profile_dir,
+                       auto_hold=not args.no_auto_hold)
+        if backend == "browser" else None
+    )
     fetch_blobs = fetcher.json_blobs if fetcher else stdlib_json_blobs
     walmart = backend in ("browser", "direct")
 

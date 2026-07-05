@@ -97,10 +97,17 @@ Three backends (auto-picked: `serpapi` if `SERPAPI_KEY` is set, else `browser`
 if Playwright is installed, else `direct`):
 
 - **`browser`** (recommended) — drives a real Chromium via Playwright, which
-  passes Walmart's bot protection from a residential connection. If the
-  "Robot or human?" press-and-hold challenge appears, solve it once in the
-  opened window and the run continues. One-time setup:
-  `pip3 install playwright && python3 -m playwright install chromium`.
+  passes Walmart's bot protection from a residential connection. One-time
+  setup: `pip3 install playwright && python3 -m playwright install chromium`.
+  It uses a **persistent Chromium profile** (`~/.cache/energydrink-walmart-
+  profile`, override with `--profile-dir`), so the human-verification cookie is
+  reused between runs — you typically solve the "Robot or human?" press-and-
+  hold **once** and never again. On each challenge it first makes a best-effort
+  **automated hold**; PerimeterX scores the *motion* of the hold, so that
+  often still fails, and it then falls back to waiting up to 3 min for you to
+  hold the button in the window. `--no-auto-hold` skips straight to manual;
+  `--headless` hides the window (only viable once the cookie is saved, since
+  you can't solve a challenge you can't see).
 - **`direct`** — zero-install urllib fetch of the same pages. Usually gets
   challenged even from residential IPs (PerimeterX fingerprints the TLS
   client), and cloud sandboxes typically can't reach walmart.com at all; the
