@@ -250,28 +250,34 @@ def extract_next_data(html):
     return json.loads(m.group(1))
 
 
-def direct_search(term, page, sleep, get=http_get):
+def stdlib_json_blobs(url):
+    """Fetch a walmart.com page with urllib; only the SSR payload is visible."""
+    return [extract_next_data(http_get(url))]
+
+
+def direct_search(term, page, sleep, fetch_blobs=stdlib_json_blobs):
     url = "https://www.walmart.com/search?" + urllib.parse.urlencode(
         {"q": term, "page": page}
     )
-    data = extract_next_data(get(url))
+    blobs = fetch_blobs(url)
     polite_sleep(sleep)
 
     # Products live under itemStacks[*].items[*]; rather than hard-coding the
     # full path (Walmart moves it), grab every dict that looks like a product.
     seen, items = set(), []
-    for stack in find_key(data, "itemStacks"):
-        for candidate in find_key(stack, "items"):
-            if not isinstance(candidate, list):
-                continue
-            for it in candidate:
-                if not isinstance(it, dict):
+    for data in blobs:
+        for stack in find_key(data, "itemStacks"):
+            for candidate in find_key(stack, "items"):
+                if not isinstance(candidate, list):
                     continue
-                item_id = it.get("usItemId") or it.get("id")
-                if not item_id or it.get("name") is None or item_id in seen:
-                    continue
-                seen.add(item_id)
-                items.append(it)
+                for it in candidate:
+                    if not isinstance(it, dict):
+                        continue
+                    item_id = it.get("usItemId") or it.get("id")
+                    if not item_id or it.get("name") is None or item_id in seen:
+                        continue
+                    seen.add(item_id)
+                    items.append(it)
     return items
 
 
@@ -314,18 +320,30 @@ def direct_product_row(it, term):
     }
 
 
-def direct_reviews(item_id, page, sleep, get=http_get):
+def direct_reviews(item_id, page, sleep, fetch_blobs=stdlib_json_blobs):
     url = (
         f"https://www.walmart.com/reviews/product/{item_id}?"
         + urllib.parse.urlencode({"page": page, "sort": "submission-desc"})
     )
-    data = extract_next_data(get(url))
+    blobs = fetch_blobs(url)
     polite_sleep(sleep)
 
-    reviews = []
-    for block in find_key(data, "customerReviews"):
-        if isinstance(block, list):
-            reviews.extend(r for r in block if isinstance(r, dict))
+    # Reviews may be server-rendered in __NEXT_DATA__ or fetched client-side
+    # via GraphQL (the browser backend captures those responses as extra
+    # blobs) — scan every blob and dedupe.
+    reviews, seen = [], set()
+    for data in blobs:
+        for block in find_key(data, "customerReviews"):
+            if not isinstance(block, list):
+                continue
+            for r in block:
+                if not isinstance(r, dict):
+                    continue
+                key = r.get("reviewId") or r.get("id") or id(r)
+                if key in seen:
+                    continue
+                seen.add(key)
+                reviews.append(r)
     return reviews
 
 
@@ -383,8 +401,13 @@ class BrowserFetcher:
         self._page = self._browser.new_context(
             viewport={"width": 1366, "height": 900}, locale="en-US"
         ).new_page()
+        # Keep every response of the current navigation; reviews are often
+        # fetched client-side via GraphQL rather than server-rendered.
+        self._responses = []
+        self._page.on("response", self._responses.append)
 
     def get(self, url):
+        self._responses.clear()
         self._page.goto(url, wait_until="domcontentloaded", timeout=60_000)
         try:
             self._page.wait_for_selector(
@@ -406,7 +429,27 @@ class BrowserFetcher:
             self._page.wait_for_selector(
                 "script#__NEXT_DATA__", state="attached", timeout=180_000
             )
+        # Give client-side data fetches (reviews GraphQL) a moment to land.
+        try:
+            self._page.wait_for_load_state("networkidle", timeout=8_000)
+        except Exception:
+            pass
         return self._page.content()
+
+    def json_blobs(self, url):
+        """SSR payload + any walmart.com JSON/GraphQL responses of this page."""
+        blobs = [extract_next_data(self.get(url))]
+        for resp in list(self._responses):
+            u = resp.url
+            if "walmart.com" not in u:
+                continue
+            if "graphql" not in u and "review" not in u.lower():
+                continue
+            try:
+                blobs.append(json.loads(resp.text()))
+            except Exception:
+                continue
+        return blobs
 
     def close(self):
         try:
@@ -518,7 +561,7 @@ def main():
     print(f"Backend: {backend}")
 
     fetcher = BrowserFetcher(headless=args.headless) if backend == "browser" else None
-    get = fetcher.get if fetcher else http_get
+    fetch_blobs = fetcher.json_blobs if fetcher else stdlib_json_blobs
     walmart = backend in ("browser", "direct")
 
     products, product_ids = [], set()
@@ -526,7 +569,7 @@ def main():
         kept = 0
         for page in range(1, args.search_pages + 1):
             if walmart:
-                raw_items = direct_search(term, page, args.sleep, get)
+                raw_items = direct_search(term, page, args.sleep, fetch_blobs)
                 rows = [direct_product_row(it, term) for it in raw_items]
             else:
                 raw_items = serpapi_search(term, page, api_key)
@@ -551,7 +594,8 @@ def main():
         for page in range(1, args.review_pages + 1):
             try:
                 if walmart:
-                    raw = direct_reviews(product["item_id"], page, args.sleep, get)
+                    raw = direct_reviews(product["item_id"], page, args.sleep,
+                                         fetch_blobs)
                     rows = [direct_review_row(r, product, term) for r in raw]
                 else:
                     raw = serpapi_reviews(product["item_id"], page, api_key)
@@ -572,7 +616,10 @@ def main():
                 review_ids.add(key)
                 reviews.append(row)
                 got += 1
-        print(f"  [{i}/{len(products)}] {product['item_id']}: {got} reviews")
+        note = ""
+        if got == 0 and (product.get("reviews_total") or 0) > 0:
+            note = f" (listing reports {product['reviews_total']})"
+        print(f"  [{i}/{len(products)}] {product['item_id']}: {got} reviews{note}")
     write_csv(os.path.join(args.out, "reviews.csv"), REVIEW_COLUMNS, reviews)
 
     if fetcher:
