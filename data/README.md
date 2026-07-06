@@ -22,9 +22,52 @@ data/
   combined/
     brand_mentions_by_platform.csv   long-format table: one row per (platform, brand, item)
     brand_summary.csv                one row per brand, aggregated across all 3 platforms
+  openfoodfacts/
+    products.csv     energy-drink products with sugar + caffeine per 100ml + Nutri-Score
+  wikipedia/
+    brand_interest.csv   monthly Wikipedia pageviews per brand (curiosity proxy)
+    brand_pages.csv      per-brand 12-month pageview totals
+  scrapers/                          NEW live scrapers (stdlib urllib, no pandas)
+    common.py                        shared brand normalization + polite HTTP helper
+    openfoodfacts.py                 Open Food Facts API -> openfoodfacts/products.csv
+    wikipedia.py                     Wikimedia Pageviews API -> wikipedia/*.csv
   scripts/
-    build_clean_datasets.py          regenerates everything above from raw exports
+    build_clean_datasets.py          regenerates amazon/instagram/youtube from raw exports
+    build_external_datasets.py       regenerates market/ + reddit/ from raw corpus
+    generate_sample_data.py          zero-dep synthetic data in the SAME schema (no network)
+    run_scrapers.py                  runs the new scrapers live, or --sample to generate
+    build_dashboard_json.py          reduces everything to src/data/dashboard.json
 ```
+
+## Additional scrapers (`scrapers/`)
+
+Two new sources extend the corpus beyond the original three platforms, each
+hitting a **public, ToS-friendly, key-free API** and normalizing to the same 23
+canonical brands:
+
+- **Open Food Facts** (`openfoodfacts.py`) — the nutrition axis Amazon lacks:
+  sugar + caffeine per 100 ml and a Nutri-Score per product.
+- **Wikipedia** (`wikipedia.py`) — monthly pageviews as a platform-neutral
+  proxy for public curiosity in each brand (a build-your-own Trends signal).
+
+```bash
+python data/scrapers/openfoodfacts.py           # -> data/openfoodfacts/products.csv
+python data/scrapers/wikipedia.py               # -> data/wikipedia/*.csv
+python data/scripts/run_scrapers.py             # both, one command
+python data/scripts/build_dashboard_json.py     # refresh the dashboard aggregate
+```
+
+These need outbound network. In an offline/locked-down environment, generate
+same-schema placeholder data instead (deterministic, zero dependencies):
+
+```bash
+python data/scripts/generate_sample_data.py                 # -> data/sample/ (full set)
+python data/scripts/run_scrapers.py --sample --out data     # seed the two new sources in place
+```
+
+> The committed `openfoodfacts/` and `wikipedia/` CSVs are **generated samples**
+> (see each dir's README) so the dashboard renders on a fresh checkout; replace
+> them with real values by running the scrapers where network is allowed.
 
 ## Cleaning notes
 

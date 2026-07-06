@@ -65,6 +65,24 @@ databook `Q6`/`Q4` → concept interest + motivations) and Reddit r/EnergyDrinks
 into small committed CSVs. Raw corpus is **not** committed. Rerun the dashboard
 aggregate afterwards.
 
+### Additional scrapers + sample data (`data/scrapers/`, `data/scripts/`)
+```bash
+# live scrapers for two NEW public/ToS-friendly sources (stdlib only, need network):
+python data/scrapers/openfoodfacts.py   # nutrition (sugar/caffeine/Nutri-Score) -> data/openfoodfacts/products.csv
+python data/scrapers/wikipedia.py       # Wikimedia pageviews (curiosity proxy)  -> data/wikipedia/*.csv
+python data/scripts/run_scrapers.py     # both at once (--source off|wiki, --sample for offline)
+
+# offline: deterministic, zero-dependency data in the SAME schema as every source
+python data/scripts/generate_sample_data.py              # -> data/sample/
+python data/scripts/run_scrapers.py --sample --out data  # seed the 2 new sources in place
+```
+The committed `data/openfoodfacts/` + `data/wikipedia/` CSVs are **generated
+samples** (each dir has a README) so the dashboard renders offline; rerun the
+scrapers where network is allowed for real values, then rebuild the aggregate.
+Brand names stay canonical via `data/scrapers/common.py` (mirrors
+`build_clean_datasets.py`'s `BRAND_ALIASES`). Two dashboard panels read these:
+**Nutrition Map** (sugar×caffeine) and **Search Interest** (Wikipedia pageviews).
+
 ### Dashboard aggregate (`src/data/dashboard.json`)
 ```bash
 python data/scripts/build_dashboard_json.py   # stdlib only; reads data/, writes src/data/dashboard.json

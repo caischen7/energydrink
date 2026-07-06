@@ -146,6 +146,13 @@ function trackSections() {
   window.addEventListener('load', measure);
   document.fonts?.ready.then(measure);
 
+  const navLinks = $$('.nav a, .nav-mobile a');
+  const syncNav = (id) => {
+    navLinks.forEach((a) =>
+      a.classList.toggle('active', a.getAttribute('href') === `#${id}`)
+    );
+  };
+
   const update = () => {
     const mid = window.scrollY + window.innerHeight / 2;
     let best = 0;
@@ -153,10 +160,63 @@ function trackSections() {
       if (Math.abs(o - mid) < Math.abs(offsets[best] - mid)) best = i;
     });
     const id = SECTION_IDS[best];
-    if (document.body.dataset.section !== id) document.body.dataset.section = id;
+    if (document.body.dataset.section !== id) {
+      document.body.dataset.section = id;
+      syncNav(id);
+    }
   };
   window.addEventListener('scroll', update, { passive: true });
   update();
+}
+
+/* ---------- reading-progress bar ---------- */
+function initScrollProgress() {
+  const bar = $('#scroll-progress-bar');
+  if (!bar) return;
+  let ticking = false;
+  const render = () => {
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    const p = max > 0 ? Math.min(1, window.scrollY / max) : 0;
+    bar.style.transform = `scaleX(${p.toFixed(4)})`;
+    ticking = false;
+  };
+  const onScroll = () => {
+    if (!ticking) {
+      ticking = true;
+      requestAnimationFrame(render);
+    }
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', render);
+  render();
+}
+
+/* ---------- mobile menu (hamburger) ---------- */
+function initMobileMenu() {
+  const toggle = $('#nav-toggle');
+  const menu = $('#nav-mobile');
+  if (!toggle || !menu) return;
+
+  const setOpen = (open) => {
+    document.body.classList.toggle('menu-open', open);
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+  };
+
+  toggle.addEventListener('click', () =>
+    setOpen(!document.body.classList.contains('menu-open'))
+  );
+  /* jumping to a section should dismiss the menu */
+  menu.addEventListener('click', (e) => {
+    if (e.target.closest('a')) setOpen(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') setOpen(false);
+  });
+  /* leaving mobile width resets the menu so it can't get stuck open */
+  window.matchMedia('(min-width: 901px)').addEventListener('change', (m) => {
+    if (m.matches) setOpen(false);
+  });
 }
 
 /* ---------- editions <-> 3D colorway ---------- */
@@ -330,6 +390,8 @@ export function initFx(scene) {
   buildTicker();
   initCursor();
   trackSections();
+  initScrollProgress();
+  initMobileMenu();
   initForm();
 
   const readout = initReadout();

@@ -3,3 +3,8 @@ dist/
 .DS_Store
 *.local
 .vite/
+__pycache__/
+*.pyc
+# regenerable synthetic output from generate_sample_data.py (the two NEW source
+# dirs data/openfoodfacts + data/wikipedia ARE tracked — the dashboard reads them)
+data/sample/

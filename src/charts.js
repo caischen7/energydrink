@@ -139,7 +139,7 @@ export function scatter(points, opts = {}) {
     .map(
       (p) => `<g class="c-dot">
         <circle cx="${sx(p.x)}" cy="${sy(p.y)}" r="${sr(p.r)}" fill="${p.color || VOLT}" fill-opacity="0.16" stroke="${p.color || VOLT}" stroke-width="1.25">
-          <title>${esc(p.label)} — $${p.x} avg · ${p.y}★ · ${fmtInt(p.r)} ratings</title>
+          <title>${esc(opts.tip ? opts.tip(p) : `${p.label} — $${p.x} avg · ${p.y}★ · ${fmtInt(p.r)} ratings`)}</title>
         </circle>
         <circle cx="${sx(p.x)}" cy="${sy(p.y)}" r="2.5" fill="${p.color || VOLT}"/>
         <text x="${sx(p.x)}" y="${sy(p.y) - sr(p.r) - 6}" class="c-pt-lbl" text-anchor="middle">${esc(p.label)}</text>

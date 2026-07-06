@@ -612,11 +612,137 @@ body.no-webgl .panel--hero::before {
   z-index: 0;
 }
 
+/* ============ NAV UX: skip link, progress, active state, mobile menu ============ */
+
+/* keyboard skip link — visually hidden until focused */
+.skip-link {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 120;
+  padding: 0.55rem 1rem;
+  background: var(--ink);
+  color: #fff;
+  font-family: var(--f-sans);
+  font-size: 13px;
+  border-radius: 8px;
+  transform: translateY(-160%);
+  transition: transform 0.18s ease;
+}
+.skip-link:focus-visible { transform: translateY(0); outline: 2px solid var(--accent); }
+
+/* reading progress — a hairline that fills as you scroll, on the header's edge */
+.scroll-progress {
+  position: fixed;
+  top: var(--bar-h);
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 21;
+  pointer-events: none;
+  background: transparent;
+}
+#scroll-progress-bar {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  background: var(--accent);
+  transition: transform 0.08s linear;
+}
+
+/* active section gets a subtle underline + full opacity */
+.nav a { position: relative; }
+.nav a.active { opacity: 1; color: var(--accent); }
+.nav a.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -6px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+/* hamburger — hidden on desktop, shown ≤900px */
+.nav-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+.nav-toggle span {
+  display: block;
+  width: 16px;
+  height: 1.5px;
+  margin: 0 auto;
+  background: var(--ink);
+  transition: transform 0.22s ease, opacity 0.18s ease;
+}
+body.menu-open .nav-toggle span:nth-child(1) { transform: translateY(5.5px) rotate(45deg); }
+body.menu-open .nav-toggle span:nth-child(2) { opacity: 0; }
+body.menu-open .nav-toggle span:nth-child(3) { transform: translateY(-5.5px) rotate(-45deg); }
+
+/* slide-down mobile menu panel */
+.nav-mobile {
+  display: none;
+  position: fixed;
+  top: var(--bar-h);
+  left: 0;
+  right: 0;
+  z-index: 19;
+  flex-direction: column;
+  padding: 0.5rem var(--pad) 1.25rem;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--line);
+  transform: translateY(-8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.24s ease, opacity 0.24s ease;
+}
+.nav-mobile a {
+  padding: 0.95rem 0.25rem;
+  color: var(--ink);
+  font-size: 17px;
+  border-bottom: 1px solid var(--line);
+}
+.nav-mobile a.active { color: var(--accent); }
+.nav-mobile a:last-child { border-bottom: none; }
+.nav-mobile-cta {
+  margin-top: 0.75rem;
+  padding: 0.9rem 1rem !important;
+  background: var(--accent);
+  color: #fff !important;
+  text-align: center;
+  border-radius: 980px;
+  border-bottom: none !important;
+}
+body.menu-open .nav-mobile {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
 /* ============ RESPONSIVE ============ */
 
 @media (max-width: 900px) {
   .nav { display: none; }
   .sys { display: none; }
+  .bar-intel { display: none; }
+  .btn-mint { display: none; }
+  .nav-toggle { display: flex; }
+  .nav-mobile { display: flex; }
   .spec-grid { width: 100%; grid-template-columns: 1fr; }
   .edition { grid-template-columns: auto 1fr auto; }
   .ed-supply { display: none; }
@@ -636,4 +762,6 @@ body.no-webgl .panel--hero::before {
   .mega-word, .hero-sub { animation-duration: 0.01s; }
   .split .wi, .reveal, .hbar-fill { transition-duration: 0.01s; transition-delay: 0s; }
   #boot { transition-duration: 0.01s; }
+  .nav-mobile, .nav-toggle span, .skip-link { transition-duration: 0.01s; }
+  #scroll-progress-bar { transition: none; }
 }

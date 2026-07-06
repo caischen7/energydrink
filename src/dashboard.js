@@ -309,6 +309,59 @@ function redditPulse() {
   );
 }
 
+/* Open Food Facts: sugar vs caffeine per brand — the nutrition white-space map */
+function nutritionMap() {
+  const n = data.nutrition;
+  const pts = n.brands
+    .filter((d) => d.sugar != null && d.caffeine != null)
+    .slice(0, 16)
+    .map((d) => ({
+      x: d.sugar,
+      y: d.caffeine,
+      r: d.products,
+      label: d.brand,
+      color: d.sugar === 0 ? ICE : VOLT,
+      tip: `${d.brand} — ${d.sugar}g sugar / 100ml · ${d.caffeine}mg caffeine / 100ml · ${d.products} SKU`,
+    }));
+  const sf = Math.round((100 * n.sugarfree) / (n.sugarfree + n.sugared || 1));
+  return panel(
+    'nutrition',
+    14,
+    'NUTRITION MAP — SUGAR × CAFFEINE',
+    `OPEN FOOD FACTS · ${n.products} SKUS · PER 100ML · ${sf}% ZERO-SUGAR · SAMPLE DATA`,
+    scatter(pts, {
+      xLabel: 'SUGAR (g / 100ml)',
+      yLabel: 'CAFFEINE (mg / 100ml)',
+      xFmt: (v) => v.toFixed(0) + 'g',
+      xMin: 0,
+      xMax: 14,
+      yMin: 0,
+      yMax: 36,
+      tip: (p) => p.tip,
+    }),
+    `Nutrition is the axis Amazon price/rating can't see. <b class="volt">${sf}%</b> of tracked SKUs are already zero-sugar, so "no sugar" alone is table stakes — the open quadrant is <em>zero-sugar with clean, moderate caffeine</em> (bottom-left), exactly where Bogus Banana's 120mg / no-crash spec sits. (Ships with generated sample data — run <code>data/scrapers/openfoodfacts.py</code> for live values.)`
+  );
+}
+
+/* Wikipedia pageviews: platform-neutral curiosity per brand over the last 12 months */
+function wikiInterest() {
+  const rows = data.wiki_interest.slice(0, 12).map((d, i) => ({
+    label: d.brand,
+    value: d.total,
+    color: i === 0 ? VOLT : undefined,
+  }));
+  const top = data.wiki_interest[0];
+  const two = data.wiki_interest[1];
+  return panel(
+    'wiki',
+    15,
+    'SEARCH INTEREST — PUBLIC CURIOSITY',
+    'WIKIPEDIA PAGEVIEWS · TRAILING 12 MONTHS · SAMPLE DATA',
+    hBars(rows, { fmt: fmtCompact, unit: 'views', accent: '#c7c7cc' }),
+    `A key-free, platform-neutral demand proxy: ${top.brand} (${fmtCompact(top.total)}) and ${two.brand} (${fmtCompact(two.total)}) top raw curiosity, tracking their retail dominance. Useful as an independent cross-check on the social-reach ranking above. (Generated sample — run <code>data/scrapers/wikipedia.py</code> for live pageviews.)`
+  );
+}
+
 /* ---------- sortable cross-platform table ---------- */
 const COLS = [
   { key: 'brand', label: 'BRAND', align: 'left', fmt: (v) => v },
@@ -397,7 +450,7 @@ function countUp(el) {
 function main(loaded) {
   data = loaded;
   renderKpis();
-  $('#charts').innerHTML = [
+  const panels = [
     marketSize(),
     conceptInterest(),
     motivations(),
@@ -411,7 +464,11 @@ function main(loaded) {
     instagramEngagement(),
     redditPulse(),
     voiceOfCustomer(),
-  ].join('');
+  ];
+  /* new sources — only render if the aggregate carries their data */
+  if (data.nutrition?.brands?.length) panels.push(nutritionMap());
+  if (data.wiki_interest?.length) panels.push(wikiInterest());
+  $('#charts').innerHTML = panels.join('');
   renderTable();
   $('#gen-at').textContent = new Date(data.generated_at).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
   animate();

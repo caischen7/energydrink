@@ -494,6 +494,58 @@ reddit_brands = [
     for r in _rows("reddit/brand_pulse.csv")
 ]
 
+# ---------------------------------------------------------------- new sources: Open Food Facts + Wikipedia
+# Scraped by data/scrapers/{openfoodfacts,wikipedia}.py (see their READMEs).
+# Read defensively — if a source hasn't been scraped/generated yet these stay
+# empty and the dashboard simply hides the panel.
+off_products = _rows("openfoodfacts/products.csv")
+nutri_by_brand = defaultdict(lambda: {"sugar": [], "caffeine": [], "n": 0})
+sugarfree = sugared = 0
+for r in off_products:
+    b = (r.get("brand") or "").strip()
+    s = num(r.get("sugars_100g"))
+    caf = num(r.get("caffeine_mg_100g"))
+    if s is not None:
+        if s == 0:
+            sugarfree += 1
+        else:
+            sugared += 1
+    if not b:
+        continue
+    nutri_by_brand[b]["n"] += 1
+    if s is not None:
+        nutri_by_brand[b]["sugar"].append(s)
+    if caf is not None:
+        nutri_by_brand[b]["caffeine"].append(caf)
+
+nutrition = [
+    {
+        "brand": b,
+        "products": v["n"],
+        "sugar": rnd(sum(v["sugar"]) / len(v["sugar"]), 1) if v["sugar"] else None,
+        "caffeine": rnd(sum(v["caffeine"]) / len(v["caffeine"]), 1) if v["caffeine"] else None,
+    }
+    for b, v in nutri_by_brand.items()
+    if v["sugar"] or v["caffeine"]
+]
+nutrition.sort(key=lambda x: -(x["caffeine"] or 0))
+off = {
+    "brands": nutrition,
+    "products": len(off_products),
+    "sugarfree": sugarfree,
+    "sugared": sugared,
+}
+
+wiki_interest = [
+    {
+        "brand": r["brand"],
+        "total": int(num(r.get("total_views_12mo")) or 0),
+        "avg": int(num(r.get("avg_monthly_views")) or 0),
+    }
+    for r in _rows("wikipedia/brand_pages.csv")
+]
+wiki_interest.sort(key=lambda x: -x["total"])
+
 # ---------------------------------------------------------------- KPIs
 kpis = {
     "brands": len(brands),
@@ -532,6 +584,8 @@ out = {
     "concept_interest": concept_interest,
     "motivations": motivations,
     "reddit": {"meta": reddit_meta, "brands": reddit_brands},
+    "nutrition": off,
+    "wiki_interest": wiki_interest,
 }
 
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
@@ -558,3 +612,8 @@ if concept_interest:
     print(f"  top concept: {concept_interest[0]['concept'][:40]} ({concept_interest[0]['pct']}%)")
 if reddit_brands:
     print(f"  reddit pulse: {len(reddit_brands)} brands, top {reddit_brands[0]['brand']} ({reddit_brands[0]['mentions']} mentions)")
+if nutrition:
+    print(f"  nutrition (OFF): {off['products']} products, {sugarfree} sugar-free / {sugared} sugared, "
+          f"{len(nutrition)} brands")
+if wiki_interest:
+    print(f"  wiki interest: {len(wiki_interest)} brands, top {wiki_interest[0]['brand']} ({wiki_interest[0]['total']:,} views/12mo)")
