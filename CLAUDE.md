@@ -69,6 +69,21 @@ allowlist blocks walmart.com). Walmart publishes no unit-sales data; the script
 captures the public proxies (review counts, ratings, badges, "N+ bought since
 yesterday"). See `data/README.md` § "Walmart scraper".
 
+### Free scrapers (`data/scripts/scrape_{amazon,instagram,youtube,reddit}.py`)
+```bash
+python data/scripts/scrape_amazon.py      # Playwright browser (same setup as Walmart)
+python data/scripts/scrape_instagram.py   # pip install instaloader
+python data/scripts/scrape_youtube.py     # free YOUTUBE_API_KEY, or pip install yt-dlp
+python data/scripts/scrape_reddit.py      # stdlib only (public JSON), or free praw app
+```
+Free replacements for the paid scraper exports behind `data/{amazon,instagram,
+youtube}/` and the one-off Reddit dump. All match the committed CSV headers
+exactly and merge incrementally (dedupe on natural keys, fresh rows win).
+Reddit writes raw to untracked `raw_data/` (no usernames ever) — aggregate with
+`RAW_DATA_DIR=raw_data python data/scripts/build_external_datasets.py`. Like
+Walmart, none run from this cloud container (egress allowlist) — the user runs
+them locally. See `data/README.md` § "Free scrapers".
+
 ### External sources (`data/market/`, `data/reddit/`)
 ```bash
 pip install openpyxl vaderSentiment

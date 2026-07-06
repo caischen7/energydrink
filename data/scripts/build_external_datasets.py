@@ -13,7 +13,8 @@ then folds into the dashboard aggregate.
 Expects under RAW_DATA_DIR:
   Catalyst Datasets/consumer_..._worldwide_USD_en.xlsx   (Statista 'Revenue' sheet)
   Mintel 2026 Energy Report Data/...Full Databook.xlsx    ('Q6 topline', 'Q4 topline')
-  Reddit data/r-Energy Drinks/energydrinks_{posts,comments}_20260609.csv
+  Reddit data/r-Energy Drinks/energydrinks_{posts,comments}_<YYYYMMDD>.csv
+    (newest date wins; regenerate with data/scripts/scrape_reddit.py)
 """
 import csv
 import os
@@ -156,8 +157,19 @@ def build_reddit():
     if not base:
         print("  ! Reddit folder not found", file=sys.stderr)
         return
-    posts_f = os.path.join(base, "energydrinks_posts_20260609.csv")
-    comments_f = os.path.join(base, "energydrinks_comments_20260609.csv")
+    def latest(pattern):
+        # dated exports: energydrinks_*_<YYYYMMDD>.csv — lexicographic max
+        # is the newest date
+        hits = sorted(glob.glob(os.path.join(base, pattern)))
+        return hits[-1] if hits else None
+
+    posts_f = latest("energydrinks_posts_*.csv")
+    comments_f = latest("energydrinks_comments_*.csv")
+    if not (posts_f and comments_f):
+        print("  ! no energydrinks_{posts,comments}_*.csv under %s — run "
+              "`python3 data/scripts/scrape_reddit.py` first" % base,
+              file=sys.stderr)
+        return
 
     # brand list + aliases (from the cross-platform table)
     brands = []

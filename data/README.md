@@ -27,7 +27,13 @@ data/
     reviews.csv     see "Walmart scraper" below)
   scripts/
     build_clean_datasets.py          regenerates everything above from raw exports
-    scrape_walmart.py                scrapes Walmart products + reviews (see below)
+    build_external_datasets.py       market reports + Reddit raw -> committed aggregates
+    build_dashboard_json.py          reduces all CSVs to src/data/dashboard.json
+    scrape_walmart.py                Walmart products + reviews (see below)
+    scrape_amazon.py                 free Amazon scraper (see "Free scrapers")
+    scrape_instagram.py              free Instagram scraper (see "Free scrapers")
+    scrape_youtube.py                free YouTube scraper (see "Free scrapers")
+    scrape_reddit.py                 free Reddit scraper (see "Free scrapers")
 ```
 
 ## Cleaning notes
@@ -81,6 +87,51 @@ Other ways to extend the join:
   whether brands with higher Instagram/YouTube engagement also have higher
   Amazon ratings, or whether they diverge (e.g. high social buzz but
   mediocre product reviews).
+
+## Free scrapers (Amazon, Instagram, YouTube, Reddit)
+
+The original Amazon/Instagram/YouTube corpora came from paid scraper exports.
+`scripts/scrape_{amazon,instagram,youtube,reddit}.py` replace them with free,
+self-run collectors. Shared behavior (same house pattern as the Walmart
+scraper): output headers **byte-identical** to the committed CSVs, runs are
+**incremental** (existing rows are merged in and deduped on the natural key —
+asin / review_id / post shortcode / video_id / comment_id — with fresh rows
+winning), polite randomized rate-limiting with backoff, clear `BLOCKED:`-style
+errors, Python 3.9-compatible, heavy deps imported lazily.
+
+- **Amazon** (`scrape_amazon.py`) — Playwright browser scraper (same setup as
+  Walmart: `pip3 install playwright && python3 -m playwright install chromium`;
+  persistent profile at `~/.cache/energydrink-amazon-profile`). Search pages →
+  products; product pages → description/bullets/categories + the on-page top
+  ~8 reviews (free, no login). Amazon's text CAPTCHA: solve once in the window.
+  Paginated reviews beyond that require signing in (`--login`, off by default) —
+  documented ToS/account risk, your call.
+- **Instagram** (`scrape_instagram.py`) — `pip3 install instaloader`. Pulls the
+  8 tracked brand accounts (`--accounts` to change), `--max-posts` 60/profile,
+  30–60 s jittered sleeps between profiles. Anonymous works at low volume; on
+  429 it stops (never hammers), writes partial results, and suggests waiting or
+  `--login` (session file reused; use a throwaway account).
+- **YouTube** (`scrape_youtube.py`) — two free backends. `api`: the official
+  YouTube Data API v3 with a free key (`YOUTUBE_API_KEY`; 10,000 units/day —
+  the script prints a quota estimate up front and each search page costs 100
+  units). `ytdlp`: zero-key via `pip3 install yt-dlp`, slower. Videos +
+  comments incl. replies; `brands_mentioned` regex matches the pipeline's
+  brand aliases.
+- **Reddit** (`scrape_reddit.py`) — zero-install (stdlib): public JSON listings
+  of r/EnergyDrinks (new/hot/top) + full comment trees, ~2 s between requests;
+  optional `praw` backend with a free script app. **Privacy:** usernames are
+  never collected; raw CSVs go to the untracked `raw_data/` dir, and only
+  aggregates reach the repo via
+  `RAW_DATA_DIR=raw_data python3 data/scripts/build_external_datasets.py`
+  (patched to pick the newest dated export automatically).
+
+After any scrape lands: rerun `python3 data/scripts/build_dashboard_json.py`
+so the dashboard aggregate reflects it.
+
+Every scraper has an offline fixture-test suite in `data/scripts/tests/`
+(`python3 data/scripts/tests/test_<source>_parse.py` — no network needed).
+Run the matching suite after editing a scraper; the parsers are
+markup/API-shape dependent and these tests are what catches regressions.
 
 ## Walmart scraper
 

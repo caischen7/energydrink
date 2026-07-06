@@ -18,19 +18,27 @@ Three backends:
              free tier is 100 searches/month — budget with --max-products /
              --review-pages: each search page and each review page is 1 search).
 
-Usage:
-  python data/scripts/scrape_walmart.py                        # auto backend
-  python data/scripts/scrape_walmart.py --backend browser
-  python data/scripts/scrape_walmart.py --backend serpapi \
+Usage (VS Code terminal on macOS):
+  python3 data/scripts/scrape_walmart.py                       # auto backend
+  python3 data/scripts/scrape_walmart.py --backend browser
+  python3 data/scripts/scrape_walmart.py --backend serpapi \
       --search-pages 1 --max-products 6 --review-pages 2       # ~65 API calls
-  python data/scripts/scrape_walmart.py --terms "Red Bull energy drink" \
+  python3 data/scripts/scrape_walmart.py --terms "Red Bull energy drink" \
       --max-products 20 --review-pages 3
+  python3 data/scripts/scrape_walmart.py --fresh               # overwrite CSVs
 
 Outputs (schema mirrors data/amazon/):
   data/walmart/products.csv   one row per product (price, rating, review count,
                               badges — incl. "N+ bought since yesterday", the
                               closest public proxy Walmart gives for purchases)
   data/walmart/reviews.csv    one row per customer review
+
+Runs are INCREMENTAL: if an output CSV already exists, its rows are merged
+with the fresh scrape — union of old + new, deduped on item_id (products) /
+review_id (reviews), with the freshly scraped row winning on collision and
+the file's existing column order preserved. Reviews already on disk also seed
+the in-run dedupe so a re-run doesn't re-collect them. Pass --fresh to skip
+the merge and overwrite from scratch.
 
 Note on "purchase data": Walmart does not publish unit sales. The public
 proxies captured here are review volume, star rating, bestseller badges and
@@ -189,6 +197,68 @@ def write_csv(path, columns, rows):
         writer.writeheader()
         writer.writerows(rows)
     print(f"  wrote {path} ({len(rows)} rows)")
+
+
+def read_csv_rows(path):
+    """Return (rows, columns) already on disk at `path`, or ([], None)."""
+    if not os.path.exists(path):
+        return [], None
+    with open(path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+        columns = list(reader.fieldnames) if reader.fieldnames else None
+    return rows, columns
+
+
+def merge_rows(path, columns, rows, key):
+    """Union freshly scraped `rows` with whatever CSV already sits at `path`.
+
+    Makes runs incremental instead of destructive: dedupes on the `key`
+    column (compared as strings, since disk rows come back as str), with the
+    freshly scraped row winning on collision. Rows whose key is missing/empty
+    get a unique synthetic key so they are never silently dropped. The
+    existing file's column order is preserved when it has one. Returns
+    (columns, merged_rows) and prints the kept-from-disk vs fresh split.
+    """
+    old_rows, old_columns = read_csv_rows(path)
+    if old_columns:
+        columns = old_columns
+    merged, index = [], {}
+    for n, row in enumerate(old_rows):
+        val = row.get(key)
+        k = str(val) if val not in (None, "") else ("__nokey_old__", n)
+        index[k] = len(merged)
+        merged.append(row)
+    old_slots = set(range(len(merged)))  # merged indices still holding disk rows
+    for n, row in enumerate(rows):
+        val = row.get(key)
+        k = str(val) if val not in (None, "") else ("__nokey_new__", n)
+        if k in index:
+            merged[index[k]] = row  # freshly scraped row wins
+            old_slots.discard(index[k])
+        else:
+            index[k] = len(merged)
+            merged.append(row)
+    print(f"  merge {os.path.basename(path)}: kept {len(old_slots)} rows from "
+          f"disk + {len(rows)} freshly scraped -> {len(merged)} total")
+    return columns, merged
+
+
+def review_key(row):
+    """In-run review dedupe key: review_id when present, else a content tuple.
+
+    Mirrors the historical str-or-tuple mix in main()'s `review_ids` set, but
+    normalizes everything to strings so rows read back from reviews.csv (all
+    str) match freshly scraped ones.
+    """
+    rid = row.get("review_id")
+    if rid not in (None, ""):
+        return str(rid)
+    return (
+        str(row.get("item_id") or ""),
+        str(row.get("review_text") or ""),
+        str(row.get("review_date") or ""),
+    )
 
 
 # --------------------------------------------------------------------------
@@ -631,6 +701,9 @@ def main():
     ap.add_argument("--sleep", type=float, default=2.5,
                     help="base delay between requests in seconds (default 2.5)")
     ap.add_argument("--out", default="data/walmart", help="output directory")
+    ap.add_argument("--fresh", action="store_true",
+                    help="overwrite the output CSVs from scratch instead of "
+                         "merging with rows already on disk")
     args = ap.parse_args()
 
     api_key = os.environ.get("SERPAPI_KEY", "").strip()
@@ -677,9 +750,22 @@ def main():
             print(f"  [{term}] page {page}: {len(rows)} items, kept {kept}")
             if kept >= args.max_products:
                 break
-    write_csv(os.path.join(args.out, "products.csv"), PRODUCT_COLUMNS, products)
+    products_path = os.path.join(args.out, "products.csv")
+    if args.fresh:
+        write_csv(products_path, PRODUCT_COLUMNS, products)
+    else:
+        columns, merged = merge_rows(products_path, PRODUCT_COLUMNS, products,
+                                     "item_id")
+        write_csv(products_path, columns, merged)
 
+    reviews_path = os.path.join(args.out, "reviews.csv")
     reviews, review_ids = [], set()
+    if not args.fresh:
+        # Seed the in-run dedupe with what's already on disk so a re-run
+        # doesn't re-collect (and merge_rows then duplicate, for rows without
+        # a review_id) reviews we already have.
+        for old_row in read_csv_rows(reviews_path)[0]:
+            review_ids.add(review_key(old_row))
     for i, product in enumerate(products, 1):
         term = product["search_term"]
         got = 0
@@ -700,9 +786,7 @@ def main():
             if not rows:
                 break
             for row in rows:
-                key = row["review_id"] or (
-                    row["item_id"], row["review_text"], row["review_date"]
-                )
+                key = review_key(row)
                 if key in review_ids:
                     continue
                 review_ids.add(key)
@@ -712,7 +796,12 @@ def main():
         if got == 0 and (product.get("reviews_total") or 0) > 0:
             note = f" (listing reports {product['reviews_total']})"
         print(f"  [{i}/{len(products)}] {product['item_id']}: {got} reviews{note}")
-    write_csv(os.path.join(args.out, "reviews.csv"), REVIEW_COLUMNS, reviews)
+    if args.fresh:
+        write_csv(reviews_path, REVIEW_COLUMNS, reviews)
+    else:
+        columns, merged = merge_rows(reviews_path, REVIEW_COLUMNS, reviews,
+                                     "review_id")
+        write_csv(reviews_path, columns, merged)
 
     if fetcher:
         fetcher.close()
