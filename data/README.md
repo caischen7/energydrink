@@ -34,6 +34,7 @@ data/
     scrape_walmart.py                Walmart products + reviews (see below)
     scrape_amazon.py                 free Amazon scraper (see "Free scrapers")
     scrape_retailers.py              Target/TJ's/Publix/H-E-B/Costco/WFM/Kroger (see below)
+    scrape_kroger.py                 Kroger — kroger.com direct OR official free API
     scrape_instagram.py              free Instagram scraper (see "Free scrapers")
     scrape_tiktok.py                 TikTok brand accounts + hashtags (see below)
     scrape_facebook.py               Meta Ad Library — brand ads (see below)
@@ -107,14 +108,17 @@ python data/scripts/run_all.py --build         # rebuild dashboard.json after
 python data/scripts/run_all.py --dry-run       # print the plan, run nothing
 ```
 
-`run_all.py` drives all eight scrapers as subprocesses in a safest-first order
+`run_all.py` drives every scraper as subprocesses in a safest-first order
 (YouTube + Reddit, which never hit a bot wall, then the browser scrapers, with
-the most rate-limit-fragile last). It passes each scraper only the flags it
-understands, keeps going if one fails (`--stop-on-error` to change that), and
-ends with a per-scraper `OK / BLOCKED / FAILED` summary. **Hands-off runs:** the
-browser scrapers use persistent Chromium profiles, so solve any challenge once
-in a normal (non-`--headless`) run, then re-run with `--headless` and the saved
-profiles sail through. YouTube/Reddit never challenge.
+the most rate-limit-fragile last; Kroger runs as its own step, and the batch
+retailer scraper excludes Kroger so it isn't scraped twice). It passes each
+scraper only the flags it understands, keeps going if one fails
+(`--stop-on-error` to change that), and ends with a per-scraper
+`OK / BLOCKED / FAILED` summary. `--deep` scales every source up (more products,
+review pages, scroll depth) to gather as much market data as reasonable in one
+pass. **Hands-off runs:** the browser scrapers use persistent Chromium profiles,
+so solve any challenge once in a normal (non-`--headless`) run, then re-run with
+`--headless` and the saved profiles sail through. YouTube/Reddit never challenge.
 
 The original Amazon/Instagram/YouTube corpora came from paid scraper exports.
 `scripts/scrape_{amazon,instagram,youtube,reddit}.py` replace them with free,
@@ -155,12 +159,20 @@ errors, Python 3.9-compatible, heavy deps imported lazily.
   reviews}.csv` with a `retailer` column. Browser-based: it harvests
   product/review objects from each site's own JSON traffic plus schema.org
   `ld+json` markup, so it tolerates HTML reshuffles. Reviews come from Target /
-  Costco / H-E-B (the others don't publish any). **Kroger:** use the official
-  free API instead of the bot-walled site — create an app at
-  developer.kroger.com, export `KROGER_CLIENT_ID` / `KROGER_CLIENT_SECRET`,
-  and pass `--kroger-zip <zip>` for store prices. Expectations: Target/Costco/
+  Costco / H-E-B (the others don't publish any). This batch script excludes
+  Kroger (it has its own dedicated scraper). Expectations: Target/Costco/
   H-E-B/TJ's solid; Publix + Whole Foods best-effort (Instacart-backed / store-
   gated pricing).
+- **Kroger** (`scrape_kroger.py`) — dedicated Kroger scraper with two backends
+  → `data/kroger/{products,reviews}.csv` (schema matches `data/retailers/`,
+  `retailer` = `kroger`). `--backend browser` (default when no API creds)
+  scrapes **kroger.com directly** — a real Chromium harvests the product +
+  review JSON the site fetches, so it also captures ratings/reviews; but
+  kroger.com is behind Akamai (the toughest wall here), so it's the flakiest
+  path. `--backend api` uses Kroger's **official free API** (create an app at
+  developer.kroger.com, export `KROGER_CLIENT_ID` / `KROGER_CLIENT_SECRET`,
+  pass `--kroger-zip <zip>` for store prices) — rock-solid but no ratings/
+  reviews. `auto` picks the API when creds are present, else the browser.
 - **TikTok** (`scrape_tiktok.py`) — brand accounts + hashtag pages →
   `data/tiktok/videos.csv` (plays/likes/comments/shares/saves per video, brand
   mentions) and optionally `comments.csv` (`--comments N`). Harvests the JSON

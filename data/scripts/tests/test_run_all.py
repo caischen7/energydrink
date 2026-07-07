@@ -18,6 +18,7 @@ class Args(object):
         self.sleep = kw.get("sleep", None)
         self.terms = kw.get("terms", None)
         self.light = kw.get("light", False)
+        self.deep = kw.get("deep", False)
 
 
 class TestBuildCommand(unittest.TestCase):
@@ -49,6 +50,22 @@ class TestBuildCommand(unittest.TestCase):
         self.assertIn("--max-products", cmd)
         self.assertIn("5", cmd)
 
+    def test_deep_mode_adds_bigger_caps(self):
+        cmd = ra.build_command(ra.BY_NAME["walmart"], Args(deep=True))
+        self.assertIn("--review-pages", cmd)
+        self.assertIn("40", cmd)
+
+    def test_retailers_excludes_kroger_via_fixed_args(self):
+        cmd = ra.build_command(ra.BY_NAME["retailers"], Args())
+        self.assertIn("--retailers", cmd)
+        self.assertNotIn("kroger", cmd)
+        self.assertIn("target", cmd)
+
+    def test_kroger_has_its_own_entry(self):
+        self.assertIn("kroger", ra.BY_NAME)
+        cmd = ra.build_command(ra.BY_NAME["kroger"], Args())
+        self.assertTrue(cmd[1].endswith("scrape_kroger.py"))
+
     def test_command_targets_the_right_script(self):
         cmd = ra.build_command(ra.BY_NAME["reddit"], Args())
         self.assertTrue(cmd[1].endswith("scrape_reddit.py"))
@@ -73,8 +90,10 @@ class TestRegistry(unittest.TestCase):
                                 "scrape_%s.py" % s["name"])
             self.assertTrue(os.path.exists(path), path)
 
-    def test_light_flags_cover_all_scrapers(self):
-        self.assertEqual(set(ra.LIGHT_FLAGS), {s["name"] for s in ra.SCRAPERS})
+    def test_light_and_deep_flags_cover_all_scrapers(self):
+        names = {s["name"] for s in ra.SCRAPERS}
+        self.assertEqual(set(ra.LIGHT_FLAGS), names)
+        self.assertEqual(set(ra.DEEP_FLAGS), names)
 
     def test_order_is_api_first_browser_last(self):
         groups = [s["group"] for s in ra.SCRAPERS]

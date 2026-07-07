@@ -69,8 +69,16 @@ SCRAPERS = [
      "note": "browser; auto press-and-hold, else solve once"},
     {"name": "retailers", "group": "browser",
      "supports": {"headless", "sleep", "terms", "fresh"},
+     # Kroger has its own dedicated scraper below, so exclude it here to
+     # avoid scraping it twice.
+     "fixed": ["--retailers", "target", "traderjoes", "publix", "heb",
+               "costco", "wholefoods"],
+     "env": [],
+     "note": "Target/TJ's/Publix/H-E-B/Costco/Whole Foods (browser)"},
+    {"name": "kroger", "group": "browser",
+     "supports": {"headless", "sleep", "terms", "fresh"},
      "env": ["KROGER_CLIENT_ID", "KROGER_CLIENT_SECRET"],
-     "note": "Target/TJ's/Publix/H-E-B/Costco/WFM/Kroger; Kroger uses free API"},
+     "note": "Kroger — official free API if KROGER_* set, else kroger.com direct"},
     {"name": "instagram", "group": "instaloader",
      "supports": {"sleep"},
      "env": [],
@@ -92,9 +100,26 @@ LIGHT_FLAGS = {
     "amazon": ["--max-products", "5", "--search-pages", "1"],
     "walmart": ["--max-products", "5", "--search-pages", "1", "--review-pages", "1"],
     "retailers": ["--max-products", "5", "--review-products", "3"],
+    "kroger": ["--max-products", "5", "--review-products", "3"],
     "instagram": ["--max-posts", "15"],
     "tiktok": ["--scrolls", "2"],
     "facebook": ["--scrolls", "2"],
+}
+
+# Per-scraper "deep mode" — gather as much market data as reasonable in one
+# pass (more products, more review pages, more scroll depth). Slower and a bit
+# more bot-exposed, so pair it with generous --sleep and, after the first
+# solve, --headless.
+DEEP_FLAGS = {
+    "youtube": ["--max-videos-per-query", "50", "--comment-pages", "5"],
+    "reddit": ["--max-posts", "1000", "--max-comments-per-post", "500"],
+    "amazon": ["--max-products", "40", "--search-pages", "3"],
+    "walmart": ["--max-products", "40", "--search-pages", "3", "--review-pages", "6"],
+    "retailers": ["--max-products", "40", "--review-products", "15", "--scrolls", "6"],
+    "kroger": ["--max-products", "40", "--review-products", "15", "--scrolls", "6"],
+    "instagram": ["--max-posts", "200"],
+    "tiktok": ["--scrolls", "12", "--comments", "5"],
+    "facebook": ["--scrolls", "12"],
 }
 
 BY_NAME = {s["name"]: s for s in SCRAPERS}
@@ -103,6 +128,7 @@ BY_NAME = {s["name"]: s for s in SCRAPERS}
 def build_command(scraper, args):
     """Return the argv list for one scraper given the runner's options."""
     cmd = [sys.executable, os.path.join(HERE, "scrape_%s.py" % scraper["name"])]
+    cmd += scraper.get("fixed", [])
     sup = scraper["supports"]
     if args.headless and "headless" in sup:
         cmd.append("--headless")
@@ -112,8 +138,10 @@ def build_command(scraper, args):
         cmd += ["--sleep", str(args.sleep)]
     if args.terms and "terms" in sup:
         cmd += ["--terms"] + args.terms
-    if args.light:
+    if getattr(args, "light", False):
         cmd += LIGHT_FLAGS.get(scraper["name"], [])
+    elif getattr(args, "deep", False):
+        cmd += DEEP_FLAGS.get(scraper["name"], [])
     return cmd
 
 
@@ -191,8 +219,12 @@ def main():
                     help="override base delay (seconds) for every scraper")
     ap.add_argument("--terms", nargs="+", default=None,
                     help="product search terms for amazon/walmart/retailers")
-    ap.add_argument("--light", action="store_true",
-                    help="small, fast run for testing the whole pipeline")
+    volume = ap.add_mutually_exclusive_group()
+    volume.add_argument("--light", action="store_true",
+                        help="small, fast run for testing the whole pipeline")
+    volume.add_argument("--deep", action="store_true",
+                        help="gather as much data as reasonable per source "
+                             "(more products, review pages, scroll depth)")
     ap.add_argument("--build", action="store_true",
                     help="run build_dashboard_json.py after scraping")
     ap.add_argument("--continue-on-error", dest="cont", action="store_true",

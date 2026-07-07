@@ -65,10 +65,12 @@ See `data/README.md` for the full schema and cleaning notes.
 pip install playwright && python -m playwright install chromium   # once, for browser scrapers
 python data/scripts/run_all.py            # run every scraper in one pass (--help for options)
 python data/scripts/run_all.py --headless # hands-off, after solving each site's challenge once
+python data/scripts/run_all.py --deep     # gather as much per source as reasonable
 python data/scripts/scrape_walmart.py     # Walmart products + reviews
 python data/scripts/scrape_amazon.py      # Amazon products + on-page reviews
 python data/scripts/scrape_retailers.py   # Target, Trader Joe's, Publix, H-E-B,
-                                          #   Costco, Whole Foods, Kroger (official free API)
+                                          #   Costco, Whole Foods (browser)
+python data/scripts/scrape_kroger.py      # Kroger — kroger.com direct, or official free API
 python data/scripts/scrape_instagram.py   # pip install instaloader
 python data/scripts/scrape_tiktok.py      # brand accounts + hashtag pages
 python data/scripts/scrape_facebook.py    # Meta Ad Library (public, no login)
