@@ -54,6 +54,12 @@ and paid media (ad messaging) — and feed it into a decision-ready dashboard.
 - Working dashboard reading `public/data/dashboard.json`.
 - Sentiment analysis tool (3 models), example-output reference.
 
+## Advisory review
+
+A five-person CPG investor/founder panel reviewed this workstream — see [`ADVISORY_REVIEW.md`](ADVISORY_REVIEW.md) for the prioritized recommendations (headline: convert the scrapers into scheduled
+dated snapshots for velocity proxies; normalize prices to $/oz; add n= badges;
+nutrition capture; Google Trends; a c-store proxy via delivery apps).
+
 ## Open questions / roadmap
 - Fold new sources (Walmart, retailers, TikTok, Facebook ads) into the
   cross-platform `brand_summary` and dashboard panels.
