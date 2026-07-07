@@ -1,0 +1,49 @@
+source,brand,model,n,pct_pos,pct_neg,pct_neu,mean_score
+amazon,Monster,lexicon,125,74.4,6.4,19.2,0.2839
+amazon,Celsius,lexicon,91,83.5,1.1,15.4,0.384
+amazon,Alani Nu,lexicon,82,89.0,3.7,7.3,0.4116
+amazon,Unknown,lexicon,54,74.1,9.3,16.7,0.2345
+amazon,Ghost,lexicon,35,77.1,5.7,17.1,0.3
+amazon,C4,lexicon,29,86.2,3.4,10.3,0.2812
+amazon,Red Bull,lexicon,29,65.5,0.0,34.5,0.2776
+amazon,GURU,lexicon,17,47.1,17.6,35.3,0.088
+amazon,Liquid I.V.,lexicon,16,68.8,12.5,18.8,0.2847
+amazon,Bloom Nutrition,lexicon,16,100.0,0.0,0.0,0.4432
+amazon,Liquid Death,lexicon,16,81.2,0.0,18.8,0.2474
+amazon,AdvoCare,lexicon,8,75.0,12.5,12.5,0.271
+amazon,Xwerks,lexicon,8,87.5,12.5,0.0,0.5083
+amazon,Spylt,lexicon,8,100.0,0.0,0.0,0.3402
+amazon,Zipfizz,lexicon,8,75.0,12.5,12.5,0.2978
+amazon,Pureboost,lexicon,8,87.5,0.0,12.5,0.2417
+amazon,Rockstar,lexicon,1,100.0,0.0,0.0,0.2668
+amazon,Prime,lexicon,1,100.0,0.0,0.0,0.1231
+instagram,Alani Nu,lexicon,15,46.7,0.0,53.3,0.0856
+instagram,Bang,lexicon,15,6.7,0.0,93.3,0.0298
+instagram,Celsius,lexicon,15,6.7,0.0,93.3,0.0172
+instagram,Prime,lexicon,15,13.3,0.0,86.7,0.0305
+instagram,Reign,lexicon,15,13.3,0.0,86.7,0.0375
+instagram,Rockstar,lexicon,15,13.3,13.3,73.3,0.0015
+instagram,Monster,lexicon,14,14.3,7.1,78.6,0.0181
+instagram,Zoa,lexicon,14,0.0,0.0,100.0,0.0
+youtube,Unknown,lexicon,111664,20.7,4.4,74.9,0.0557
+youtube,Monster,lexicon,3292,25.8,6.6,67.6,0.0569
+youtube,Red Bull,lexicon,2772,23.8,7.8,68.5,0.0502
+youtube,Bang,lexicon,1110,25.5,5.7,68.8,0.0584
+youtube,G Fuel,lexicon,1020,24.0,5.8,70.2,0.0465
+youtube,Celsius,lexicon,982,29.9,8.6,61.5,0.0598
+youtube,Ghost,lexicon,800,40.5,5.6,53.9,0.1048
+youtube,Rockstar,lexicon,677,35.3,7.8,56.9,0.0815
+youtube,Prime,lexicon,651,18.1,8.1,73.7,0.0326
+youtube,Reign,lexicon,590,37.3,4.2,58.5,0.0947
+youtube,C4,lexicon,376,30.3,4.3,65.4,0.0801
+youtube,Alani Nu,lexicon,339,38.3,6.5,55.2,0.0907
+youtube,NOS,lexicon,302,35.8,3.0,61.3,0.1039
+youtube,5-hour Energy,lexicon,171,11.7,9.9,78.4,0.0058
+youtube,Liquid I.V.,lexicon,103,35.0,3.9,61.2,0.088
+youtube,Zoa,lexicon,73,27.4,6.8,65.8,0.0447
+youtube,GURU,lexicon,47,27.7,2.1,70.2,0.0803
+youtube,Liquid Death,lexicon,35,17.1,5.7,77.1,0.0284
+youtube,Bloom Nutrition,lexicon,23,43.5,0.0,56.5,0.1049
+youtube,Zipfizz,lexicon,18,38.9,0.0,61.1,0.0955
+youtube,Pureboost,lexicon,1,100.0,0.0,0.0,0.2425
+youtube,AdvoCare,lexicon,1,0.0,0.0,100.0,0.0

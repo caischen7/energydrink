@@ -1,5 +1,9 @@
-/* Bogus Banana — self-hosted Inter (closest free match to SF) */
-import '@fontsource-variable/inter';
+/* Bogus Banana — self-hosted type: chunky Archivo display (width axis),
+   Space Grotesk body, Space Mono telemetry */
+import '@fontsource-variable/archivo/wdth.css';
+import '@fontsource-variable/space-grotesk';
+import '@fontsource/space-mono/400.css';
+import '@fontsource/space-mono/700.css';
 
 import './style.css';
 import { initFx } from './fx.js';

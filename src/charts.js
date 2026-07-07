@@ -5,10 +5,10 @@
  * (see dashboard.css) and gated by an IntersectionObserver in dashboard.js.
  */
 
-const VOLT = '#0071e3';
-const ICE = '#5e9ed6';
-const DIM = '#86868b';
-const LINE = '#d2d2d7';
+const VOLT = '#ef4a23';   /* zest — primary series (legacy name) */
+const ICE = '#a36305';    /* toasted gold — secondary */
+const DIM = '#8a7561';
+const LINE = '#e9d9b4';
 
 /* ---------- number formatting ---------- */
 export function fmtCompact(n) {
@@ -223,9 +223,9 @@ export function stackedBars(rows, opts = {}) {
   const H = rows.length * (rowH + gap);
   const max = Math.max(...rows.map((r) => r.total), 1);
   const SEG = [
-    ['pos', '#0071e3', 'LOVES'],
-    ['neu', '#d2d2d7', 'NEUTRAL'],
-    ['neg', '#ff3b30', 'COMPLAINTS'],
+    ['pos', '#1e9e4b', 'LOVES'],
+    ['neu', '#e4d3ab', 'NEUTRAL'],
+    ['neg', '#b3261e', 'COMPLAINTS'],
   ];
 
   const bars = rows
@@ -264,9 +264,8 @@ export function stackedBars(rows, opts = {}) {
   return `<svg viewBox="0 0 ${W} ${H + legendH}" class="chart" preserveAspectRatio="xMidYMid meet" role="img">${bars}${legend}</svg>`;
 }
 
-/* palette for multi-series brand lines — restrained, on-brand, still distinguishable */
-/* Apple system colors — distinguishable but restrained for the multi-line chart */
-const SERIES_COLORS = ['#0071e3', '#34c759', '#5e5ce6', '#ff9f0a', '#ff375f', '#86868b'];
+/* palette for multi-series brand lines — brand-warm, still distinguishable */
+const SERIES_COLORS = ['#ef4a23', '#0f7e86', '#6c2a5b', '#a87400', '#1e9e4b', '#8a7561'];
 
 /*
  * Multi-series line chart. months: ['YYYY-MM', ...]; series: [{brand, values:[…]}]

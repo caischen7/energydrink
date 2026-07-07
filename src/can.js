@@ -75,8 +75,8 @@ function drawLabel(ctx, c) {
   ctx.fillStyle = c.bg;
   ctx.fillRect(0, 0, W, H);
 
-  const mono = (px) => `${px}px "Inter Variable", system-ui, sans-serif`;
-  const display = (px) => `800 ${px}px "Inter Variable", system-ui, sans-serif`;
+  const mono = (px) => `${px}px "Space Mono", monospace`;
+  const display = (px) => `850 ${px}px "Archivo Variable", "Archivo", system-ui, sans-serif`;
 
   for (let p = 0; p < 2; p++) {
     const ox = p * panelW;
