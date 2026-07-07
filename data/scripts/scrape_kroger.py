@@ -440,7 +440,7 @@ class BrowserFetcher:
         self._page = (self._context.pages[0] if self._context.pages
                       else self._context.new_page())
         self._responses = []
-        self._page.on("response", self._responses.append)
+        self._page.on("response", lambda resp: self._responses.append(resp))
         self._headless = headless
         self._warmed = False
 

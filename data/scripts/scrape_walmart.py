@@ -503,7 +503,7 @@ class BrowserFetcher:
         # Keep every response of the current navigation; reviews are often
         # fetched client-side via GraphQL rather than server-rendered.
         self._responses = []
-        self._page.on("response", self._responses.append)
+        self._page.on("response", lambda resp: self._responses.append(resp))
 
     def _looks_challenged(self):
         try:

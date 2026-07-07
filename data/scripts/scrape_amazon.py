@@ -594,7 +594,7 @@ class BrowserFetcher:
         # Keep every response of the current navigation (parity with the
         # Walmart scraper; handy if Amazon moves data into XHR responses).
         self._responses = []
-        self._page.on("response", self._responses.append)
+        self._page.on("response", lambda resp: self._responses.append(resp))
 
     def url(self):
         return self._page.url
