@@ -24,7 +24,7 @@ BRAND_ALIASES = {
     "liquid i.v.": "Liquid I.V.", "liquid iv": "Liquid I.V.",
     "ghost": "Ghost",
     "bang": "Bang", "bangenergy": "Bang", "bang energy": "Bang",
-    "alani nu": "Alani Nu", "alaninutrition": "Alani Nu",
+    "alani nu": "Alani Nu", "alaninutrition": "Alani Nu", "alani": "Alani Nu",
     "rockstar": "Rockstar", "rockstarenergy": "Rockstar",
     "5-hour energy": "5-hour Energy", "5 hour energy": "5-hour Energy",
     "nos": "NOS",
