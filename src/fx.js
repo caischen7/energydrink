@@ -212,7 +212,7 @@ function initEditions(setColorway) {
   };
 }
 
-/* ---------- header readout: fps + protocol clock (+60y) ---------- */
+/* ---------- header readout: fps + live clock ---------- */
 function initReadout() {
   const el = $('#sys-readout');
   if (!el) return { setFps: () => {} };
@@ -222,7 +222,7 @@ function initReadout() {
     const hh = String(d.getHours()).padStart(2, '0');
     const mm = String(d.getMinutes()).padStart(2, '0');
     const ss = String(d.getSeconds()).padStart(2, '0');
-    el.textContent = `SYS ${fps}FPS · ${d.getFullYear() + 60}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${hh}:${mm}:${ss}`;
+    el.textContent = `SYS ${fps}FPS · ${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} ${hh}:${mm}:${ss}`;
   };
   setInterval(render, 1000);
   render();

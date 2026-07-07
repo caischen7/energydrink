@@ -4,7 +4,10 @@
  * panel with the SVG chart builders, wires the sortable cross-platform table,
  * counts up the KPI readouts, and reveals charts on scroll.
  */
-import '@fontsource-variable/inter';
+import '@fontsource-variable/archivo/wdth.css';
+import '@fontsource-variable/space-grotesk';
+import '@fontsource/space-mono/400.css';
+import '@fontsource/space-mono/700.css';
 import './dashboard.css';
 import { hBars, vBars, scatter, area, multiLine, stackedBars, fmtCompact, fmtInt, VOLT, ICE } from './charts.js';
 import { requireAuth } from './auth.js';

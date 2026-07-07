@@ -24,8 +24,10 @@ drink presented like the launch page of a consumer-technology company:
   `BB-01 ORIGINAL` / `BB-02 MIDNIGHT BERRY` / `BB-03 FROZEN BANANA`
 - **OS chrome** — hairline grids, mono telemetry, live FPS + clock readouts
 
-**Design:** minimalist, Apple-inspired — white space, Inter (SF-style) type, a
-single restrained blue accent (`#0071e3`) on white, and the 3D can as the hero.
+**Design:** a playful banana identity sampled from the can — banana-cream
+field (`#fff6df`), peel-yellow bands (`#ffd23f`), mascot red-orange accent
+(`#ef4a23`), and a midnight-berry close (`#421a39`). Chunky expanded Archivo
+display type, Space Grotesk body, Space Mono telemetry; the 3D can is the hero.
 
 ## The 3D can
 
@@ -57,7 +59,7 @@ tabs, and degrades to a flat layout when WebGL is unavailable.
 
 - [Vite](https://vitejs.dev) — dev server / build
 - [three.js](https://threejs.org) — the vessel
-- Self-hosted Inter (variable) via Fontsource
+- Self-hosted Archivo + Space Grotesk + Space Mono via Fontsource
 - Zero animation libraries — reveals are IntersectionObserver + CSS, choreography is rAF
 
 ## Run
@@ -201,7 +203,7 @@ VITE_WAITLIST_ENDPOINT=https://your-endpoint.example/subscribe npm run build
 index.html                 landing skeleton — hero, ticker, manifesto, specs, drop, protocol, join
 dashboard.html             market-intel terminal (charts + brand matrix)
 src/main.js                entry: fonts, boot sequence, wiring
-src/style.css              minimalist light (Apple-style) design system (shared by both pages)
+src/style.css              playful banana design system — cream/peel/zest/plum (shared by both pages)
 src/can.js                 procedural can + canvas label textures (3 colorways)
 src/scene.js               renderer, scroll choreography, pointer physics
 src/fx.js                  split-text reveals, counters, ticker, cursor, edition sync

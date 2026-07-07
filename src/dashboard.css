@@ -1,5 +1,5 @@
 /* ============================================================
-   Bogus Banana // Market Intel — dashboard surface (minimalist light).
+   Bogus Banana // Market Intel — dashboard surface (playful banana skin).
    Inherits the design system from style.css; adds the data
    layout + chart styling on white.
    ============================================================ */
@@ -34,9 +34,11 @@
 .dash-hero { margin-bottom: 3.5rem; }
 .dash-title {
   font-family: var(--f-display);
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.04em;
+  font-variation-settings: 'wdth' 125;
+  font-weight: 850;
+  line-height: 0.92;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
   font-size: clamp(3rem, 10vw, 8rem);
   margin: 0.5rem 0 1.5rem;
   color: var(--ink);
@@ -54,9 +56,9 @@
   margin-top: 2.5rem;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 1px;
-  background: var(--line);
-  border: 1px solid var(--line);
+  gap: 2px;
+  background: var(--ink);
+  border: 2px solid var(--ink);
   border-radius: var(--radius);
   overflow: hidden;
 }
@@ -69,14 +71,15 @@
 }
 .kpi-n {
   font-family: var(--f-display);
-  font-weight: 700;
+  font-variation-settings: 'wdth' 120;
+  font-weight: 850;
   font-size: clamp(1.8rem, 3.5vw, 2.8rem);
   line-height: 1;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
   color: var(--ink);
 }
-.kpi-u { font-size: 10px; font-weight: 600; color: var(--accent); letter-spacing: 0; }
+.kpi-u { font-size: 10px; font-weight: 700; color: var(--accent); letter-spacing: 0.03em; }
 .kpi-l { color: var(--dim); font-size: 11px; margin-top: 0.4rem; }
 
 /* ---------- charts grid ---------- */
@@ -106,12 +109,14 @@
   padding: 1.1rem 1.4rem;
   border-bottom: 1px solid var(--line);
 }
-.pc-id { color: var(--accent); font-size: 12px; font-weight: 600; }
+.pc-id { color: var(--accent); font-size: 12px; font-weight: 700; font-family: var(--f-mono); }
 .pc-title {
-  font-family: var(--f-body);
-  font-weight: 600;
-  font-size: 14px;
+  font-family: var(--f-display);
+  font-variation-settings: 'wdth' 112;
+  font-weight: 750;
+  font-size: 15px;
   letter-spacing: 0;
+  text-transform: uppercase;
   margin: 0;
   flex: 1;
   color: var(--ink);
@@ -121,11 +126,10 @@
 .pc-insight {
   border-top: 1px solid var(--line);
   padding: 1rem 1.4rem;
-  color: #424245;
+  color: var(--ink);
   font-size: 13px;
   line-height: 1.55;
-  letter-spacing: -0.01em;
-  background: var(--bg-2);
+  background: var(--bg-3);
 }
 
 /* ---------- charts ---------- */
@@ -133,13 +137,13 @@
 .chart text { font-family: var(--f-sans); }
 .c-lbl { font-size: 12px; fill: var(--dim); }
 .c-val { font-size: 12px; fill: var(--ink); font-weight: 600; }
-.c-axis { font-size: 11px; fill: #aeaeb2; letter-spacing: 0; }
-.c-pt-lbl { font-size: 11px; fill: #86868b; }
-.c-track { fill: #f0f0f2; }
+.c-axis { font-size: 11px; fill: var(--dim); letter-spacing: 0; }
+.c-pt-lbl { font-size: 11px; fill: var(--dim); }
+.c-track { fill: var(--bg-3); }
 .c-grid { stroke: var(--line); stroke-width: 1; }
 .c-dot circle:first-child { transition: fill-opacity 0.25s; cursor: pointer; }
 .c-dot:hover circle:first-child { fill-opacity: 0.4; }
-.c-area { fill: rgba(0, 113, 227, 0.08); }
+.c-area { fill: rgba(239, 74, 35, 0.1); }
 
 /* entrance animation, gated by .in on the panel */
 .c-bar-h { transform: scaleX(0); transform-origin: left center; transition: transform 1s var(--ease-out); }
@@ -166,8 +170,8 @@
 }
 .rk-b { font-family: var(--f-body); font-weight: 600; font-size: 14px; letter-spacing: -0.01em; color: var(--ink); }
 .rk-d { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.rk-d.up { color: #34c759; }
-.rk-d.down { color: #ff3b30; }
+.rk-d.up { color: var(--leaf); }
+.rk-d.down { color: #b3261e; }
 .rk-n { font-size: 11px; }
 
 /* ---------- table ---------- */
@@ -194,7 +198,7 @@
 }
 .intel-table th:hover { color: var(--accent); }
 .intel-table th.sorted { color: var(--accent); }
-.intel-table td.sorted { color: var(--ink); background: rgba(0, 113, 227, 0.05); }
+.intel-table td.sorted { color: var(--ink); background: rgba(239, 74, 35, 0.06); }
 .sort-caret { font-style: normal; font-size: 8px; margin-left: 0.4em; }
 .tl { text-align: left !important; }
 .intel-table tbody tr { transition: background 0.15s; }
@@ -223,7 +227,7 @@ body.gated { overflow: hidden; }
   position: fixed;
   inset: 0;
   z-index: 200;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 246, 223, 0.75);
   backdrop-filter: saturate(180%) blur(20px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   display: grid;
@@ -234,10 +238,10 @@ body.gated { overflow: hidden; }
 .gate.out { opacity: 0; transform: translateY(-2%); pointer-events: none; }
 .gate-card {
   width: min(400px, 92vw);
-  border: 1px solid var(--line);
+  border: 2px solid var(--ink);
   border-radius: 18px;
-  background: var(--bg);
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.12);
+  background: var(--bg-2);
+  box-shadow: 8px 8px 0 var(--peel), 8px 8px 0 2px var(--ink);
   padding: clamp(1.75rem, 4vw, 2.5rem);
   display: flex;
   flex-direction: column;
@@ -247,10 +251,11 @@ body.gated { overflow: hidden; }
   align-items: center;
   gap: 0.6rem;
   font-family: var(--f-display);
-  font-weight: 700;
+  font-variation-settings: 'wdth' 122;
+  font-weight: 850;
   font-size: 1.7rem;
   line-height: 1;
-  letter-spacing: -0.03em;
+  text-transform: uppercase;
   color: var(--ink);
 }
 .gate-mark { width: 40px; height: 40px; display: block; }
@@ -287,20 +292,19 @@ body.gated { overflow: hidden; }
 .gate-card input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15); }
 .gate-card input::placeholder { color: #aeaeb2; }
 .gate-card button {
-  background: var(--accent);
-  color: #fff;
+  background: var(--ink);
+  color: var(--peel);
   border: 0;
   border-radius: 12px;
   font-family: var(--f-sans);
-  font-weight: 500;
+  font-weight: 700;
   font-size: 15px;
-  letter-spacing: -0.01em;
   padding: 0.95em;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s, color 0.2s;
 }
-.gate-card button:hover { background: var(--accent-2); }
-.gate-out { min-height: 1.4em; margin-top: 1rem; font-size: 13px; letter-spacing: 0; color: #ff3b30; }
+.gate-card button:hover { background: var(--accent); color: #fff; }
+.gate-out { min-height: 1.4em; margin-top: 1rem; font-size: 13px; letter-spacing: 0; color: #b3261e; }
 .gate-out:empty { margin: 0; }
 
 /* ---------- methodology ---------- */
