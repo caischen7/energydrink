@@ -96,6 +96,26 @@ Other ways to extend the join:
 
 ## Free scrapers (Amazon, Instagram, YouTube, Reddit)
 
+### Run them all at once
+
+```bash
+python data/scripts/run_all.py                 # every scraper, in order
+python data/scripts/run_all.py --headless      # hands-off (see note below)
+python data/scripts/run_all.py --light         # small, fast smoke run
+python data/scripts/run_all.py --only youtube reddit amazon
+python data/scripts/run_all.py --build         # rebuild dashboard.json after
+python data/scripts/run_all.py --dry-run       # print the plan, run nothing
+```
+
+`run_all.py` drives all eight scrapers as subprocesses in a safest-first order
+(YouTube + Reddit, which never hit a bot wall, then the browser scrapers, with
+the most rate-limit-fragile last). It passes each scraper only the flags it
+understands, keeps going if one fails (`--stop-on-error` to change that), and
+ends with a per-scraper `OK / BLOCKED / FAILED` summary. **Hands-off runs:** the
+browser scrapers use persistent Chromium profiles, so solve any challenge once
+in a normal (non-`--headless`) run, then re-run with `--headless` and the saved
+profiles sail through. YouTube/Reddit never challenge.
+
 The original Amazon/Instagram/YouTube corpora came from paid scraper exports.
 `scripts/scrape_{amazon,instagram,youtube,reddit}.py` replace them with free,
 self-run collectors. Shared behavior (same house pattern as the Walmart

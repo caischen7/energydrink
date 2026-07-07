@@ -63,6 +63,8 @@ See `data/README.md` for the full schema and cleaning notes.
 ### Scrapers (`data/scripts/scrape_*.py`) — all free, run locally
 ```bash
 pip install playwright && python -m playwright install chromium   # once, for browser scrapers
+python data/scripts/run_all.py            # run every scraper in one pass (--help for options)
+python data/scripts/run_all.py --headless # hands-off, after solving each site's challenge once
 python data/scripts/scrape_walmart.py     # Walmart products + reviews
 python data/scripts/scrape_amazon.py      # Amazon products + on-page reviews
 python data/scripts/scrape_retailers.py   # Target, Trader Joe's, Publix, H-E-B,

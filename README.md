@@ -106,8 +106,14 @@ All scrapers share the same conventions: output schemas match the committed
 CSVs, runs are **incremental** (merge + dedupe on natural keys), polite
 rate-limiting, clear `BLOCKED:` errors, and offline fixture tests in
 [`data/scripts/tests/`](data/scripts/tests/). Scrapers run from your own
-machine (residential IP) — retailer/social bot-walls block cloud IPs. Full
-docs: [`data/README.md`](data/README.md).
+machine (residential IP) — retailer/social bot-walls block cloud IPs.
+
+**One command runs them all:** `python data/scripts/run_all.py` drives every
+scraper in order (API/no-bot sources first, browser ones last), keeps going if
+one fails, and prints a summary. Add `--headless` for hands-off runs once
+you've solved each site's challenge a first time, `--light` for a quick test,
+`--only`/`--skip` to choose sources, `--build` to rebuild the dashboard after.
+Full docs: [`data/README.md`](data/README.md).
 
 ## Market Intel dashboard
 
