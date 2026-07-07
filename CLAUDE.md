@@ -102,6 +102,20 @@ into small committed CSVs. Raw corpus is **not** committed. The Reddit step pick
 the newest dated `energydrinks_{posts,comments}_*.csv` automatically. Rerun the
 dashboard aggregate afterwards.
 
+### Sentiment analysis (`data/analysis/`)
+```bash
+python data/scripts/analyze_sentiment.py                 # built-in lexicon, zero installs
+python data/scripts/analyze_sentiment.py --model vader   # pip install vaderSentiment
+python data/scripts/analyze_sentiment.py --model transformer  # pip install transformers torch
+```
+Scores every review/comment corpus under `data/` (Amazon/Walmart/retailers/
+Kroger reviews, YouTube/TikTok comments, Instagram captions) pos/neg/neu with
+three selectable models, aggregated by brand and by theme (taste, sweetness,
+energy, crash, price, health, packaging) → `data/analysis/sentiment_by_brand.csv`
++ `sentiment_by_theme.csv` (`--rows` for per-row scores). ~10s for 125k texts
+on the lexicon model. Offline tests: `data/scripts/tests/test_sentiment.py`.
+Project workstream: `docs/WORKSTREAM.md`.
+
 ### Dashboard aggregate (`public/data/dashboard.json`)
 ```bash
 python data/scripts/build_dashboard_json.py   # stdlib only; reads data/, writes public/data/dashboard.json
