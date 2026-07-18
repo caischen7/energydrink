@@ -17,6 +17,8 @@ FROM nginx:1.27-alpine
 ENV PORT=8080
 ENV NGINX_ENVSUBST_FILTER=PORT
 COPY nginx.conf /etc/nginx/templates/default.conf.template
-# Basic Auth credentials for the guarded /data/ location (see nginx.conf)
+# Basic Auth credentials for the guarded locations (see nginx.conf):
+# .htpasswd → /data/dashboard.json (Market Intel), .htpasswd-admin → /admin/ (Site Scout)
 COPY .htpasswd /etc/nginx/.htpasswd
+COPY .htpasswd-admin /etc/nginx/.htpasswd-admin
 COPY --from=build /app/dist /usr/share/nginx/html

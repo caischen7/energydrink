@@ -27,6 +27,8 @@ When a task mentions "the site", "the can", "the landing page" → work in `src/
 `index.html`. "The dashboard", "charts", "market intel" → `dashboard.html` +
 `src/dashboard.js` / `src/charts.js`. "The data", "datasets", "brands",
 "scraping" → `data/` (then rerun the aggregator to refresh the dashboard).
+"Admin", "site scout", "restaurant locations", "the map tool" → `admin.html` +
+`src/admin.js` / `src/admin.css` (+ gated `public/admin/config.json`).
 
 ## Commands
 
@@ -109,7 +111,8 @@ boot sequence, then wires up two independent layers:
 | `src/fx.js` | The **DOM layer**. Split-word headline reveals, IntersectionObserver fade-ups, count-up stats, marquee ticker, custom cursor, `body[data-section]` scroll tracking, the edition-row ↔ 3D colorway sync, the header FPS/clock readout, and the fake "mint" form. No animation libraries. |
 | `src/style.css` | The **minimalist light (Apple-style)** design system — CSS custom properties (white bg, `--ink` #1d1d1f, single blue `--accent` #0071e3, hairlines), Inter type, reduced-motion + no-WebGL fallbacks. Shared by both pages. (Tokens like `--volt` are kept as legacy hooks now pointing at the blue accent.) |
 | `index.html` | Static page skeleton — sections in order: `hero`, `manifesto`, `specs`, `drop`, `protocol`, `join`. Nav links to the dashboard. |
-| `src/auth.js` | **Dashboard login** (`requireAuth()` → resolves with the data). Two layers: a client-side SHA-256 check (`PASS_HASH`, gates local dev + instant UX) **and** real server-side enforcement — the data lives at `public/data/dashboard.json` (served, **not** bundled) and is guarded by **nginx Basic Auth** (`.htpasswd`); the form fetches it with the entered creds, so bypassing the JS yields an empty shell, not the data. Username `energydrinks` / password `energydrinks12345`. Change BOTH `.htpasswd` and `PASS_HASH` (see `docs/CREDENTIALS.md`). |
+| `src/auth.js` | **Shared login gate** (`requireAuth(cfg?)` → resolves with the gated JSON). Two layers: a client-side SHA-256 check (gates local dev + instant UX) **and** real server-side enforcement via **nginx Basic Auth** on the data file the form fetches — bypassing the JS yields an empty shell, not the data. No-arg call = the dashboard (`energydrinks` / `energydrinks12345`, `.htpasswd`, guards `public/data/dashboard.json`); the admin page passes its own config (`yamazato1234` / `yamazato1234`, `.htpasswd-admin`, guards `/admin/`). Change BOTH the htpasswd file and the matching passHash (see `docs/CREDENTIALS.md`). |
+| `admin.html` + `src/admin.js` / `src/admin.css` | **Site Scout** — gated admin tool for scouting restaurant locations. Leaflet + OSM tiles (npm `leaflet`, no API keys); "Scan this area" pulls competitors (restaurant/fast_food/cafe), traffic signals, vacant/disused storefronts, parking, transit and anchors from the **Overpass API**; Nominatim geocoding for search. Drop/drag candidate pins → 0–100 weighted scorecard (per-mode weights + non-linear competitor curve designed by a restaurant-operator panel; see `public/admin/config.json`), radius rings, own-unit cannibalization check, CSV/GeoJSON export, localStorage persistence (`bb_scout_v1`). Not linked from public nav; `noindex`. Runtime map/data calls happen in the visitor's browser — the deploy just serves static files. |
 | `dashboard.html` + `src/dashboard.js` / `src/dashboard.css` / `src/charts.js` | The **Market Intel page** (gated by `auth.js`). `dashboard.js` renders KPI count-ups, thirteen chart panels (market size, concept interest, motivations, share of voice, brand momentum, rising/cooling leaderboard, price×quality, category momentum, flavor demand board, review ratings, IG engagement, Reddit pulse, loves-vs-complaints sentiment) and a sortable cross-platform brand table from `src/data/dashboard.json`; `charts.js` has dependency-free SVG builders (hBars/vBars/scatter/area/multiLine/stackedBars); `dashboard.css` `@import`s `style.css` then adds the terminal layout. Registered as a second Vite input in `vite.config.js`. |
 
 ### How the two layers talk
@@ -169,6 +172,10 @@ security caveat, and uninstall instructions.
   set `main` as the default in repo Settings for a cleaner name (no API for it).
 - **Done & pushed:** this `CLAUDE.md`, the `README`, the curated
   `.claude/skills/`, and the Google Cloud Run deploy setup. The build is green.
+- **Also done (2026-07 session):** two new data scrapers + sample generator +
+  two dashboard panels; site UX pass (mobile menu, progress bar, skip link);
+  and the gated **Site Scout admin tool** (`/admin.html`, creds in
+  `docs/CREDENTIALS.md`, config gated under `/admin/` via `.htpasswd-admin`).
 - **👉 Active task = §2 below:** analyze the energy-drink market data and
   **recommend a new energy-drink concept** to feature on the site. Most of the
   cleaned data is already in `data/` and ready to analyze right now.

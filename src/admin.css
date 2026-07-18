@@ -1,0 +1,224 @@
+/* ============================================================
+   Bogus Banana // Site Scout — admin surface.
+   Inherits the design system (style.css) + gate/bar styling
+   via dashboard.css, then adds the sidebar + map layout.
+   ============================================================ */
+
+@import './dashboard.css';
+
+.scout { overflow: hidden; }
+.scout-crumb { font-size: 12px; letter-spacing: 0.08em; color: var(--dim); }
+
+/* ---------- layout: sidebar + map fill the viewport ---------- */
+.scout-main {
+  position: fixed;
+  inset: var(--bar-h) 0 var(--bar-h) 0;
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  z-index: 1;
+}
+.scout-side {
+  overflow-y: auto;
+  border-right: 1px solid var(--line);
+  background: var(--bg-2);
+  padding: 1.1rem 1.1rem 2rem;
+}
+.scout-map-wrap { position: relative; }
+.scout-map { position: absolute; inset: 0; background: #e8e8ed; }
+.scout-map.crosshair { cursor: crosshair; }
+
+/* ---------- sidebar blocks ---------- */
+.ss-block { margin-bottom: 1.4rem; }
+.ss-h {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--ink);
+  margin: 0 0 0.6rem;
+}
+.ss-row { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+.ss-row input[type='search'],
+.ss-row input[type='text'] {
+  flex: 1;
+  min-width: 0;
+  padding: 0.55rem 0.7rem;
+  font: 13px var(--f-mono);
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.ss-row input:focus { border-color: var(--accent); outline: none; }
+
+.ss-btn {
+  padding: 0.55rem 0.9rem;
+  font: 12px var(--f-mono);
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.ss-btn:hover, .ss-btn:focus-visible { border-color: var(--accent); color: var(--accent); }
+.ss-btn:disabled { opacity: 0.5; cursor: wait; }
+.ss-btn--wide { width: 100%; margin-bottom: 0.5rem; }
+.ss-btn[aria-pressed='true'] { border-color: var(--accent); color: var(--accent); background: rgba(0, 113, 227, 0.06); }
+.ss-btn--danger:hover { border-color: #d62d20; color: #d62d20; }
+
+.ss-select {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  font: 13px var(--f-mono);
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.ss-status { font-size: 11.5px; line-height: 1.5; margin: 0.4rem 0 0; }
+.ss-status.warn { color: #b45309; }
+
+.ss-layers { list-style: none; margin: 0 0 0.6rem; padding: 0; }
+.ss-layers li { padding: 0.28rem 0; font-size: 12.5px; }
+.ss-layers label { display: flex; gap: 0.5rem; align-items: baseline; cursor: pointer; }
+
+/* ---------- candidates list ---------- */
+.ss-cands { list-style: none; margin: 0 0 0.6rem; padding: 0; }
+.ss-cands li {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.45rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.ss-cands li:hover { background: var(--bg); }
+.ss-cands li.sel { border-color: var(--accent); background: rgba(0, 113, 227, 0.05); }
+.cand-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.own-tag {
+  font-style: normal;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  padding: 0 0.3em;
+  vertical-align: 1px;
+}
+
+.sc-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 34px;
+  height: 24px;
+  padding: 0 0.3rem;
+  border-radius: 6px;
+  font: 700 12.5px var(--f-mono);
+  color: #fff;
+}
+.sc-good { background: #1d9a4c; }
+.sc-mid { background: #d98a00; }
+.sc-low { background: #c33; }
+.sc-none { background: var(--line); color: var(--dim); }
+
+/* ---------- pitfalls ---------- */
+.ss-details summary { cursor: pointer; font-size: 12px; letter-spacing: 0.06em; }
+.ss-pitfalls { margin: 0.6rem 0 0; padding-left: 1.1rem; }
+.ss-pitfalls li { font-size: 11.5px; line-height: 1.55; margin-bottom: 0.45rem; color: var(--dim); }
+.ss-pitfalls b { color: var(--ink); }
+
+/* ---------- scorecard (floats over the map) ---------- */
+.scorecard {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  z-index: 500; /* above Leaflet panes */
+  width: min(390px, calc(100% - 1.8rem));
+  max-height: calc(100% - 1.8rem);
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  padding: 0.9rem 1rem 1rem;
+  font-size: 12px;
+}
+.sc-head { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.2rem; }
+.sc-name {
+  flex: 1;
+  min-width: 0;
+  font: 700 15px var(--f-sans);
+  color: var(--ink);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 0.15rem 0.3rem;
+  background: transparent;
+}
+.sc-name:hover, .sc-name:focus { border-color: var(--line); outline: none; background: var(--bg); }
+.sc-x { border: none; background: none; font-size: 14px; cursor: pointer; color: var(--dim); }
+.sc-x:hover { color: var(--ink); }
+.sc-sub { margin: 0 0 0.7rem; font-size: 11px; }
+
+.sc-row {
+  display: grid;
+  grid-template-columns: 118px 1fr 30px;
+  gap: 0.15rem 0.6rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.sc-k { font-size: 11px; letter-spacing: 0.03em; }
+.sc-bar {
+  height: 7px;
+  border-radius: 4px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.sc-bar i { display: block; height: 100%; width: var(--w, 0%); background: var(--accent); border-radius: 4px; }
+.sc-v { text-align: right; font-weight: 700; }
+.sc-d { grid-column: 1 / -1; font-size: 10.5px; }
+
+.sc-own { display: flex; gap: 0.5rem; align-items: baseline; margin: 0.6rem 0; font-size: 11.5px; cursor: pointer; }
+.sc-notes {
+  width: 100%;
+  min-height: 54px;
+  resize: vertical;
+  font: 12px var(--f-mono);
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+  margin-bottom: 0.6rem;
+}
+.sc-verify summary { cursor: pointer; font-size: 11px; letter-spacing: 0.06em; color: #b45309; }
+.sc-verify ul { margin: 0.4rem 0 0.6rem; padding-left: 1.1rem; }
+.sc-verify li { font-size: 11px; line-height: 1.5; color: var(--dim); }
+.sc-disc { margin: 0.6rem 0 0; font-size: 10px; line-height: 1.5; }
+
+/* ---------- map markers ---------- */
+.poi-emoji { font-size: 15px; line-height: 22px; text-align: center; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3)); }
+.poi-signal { font-size: 13px; }
+.cand-pin { font-size: 26px; line-height: 30px; text-align: center; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.35)); }
+
+/* Leaflet chrome nudges to match the design system */
+.leaflet-container { font-family: var(--f-sans); }
+.leaflet-popup-content { font-size: 12.5px; line-height: 1.5; }
+.leaflet-popup-content-wrapper { border-radius: 10px; }
+
+/* ---------- responsive: sidebar stacks under the map ---------- */
+@media (max-width: 900px) {
+  .scout { overflow: auto; }
+  .scout-main {
+    position: static;
+    display: block;
+    padding-top: var(--bar-h);
+  }
+  .scout-map-wrap { height: 62vh; position: relative; }
+  .scout-side { border-right: none; border-top: 1px solid var(--line); max-height: none; }
+  .scorecard { position: fixed; top: auto; bottom: 1rem; right: 0.9rem; left: 0.9rem; width: auto; max-height: 55vh; }
+}

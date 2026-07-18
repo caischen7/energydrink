@@ -1,0 +1,69 @@
+{
+  "tool": "site-scout",
+  "version": 1,
+  "map": {
+    "center": [40.7359, -73.99],
+    "zoom": 15,
+    "tiles": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    "attribution": "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors"
+  },
+  "endpoints": {
+    "overpass": [
+      "https://overpass-api.de/api/interpreter",
+      "https://overpass.kumi.systems/api/interpreter"
+    ],
+    "nominatim": "https://nominatim.openstreetmap.org/search"
+  },
+  "scan": {
+    "max_bbox_km2": 9,
+    "max_results": 2500,
+    "timeout_s": 30,
+    "sparse_warn_pois": 25
+  },
+  "rings_m": [250, 400, 800],
+  "radii_m": {
+    "cluster": 400,
+    "anchors": 500,
+    "transit": 250,
+    "signal_best": 150,
+    "signal_max": 600,
+    "parking_best": 150,
+    "parking_ok": 250,
+    "cannibal_min": 1000,
+    "cannibal_ok": 2400
+  },
+  "modes": {
+    "qsr": {
+      "label": "QSR / Fast-casual lunch",
+      "blurb": "Assumes drive-by visibility + daytime anchors (offices, schools).",
+      "competitor_ring_m": 800,
+      "weights": { "competitors": 20, "cluster": 10, "anchors": 20, "transit": 5, "signal": 15, "parking": 15, "road_class": 10, "cannibal": 5 }
+    },
+    "coffee": {
+      "label": "Coffee / café",
+      "blurb": "Assumes commuter walk-up; parking irrelevant, transit is king.",
+      "competitor_ring_m": 250,
+      "weights": { "competitors": 20, "cluster": 10, "anchors": 20, "transit": 25, "signal": 5, "parking": 0, "road_class": 10, "cannibal": 10 }
+    },
+    "dinner": {
+      "label": "Full-service dinner",
+      "blurb": "Destination trip: park once, restaurant-row halo helps you.",
+      "competitor_ring_m": 1000,
+      "weights": { "competitors": 10, "cluster": 25, "anchors": 5, "transit": 10, "signal": 5, "parking": 20, "road_class": 15, "cannibal": 10 }
+    }
+  },
+  "default_mode": "qsr",
+  "disclaimer": "Scores use OpenStreetMap data — a scouting filter, not diligence. Verify rent, zoning, hood/grease infrastructure, and access on site before LOI.",
+  "verify_offline": [
+    "Zoning / permitted use for food service",
+    "Vent hood, grease trap, black iron (the #1 deal-killer)",
+    "Rent + rent comps (no free source — never trust an estimate)",
+    "Real foot-traffic counts",
+    "Curb cuts / median breaks (left-in, left-out)",
+    "Frontage feet + signage rights",
+    "Parking actually available to YOUR customers (check the lease)",
+    "Co-tenant sales health / anchor stability",
+    "Demographics & incomes of the trade area",
+    "Actual vacancy status (OSM vacancy tags are stale leads, not inventory)"
+  ]
+}

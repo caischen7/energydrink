@@ -1,30 +1,37 @@
 /*
- * Dashboard access gate (Bogus Banana // RESTRICTED).
+ * Access gate (Bogus Banana // RESTRICTED) — shared by the Market Intel
+ * dashboard and the Admin console.
  *
  * Two layers, one styled login:
  *   1. Client-side check (instant UX + gates local dev where there's no server).
- *   2. REAL protection: the dashboard's data (public/data/dashboard.json) is
- *      served behind nginx HTTP Basic Auth on the deployed site. The form fetches
- *      it with the entered credentials in an Authorization header, so without
- *      valid credentials the licensed market data is never sent — bypassing the
- *      JS check (devtools) gets you an empty shell, not the data.
+ *   2. REAL protection: the page's data (a JSON under a guarded path) is served
+ *      behind nginx HTTP Basic Auth on the deployed site. The form fetches it
+ *      with the entered credentials in an Authorization header, so without
+ *      valid credentials the data is never sent — bypassing the JS check
+ *      (devtools) gets you an empty shell, not the data.
  *
- * Credentials live in `.htpasswd` (server, hashed). The client-side check uses a
- * SHA-256 of the password so the plaintext isn't in the bundle. To change them,
- * update BOTH: `.htpasswd` (htpasswd/openssl) and PASS_HASH below.
+ * Credentials live in `.htpasswd` / `.htpasswd-admin` (server, hashed). The
+ * client-side check uses a SHA-256 of the password so the plaintext isn't in
+ * the bundle. To change them, update BOTH the htpasswd file and the passHash
+ * (see docs/CREDENTIALS.md).
  */
-const KEY = 'ion_dash_auth'; // sessionStorage: base64(user:pass) for the session
-const USER = 'energydrinks';
-const PASS_HASH = '51399badaf99cab1e1921de22874aa456d30399d2bf8d9757be42bcaf7a83763';
-const DATA_URL = 'data/dashboard.json'; // relative → /data/dashboard.json (nginx-guarded)
+
+/* per-surface defaults — the dashboard config, kept as requireAuth()'s default */
+const DASHBOARD = {
+  storageKey: 'ion_dash_auth', // sessionStorage: base64(user:pass) for the session
+  user: 'energydrinks',
+  passHash: '51399badaf99cab1e1921de22874aa456d30399d2bf8d9757be42bcaf7a83763',
+  dataUrl: 'data/dashboard.json', // relative → /data/dashboard.json (nginx-guarded)
+  title: 'RESTRICTED — MARKET INTEL',
+};
 
 async function sha256(s) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-async function fetchData(token) {
-  const res = await fetch(DATA_URL, {
+async function fetchData(cfg, token) {
+  const res = await fetch(cfg.dataUrl, {
     headers: { Authorization: 'Basic ' + token },
     cache: 'no-store',
   });
@@ -33,13 +40,13 @@ async function fetchData(token) {
   return res.json();
 }
 
-function overlay() {
+function overlay(cfg) {
   const el = document.createElement('div');
   el.className = 'gate';
   el.innerHTML = `
     <form class="gate-card mono" autocomplete="off" novalidate>
       <div class="gate-brand"><img class="gate-mark" src="/mascot.svg" alt="" /><span>Bogus Banana</span></div>
-      <div class="gate-head"><span class="volt">·</span> RESTRICTED — MARKET INTEL</div>
+      <div class="gate-head"><span class="volt">·</span> ${cfg.title}</div>
       <label class="gate-label" for="gate-user"><span class="volt">&gt;</span> OPERATOR_ID</label>
       <input id="gate-user" type="text" spellcheck="false" autocapitalize="off" placeholder="username" />
       <label class="gate-label" for="gate-pass"><span class="volt">&gt;</span> ACCESS_KEY</label>
@@ -50,9 +57,9 @@ function overlay() {
   return el;
 }
 
-function showForm(resolve) {
+function showForm(cfg, resolve) {
   document.body.classList.add('gated');
-  const el = overlay();
+  const el = overlay(cfg);
   document.body.appendChild(el);
   const form = el.querySelector('form');
   const out = el.querySelector('.gate-out');
@@ -76,7 +83,7 @@ function showForm(resolve) {
     const p = pass.value;
     let okLocal = false;
     try {
-      okLocal = u === USER && (await sha256(p)) === PASS_HASH;
+      okLocal = u === cfg.user && (await sha256(p)) === cfg.passHash;
     } catch (err) {
       out.textContent = '> ERR :: SECURE CONTEXT REQUIRED (USE HTTPS OR LOCALHOST)';
       return;
@@ -90,7 +97,7 @@ function showForm(resolve) {
     const token = btoa(`${u}:${p}`);
     let data;
     try {
-      data = await fetchData(token);
+      data = await fetchData(cfg, token);
     } catch (err) {
       out.textContent = '> ERR :: DATA FEED UNREACHABLE';
       return;
@@ -101,7 +108,7 @@ function showForm(resolve) {
       return;
     }
     try {
-      sessionStorage.setItem(KEY, token);
+      sessionStorage.setItem(cfg.storageKey, token);
     } catch (e2) {
       /* private mode — just won't persist across reloads */
     }
@@ -109,16 +116,19 @@ function showForm(resolve) {
   });
 }
 
-/* Resolves with the dashboard data once the visitor is authenticated. */
-export function requireAuth() {
+/* Resolves with the gated page's data once the visitor is authenticated.
+   No-args call = the Market Intel dashboard (back-compat); pass a config
+   object ({storageKey, user, passHash, dataUrl, title}) for other surfaces. */
+export function requireAuth(config) {
+  const cfg = { ...DASHBOARD, ...(config || {}) };
   return new Promise((resolve) => {
-    const saved = sessionStorage.getItem(KEY);
+    const saved = sessionStorage.getItem(cfg.storageKey);
     if (saved) {
-      fetchData(saved)
-        .then((d) => (d ? resolve(d) : (sessionStorage.removeItem(KEY), showForm(resolve))))
-        .catch(() => showForm(resolve));
+      fetchData(cfg, saved)
+        .then((d) => (d ? resolve(d) : (sessionStorage.removeItem(cfg.storageKey), showForm(cfg, resolve))))
+        .catch(() => showForm(cfg, resolve));
       return;
     }
-    showForm(resolve);
+    showForm(cfg, resolve);
   });
 }

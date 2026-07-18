@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="description" content="Bogus Banana admin — Site Scout." />
+  <link rel="icon" type="image/svg+xml" href="/mascot.svg" />
+  <title>Bogus Banana · Site Scout</title>
+</head>
+<body class="dash scout">
+
+  <div class="grid-overlay" aria-hidden="true"></div>
+
+  <header class="bar bar--top">
+    <a class="logo" href="./index.html" data-hover>
+      <img class="logo-mark" src="/mascot.svg" alt="" />
+      <span>Bogus&nbsp;Banana</span>
+    </a>
+    <span class="scout-crumb mono"><b class="volt">·</b> ADMIN — SITE SCOUT</span>
+    <div class="bar-right mono">
+      <a class="bar-intel" href="./dashboard.html" data-hover>Market&nbsp;Intel&nbsp;↗</a>
+      <a class="btn-mint" href="./index.html" data-hover>← Home</a>
+    </div>
+  </header>
+
+  <main class="scout-main" id="scout-main" hidden>
+    <!-- ============ SIDEBAR ============ -->
+    <aside class="scout-side">
+      <section class="ss-block">
+        <h2 class="ss-h mono"><b class="volt">01</b> AREA</h2>
+        <form id="geo-form" class="ss-row">
+          <input id="geo-q" type="search" placeholder="Search a place / address…" spellcheck="false" />
+          <button type="submit" class="ss-btn" data-hover>Go</button>
+        </form>
+        <button id="scan-btn" class="ss-btn ss-btn--wide" data-hover>⌖ Scan this area</button>
+        <p id="scan-status" class="ss-status mono dim">Pan/zoom to a district, then scan.</p>
+      </section>
+
+      <section class="ss-block">
+        <h2 class="ss-h mono"><b class="volt">02</b> SCOUT MODE</h2>
+        <select id="mode-sel" class="ss-select mono"></select>
+        <p id="mode-blurb" class="ss-status mono dim"></p>
+      </section>
+
+      <section class="ss-block">
+        <h2 class="ss-h mono"><b class="volt">03</b> LAYERS</h2>
+        <ul id="layer-list" class="ss-layers mono"></ul>
+        <div class="ss-row">
+          <input id="cuisine-q" type="text" placeholder="Direct-competitor cuisine (e.g. burger)" spellcheck="false" />
+        </div>
+        <p class="ss-status mono dim">Cuisine tags are missing ~half the time in OSM — the unfiltered count is always shown too.</p>
+      </section>
+
+      <section class="ss-block">
+        <h2 class="ss-h mono"><b class="volt">04</b> CANDIDATES</h2>
+        <button id="pin-btn" class="ss-btn ss-btn--wide" data-hover aria-pressed="false">＋ Drop a candidate pin</button>
+        <ol id="cand-list" class="ss-cands"></ol>
+        <div class="ss-row">
+          <button id="exp-csv" class="ss-btn" data-hover>Export CSV</button>
+          <button id="exp-geo" class="ss-btn" data-hover>GeoJSON</button>
+        </div>
+      </section>
+
+      <section class="ss-block">
+        <details class="ss-details mono">
+          <summary><b class="volt">!</b> HOW TO READ THIS MAP</summary>
+          <ul class="ss-pitfalls">
+            <li><b>Vacancy tags are stale.</b> Treat them as leads, never inventory.</li>
+            <li><b>Competitor ≠ bad.</b> Zero restaurants nearby often means zero reason to be there.</li>
+            <li><b>Signal ≠ access.</b> A divided arterial can still mean no left-in/left-out — stand on the curb.</li>
+            <li><b>Sparse map ≠ sparse market.</b> OSM completeness varies block to block.</li>
+            <li><b>Straight-line radius lies.</b> Rivers, rail and highways cut real catchments.</li>
+            <li><b>A parking polygon isn't your parking.</b> Verify in the lease.</li>
+            <li><b>Stop count ≠ ridership.</b> A 4-bus-a-day stop scores like a BRT station.</li>
+          </ul>
+        </details>
+      </section>
+    </aside>
+
+    <!-- ============ MAP ============ -->
+    <div class="scout-map-wrap">
+      <div id="map" class="scout-map" aria-label="Site scouting map"></div>
+      <div id="scorecard" class="scorecard mono" hidden></div>
+    </div>
+  </main>
+
+  <footer class="bar bar--bottom mono">
+    <span>BOGUS BANANA · SITE SCOUT</span>
+    <span class="dim">SCORES ARE A SCOUTING FILTER, NOT DILIGENCE — VERIFY ON SITE BEFORE LOI</span>
+    <span>DATA © OPENSTREETMAP CONTRIBUTORS</span>
+  </footer>
+
+  <noscript>
+    <div style="position:fixed;inset:0;z-index:999;background:#fff;color:#1d1d1f;display:grid;place-items:center;font-family:system-ui,sans-serif;text-align:center;padding:2rem;">
+      <p>Bogus Banana · Site Scout<br /><br />This tool needs JavaScript. Please enable it.</p>
+    </div>
+  </noscript>
+
+  <script type="module" src="/src/admin.js"></script>
+</body>
+</html>

@@ -12,6 +12,21 @@
 | Username | `energydrinks` |
 | Password | `energydrinks12345` |
 
+## Admin — Site Scout login
+
+| Field | Value |
+| --- | --- |
+| Page | `/admin.html` — **not linked from public navigation** (bookmark it) |
+| Username | `yamazato1234` |
+| Password | `yamazato1234` |
+
+Same two-layer pattern as the dashboard, with **separate credentials**: the
+client-side check lives in `src/admin.js` (`ADMIN_AUTH.passHash`, SHA-256), and
+the server side is nginx Basic Auth on everything under `/admin/`
+([`.htpasswd-admin`](../.htpasswd-admin)), which guards the tool's config feed
+`/admin/config.json`. To change: same recipe as below, but write
+`.htpasswd-admin` and update `ADMIN_AUTH.passHash` in `src/admin.js`.
+
 ## How it's enforced (two layers, one login)
 
 1. **Server-side (real): nginx HTTP Basic Auth.** The dashboard's data file
@@ -39,9 +54,11 @@ printf '%s' 'NEW_PASSWORD' | sha256sum     # paste the hex into PASS_HASH
 
 ## Cautions
 
-- `.htpasswd` (hashed) ships inside the deployed image — that's how Basic Auth
-  works. The hash is apr1/MD5-based and this password is short, so treat the
-  credential as **low-strength**; don't reuse it anywhere that matters.
+- `.htpasswd` / `.htpasswd-admin` (hashed) ship inside the deployed image —
+  that's how Basic Auth works. The hashes are apr1/MD5-based and the passwords
+  are short, so treat both credentials as **low-strength**; don't reuse them
+  anywhere that matters. The admin login's username and password being identical
+  makes it especially guessable — worth rotating before any real use.
 - The server gate protects the **data**, which is the licensed/sensitive part.
   The dashboard's HTML/JS shell is public (it contains no figures).
 - This repo is private today. **If you ever make it public** (e.g. the GitHub
