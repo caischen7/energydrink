@@ -82,8 +82,10 @@ runs are **incremental** (merge + dedupe on natural keys, fresh rows win,
 `--fresh` overwrites), polite rate-limiting with backoff, clear `BLOCKED:`
 errors, Python 3.9-compatible, heavy deps imported lazily. Browser scrapers
 share the persistent-profile Playwright pattern (solve a bot challenge once;
-the profile remembers). Reddit writes raw to untracked `raw_data/` (no
-usernames ever) — aggregate with
+the profile remembers) plus stealth + a **homepage warm-up** (visit the site
+root before the search URL so the bot-manager seeds cookies like a real
+visitor — cuts challenge frequency). Reddit writes raw to untracked `raw_data/`
+(no usernames ever) — aggregate with
 `RAW_DATA_DIR=raw_data python data/scripts/build_external_datasets.py`.
 **None run from this cloud container** (egress allowlist) — the user runs them
 locally. Every scraper has an offline fixture-test suite:

@@ -17,6 +17,8 @@ Three backends:
              anywhere but needs an API key in $SERPAPI_KEY (https://serpapi.com;
              free tier is 100 searches/month — budget with --max-products /
              --review-pages: each search page and each review page is 1 search).
+             PAID beyond the free tier, so `auto` NEVER selects it — you must
+             pass --backend serpapi explicitly to spend credits.
 
 Usage (VS Code terminal on macOS):
   python3 data/scripts/scrape_walmart.py                       # auto backend
@@ -504,6 +506,21 @@ class BrowserFetcher:
         # fetched client-side via GraphQL rather than server-rendered.
         self._responses = []
         self._page.on("response", lambda resp: self._responses.append(resp))
+        self._warmed = False
+
+    def _warmup(self):
+        # Land on the homepage first (like a real visitor) so PerimeterX seeds
+        # its baseline cookies before we hit a search URL — reduces how often
+        # the press-and-hold challenge fires.
+        if self._warmed:
+            return
+        self._warmed = True
+        try:
+            self._page.goto("https://www.walmart.com/",
+                            wait_until="domcontentloaded", timeout=60_000)
+            self._page.wait_for_timeout(2000 + int(random.uniform(0, 1500)))
+        except Exception:
+            pass
 
     def _looks_challenged(self):
         try:
@@ -552,6 +569,7 @@ class BrowserFetcher:
         return False
 
     def get(self, url):
+        self._warmup()
         self._responses.clear()
         self._page.goto(url, wait_until="domcontentloaded", timeout=60_000)
         try:
@@ -709,14 +727,14 @@ def main():
     api_key = os.environ.get("SERPAPI_KEY", "").strip()
     backend = args.backend
     if backend == "auto":
-        if api_key:
-            backend = "serpapi"
-        else:
-            try:
-                import playwright  # noqa: F401
-                backend = "browser"
-            except ImportError:
-                backend = "direct"
+        # Always prefer the FREE path. SerpAPI (paid, credits-per-call) is used
+        # only when you ask for it explicitly with --backend serpapi — a merely
+        # present SERPAPI_KEY must never silently spend credits.
+        try:
+            import playwright  # noqa: F401
+            backend = "browser"
+        except ImportError:
+            backend = "direct"
     if backend == "serpapi" and not api_key:
         sys.exit("SERPAPI_KEY is not set — export it, or use --backend browser.")
     print(f"Backend: {backend}")

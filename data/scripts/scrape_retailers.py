@@ -569,9 +569,26 @@ class BrowserFetcher:
         self._responses = []
         self._page.on("response", lambda resp: self._responses.append(resp))
         self._headless = headless
+        self._warmed = set()
+
+    def _warmup(self, url):
+        # Visit each retailer's homepage once before its search URL so the
+        # bot-manager (Akamai/PerimeterX) seeds cookies like a real visitor —
+        # cuts how often it challenges. Warmed per-host since retailers differ.
+        host = urllib.parse.urlsplit(url).netloc
+        if not host or host in self._warmed:
+            return
+        self._warmed.add(host)
+        try:
+            self._page.goto("https://%s/" % host,
+                            wait_until="domcontentloaded", timeout=60_000)
+            self._page.wait_for_timeout(2000 + int(random.uniform(0, 1500)))
+        except Exception:
+            pass
 
     def blobs(self, url, scrolls=3, settle_ms=2500):
         """Navigate; return every JSON object the page produced."""
+        self._warmup(url)
         self._responses.clear()
         self._page.goto(url, wait_until="domcontentloaded", timeout=60_000)
         try:

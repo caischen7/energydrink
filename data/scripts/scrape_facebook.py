@@ -326,8 +326,24 @@ class BrowserFetcher:
                       else self._context.new_page())
         self._responses = []
         self._page.on("response", lambda resp: self._responses.append(resp))
+        self._warmed = False
+
+    def _warmup(self):
+        # Visit the Ad Library landing once before the query URLs so Facebook
+        # seeds its cookies like a real visitor (the Ad Library is public, so
+        # this rarely challenges, but it keeps the session consistent).
+        if self._warmed:
+            return
+        self._warmed = True
+        try:
+            self._page.goto("https://www.facebook.com/ads/library/",
+                            wait_until="domcontentloaded", timeout=60_000)
+            self._page.wait_for_timeout(2000 + int(random.uniform(0, 1500)))
+        except Exception:
+            pass
 
     def blobs(self, url, scrolls=6):
+        self._warmup()
         self._responses.clear()
         self._page.goto(url, wait_until="domcontentloaded", timeout=60_000)
         try:

@@ -338,8 +338,23 @@ class BrowserFetcher:
         self._responses = []
         self._page.on("response", lambda resp: self._responses.append(resp))
         self._headless = headless
+        self._warmed = False
+
+    def _warmup(self):
+        # Hit tiktok.com once before profile/hashtag pages so its bot-manager
+        # seeds cookies like a real visitor — reduces the puzzle-captcha rate.
+        if self._warmed:
+            return
+        self._warmed = True
+        try:
+            self._page.goto("https://www.tiktok.com/",
+                            wait_until="domcontentloaded", timeout=60_000)
+            self._page.wait_for_timeout(2500 + int(random.uniform(0, 1500)))
+        except Exception:
+            pass
 
     def blobs(self, url, scrolls=6):
+        self._warmup()
         self._responses.clear()
         self._page.goto(url, wait_until="domcontentloaded", timeout=60_000)
         try:
