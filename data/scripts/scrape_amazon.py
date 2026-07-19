@@ -595,6 +595,25 @@ class BrowserFetcher:
         # Walmart scraper; handy if Amazon moves data into XHR responses).
         self._responses = []
         self._page.on("response", lambda resp: self._responses.append(resp))
+        self._warmed = False
+
+    def _warmup(self):
+        # Land on amazon.com once before the first /s?k=... search so the
+        # bot-manager sets its cookies like a real visitor — jumping straight
+        # to a search URL from a cold profile is a strong CAPTCHA trigger.
+        if self._warmed:
+            return
+        self._warmed = True
+        try:
+            self._page.goto("https://www.amazon.com/",
+                            wait_until="domcontentloaded", timeout=60_000)
+            if self._looks_captcha():
+                self._wait_out_captcha()
+            self._page.wait_for_timeout(2000 + int(random.uniform(0, 1500)))
+        except BlockedError:
+            raise
+        except Exception:
+            pass
 
     def url(self):
         return self._page.url
@@ -630,6 +649,7 @@ class BrowserFetcher:
     def get(self, url, wait_selector=None):
         """Navigate with retries/backoff on 429/5xx, then handle the CAPTCHA
         interstitial, then return the rendered HTML."""
+        self._warmup()
         for attempt in range(RETRIES):
             self._responses.clear()
             try:
@@ -690,6 +710,7 @@ class BrowserFetcher:
             )
         self._page.goto("https://www.amazon.com/",
                         wait_until="domcontentloaded", timeout=60_000)
+        self._warmed = True  # login already warmed the session; skip re-warm
         if self._looks_captcha():
             self._wait_out_captcha()
         print("  >> Sign in to Amazon in the browser window (Account & Lists "
