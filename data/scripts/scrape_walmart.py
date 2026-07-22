@@ -28,11 +28,16 @@ Usage (VS Code terminal on macOS):
   python3 data/scripts/scrape_walmart.py --terms "Red Bull energy drink" \
       --max-products 20 --review-pages 3
   python3 data/scripts/scrape_walmart.py --fresh               # overwrite CSVs
+  python3 data/scripts/scrape_walmart.py --detail              # +upc/gtin
 
 Outputs (schema mirrors data/amazon/):
   data/walmart/products.csv   one row per product (price, rating, review count,
                               badges — incl. "N+ bought since yesterday", the
-                              closest public proxy Walmart gives for purchases)
+                              closest public proxy Walmart gives for purchases).
+                              The `upc` column is the cross-retailer join key:
+                              filled free when the search payload includes it,
+                              otherwise only with --detail (one extra /ip/ page
+                              load per product).
   data/walmart/reviews.csv    one row per customer review
 
 Runs are INCREMENTAL: if an output CSV already exists, its rows are merged
@@ -116,9 +121,9 @@ UA = (
 )
 
 PRODUCT_COLUMNS = [
-    "item_id", "search_term", "title", "brand", "price_usd", "list_price_usd",
-    "rating", "reviews_total", "seller", "sponsored", "badges",
-    "bought_since_yesterday", "availability", "link", "scraped_at",
+    "item_id", "upc", "search_term", "title", "brand", "price_usd",
+    "list_price_usd", "rating", "reviews_total", "seller", "sponsored",
+    "badges", "bought_since_yesterday", "availability", "link", "scraped_at",
 ]
 REVIEW_COLUMNS = [
     "item_id", "brand", "product_title", "search_term", "review_id",
@@ -155,6 +160,32 @@ def find_key(obj, key):
     elif isinstance(obj, list):
         for v in obj:
             yield from find_key(v, key)
+
+
+def iter_dicts(obj):
+    """Yield every dict anywhere in a nested structure."""
+    if isinstance(obj, dict):
+        yield obj
+        for v in obj.values():
+            yield from iter_dicts(v)
+    elif isinstance(obj, list):
+        for v in obj:
+            yield from iter_dicts(v)
+
+
+# Walmart exposes the barcode under a few keys depending on the surface.
+_UPC_KEYS = ("upc", "wupc", "gtin", "gtin13", "gtin14")
+
+
+def extract_upc(obj):
+    """First plausible UPC/GTIN (8-14 digits) found under any *_UPC_KEYS in a
+    product blob, else None. Non-numeric or wrong-length values are skipped."""
+    for key in _UPC_KEYS:
+        for val in find_key(obj, key):
+            digits = re.sub(r"\D", "", str(val))
+            if 8 <= len(digits) <= 14:
+                return digits
+    return None
 
 
 def first(iterable, default=None):
@@ -367,6 +398,9 @@ def direct_product_row(it, term):
     title = it.get("name") or ""
     return {
         "item_id": it.get("usItemId") or it.get("id"),
+        # Search results occasionally carry the UPC already — grab it free.
+        # The optional --detail pass fills in the rest from the product page.
+        "upc": extract_upc(it),
         "search_term": term,
         "title": title,
         "brand": norm_brand(it.get("brand")) or brand_from_title(title),
@@ -417,6 +451,33 @@ def direct_reviews(item_id, page, sleep, fetch_blobs=stdlib_json_blobs):
                 seen.add(key)
                 reviews.append(r)
     return reviews
+
+
+def product_detail_url(item_id):
+    return f"https://www.walmart.com/ip/{item_id}"
+
+
+def fetch_upc(item_id, sleep, fetch_blobs=stdlib_json_blobs):
+    """Load a product's /ip/ detail page and return its UPC/GTIN, or None.
+
+    Prefers the node whose id matches this product so a UPC from a "similar
+    items" carousel on the same page isn't mistaken for the product's own.
+    """
+    blobs = fetch_blobs(product_detail_url(item_id))
+    polite_sleep(sleep)
+    for data in blobs:
+        for node in iter_dicts(data):
+            nid = node.get("usItemId") or node.get("id")
+            if nid is not None and str(nid) == str(item_id):
+                upc = extract_upc(node)
+                if upc:
+                    return upc
+    # Fallback: any UPC on the page (last resort — may be a related item).
+    for data in blobs:
+        upc = extract_upc(data)
+        if upc:
+            return upc
+    return None
 
 
 def direct_review_row(r, product, term):
@@ -649,6 +710,7 @@ def serpapi_product_row(it, term):
     title = it.get("title") or ""
     return {
         "item_id": it.get("us_item_id") or it.get("product_id"),
+        "upc": extract_upc(it),
         "search_term": term,
         "title": title,
         "brand": brand_from_title(title),
@@ -716,6 +778,11 @@ def main():
                     help="max products per term to keep (default 25)")
     ap.add_argument("--review-pages", type=int, default=3,
                     help="review pages per product, ~20 reviews each (default 3)")
+    ap.add_argument("--detail", action="store_true",
+                    help="fetch each product's /ip/ detail page to capture "
+                         "upc/gtin (the cross-retailer join key). Adds ~1 page "
+                         "load per product = more bot-wall exposure; off by "
+                         "default. Ignored by the serpapi backend.")
     ap.add_argument("--sleep", type=float, default=2.5,
                     help="base delay between requests in seconds (default 2.5)")
     ap.add_argument("--out", default="data/walmart", help="output directory")
@@ -768,6 +835,20 @@ def main():
             print(f"  [{term}] page {page}: {len(rows)} items, kept {kept}")
             if kept >= args.max_products:
                 break
+    if args.detail and walmart:
+        need = [p for p in products if not p.get("upc")]
+        print(f"  detail pass: fetching UPC for {len(need)}/{len(products)} "
+              f"products missing it (+{len(need)} page loads)")
+        for p in need:
+            try:
+                p["upc"] = fetch_upc(p["item_id"], args.sleep, fetch_blobs)
+            except BlockedError:
+                raise
+            except Exception as e:  # one bad detail page shouldn't kill the run
+                print(f"  ! detail failed for {p['item_id']}: {e}")
+    elif args.detail and not walmart:
+        print("  (--detail ignored: the serpapi backend has no detail fetch)")
+
     products_path = os.path.join(args.out, "products.csv")
     if args.fresh:
         write_csv(products_path, PRODUCT_COLUMNS, products)

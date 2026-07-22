@@ -41,6 +41,30 @@ assert row["bought_since_yesterday"] == "1,000+"
 assert row["badges"] == "Best seller"
 assert row["link"].startswith("https://www.walmart.com/ip/")
 
+# --- UPC extraction ---
+# search item without a UPC -> None (the common case; --detail fills it later)
+assert row["upc"] is None, row["upc"]
+# a search item that DOES carry the barcode gets it free
+item_upc = dict(item, upc="0081087200130")
+assert sw.direct_product_row(item_upc, "energy drink")["upc"] == "0081087200130"
+# extract_upc digs the barcode out of nested detail JSON, under any key alias,
+# and normalizes formatting; too-short values are ignored
+assert sw.extract_upc({"product": {"gtin13": "0-81087-20013-0"}}) == "081087200130"
+assert sw.extract_upc({"a": {"b": {"wupc": 4890008100156}}}) == "4890008100156"
+assert sw.extract_upc({"upc": "12"}) is None          # too short to be a UPC
+assert sw.extract_upc({"name": "no code here"}) is None
+
+# fetch_upc prefers the node matching this item_id over a "similar items" one
+detail_blobs = [{
+    "product": {"usItemId": "16935173", "upc": "0081087200130"},
+    "similarItems": [{"usItemId": "999", "upc": "0000000000000"}],
+}]
+assert sw.fetch_upc("16935173", 0, fetch_blobs=lambda url: detail_blobs) == "0081087200130"
+# falls back to any UPC on the page when no node id matches
+assert sw.fetch_upc("nomatch", 0, fetch_blobs=lambda url: detail_blobs) in (
+    "0081087200130", "0000000000000")
+print("UPC EXTRACTION TESTS PASSED")
+
 # --- review fixture ---
 review = {
     "reviewId": "abc123",

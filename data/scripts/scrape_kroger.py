@@ -113,6 +113,16 @@ ID_KEYS = ("upc", "productId", "product_id", "id")
 BLOCK_MARKERS = ("Access Denied", "Pardon Our Interruption", "_Incapsula_",
                  "Reference #18", "Robot or human", "px-captcha",
                  "unusual traffic", "Request unsuccessful")
+# A HARD deny, not a solvable interstitial: waiting/clicking in the window does
+# nothing (the IP/fingerprint is flagged), so don't stall for 3 minutes —
+# redirect straight to the free official API.
+HARD_BLOCK_MARKERS = ("Access Denied", "Reference #18")
+
+API_HINT = (
+    "Use the free official API instead: create an app at developer.kroger.com, "
+    "export KROGER_CLIENT_ID / KROGER_CLIENT_SECRET, and rerun (it auto-selects "
+    "--backend api). Note: the API returns products + prices but no reviews."
+)
 
 
 class BlockedError(RuntimeError):
@@ -501,6 +511,11 @@ class BrowserFetcher:
         return out
 
     def _wait_for_challenge(self):
+        if any(m in self._page.content() for m in HARD_BLOCK_MARKERS):
+            raise BlockedError(
+                "kroger.com hard-blocked this request (Akamai 'Access "
+                "Denied'). This is not a solvable challenge — waiting or "
+                "clicking in the window won't clear it. " + API_HINT)
         if self._headless:
             raise BlockedError(
                 "kroger.com served an Akamai challenge in headless mode — "
@@ -513,7 +528,7 @@ class BrowserFetcher:
             self._page.wait_for_timeout(3000)
             if not any(m in self._page.content() for m in BLOCK_MARKERS):
                 return
-        raise BlockedError("challenge not solved within 3 minutes")
+        raise BlockedError("challenge not solved within 3 minutes. " + API_HINT)
 
     def close(self):
         try:

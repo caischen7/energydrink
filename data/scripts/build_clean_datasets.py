@@ -2,6 +2,7 @@
 # exports. The raw zips/xlsx are not committed to the repo (PII + size), so
 # point RAW at wherever you've unzipped "Amazon data/", "Instagram data/" and
 # "Youtube data/" before running this.
+import ast
 import os
 import re
 import pandas as pd
@@ -66,19 +67,32 @@ def clean_amazon():
     reviews = pd.read_csv(f"{RAW}/amazon/Amazon data/amazon_75_products_reviews.csv")
 
     products = products.drop_duplicates(subset="asin").copy()
-    products["price_usd"] = (
-        products["price"].astype(str).str.replace(r"[^0-9.]", "", regex=True)
-    )
-    products["price_usd"] = pd.to_numeric(products["price_usd"], errors="coerce")
+
+    # Capture the FIRST price-like number ("$19.98 ($1.67/Fl Oz)" -> 19.98)
+    # rather than stripping every non-digit and concatenating them, which would
+    # fuse a price and a per-unit figure into one bogus number.
+    price_re = re.compile(r"\$?\s*(\d[\d,]*(?:\.\d+)?)")
+
+    def parse_price(cell):
+        if pd.isna(cell):
+            return None
+        m = price_re.search(str(cell))
+        return float(m.group(1).replace(",", "")) if m else None
+
+    products["price_usd"] = products["price"].apply(parse_price)
 
     def extract_categories(cell):
         if pd.isna(cell):
             return ""
         try:
-            items = eval(cell, {"__builtins__": {}}, {})
-            return "; ".join(d.get("name", "") for d in items if isinstance(d, dict))
-        except Exception:
+            # ast.literal_eval safely parses the list-of-dicts literal; eval()
+            # on scraped page text is an unnecessary code-execution risk.
+            items = ast.literal_eval(cell)
+        except (ValueError, SyntaxError):
             return ""
+        if not isinstance(items, (list, tuple)):
+            return ""
+        return "; ".join(d.get("name", "") for d in items if isinstance(d, dict))
 
     products["categories"] = products["categories"].apply(extract_categories)
     products["brand"] = products["brand"].apply(norm_brand)
@@ -111,6 +125,18 @@ def clean_amazon():
     reviews["brand"] = reviews["asin"].map(
         products.set_index("asin")["brand"].to_dict()
     )
+
+    # Brand-less rows are silently dropped from the cross-platform views in
+    # build_combined() (guarded by `if r["brand"]`), so surface the count here
+    # rather than losing ~10% of the corpus without a trace.
+    missing_p = int(products["brand"].isna().sum())
+    missing_r = int(reviews["brand"].isna().sum())
+    if missing_p or missing_r:
+        print(
+            f"  amazon: {missing_p}/{len(products)} products and "
+            f"{missing_r}/{len(reviews)} reviews have no brand — these are "
+            "excluded from the combined brand views"
+        )
 
     reviews = reviews[
         [

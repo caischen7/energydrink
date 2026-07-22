@@ -298,6 +298,7 @@ class InstaloaderBackend:
             )
         self._il = instaloader
         self.exceptions = instaloader.exceptions
+        self.logged_in = bool(login)
         self.loader = instaloader.Instaloader(
             quiet=True,               # suppress per-post download chatter
             user_agent=UA,
@@ -354,6 +355,20 @@ class InstaloaderBackend:
                     break
             return posts
         except ex.ProfileNotExistsException:
+            if not self.logged_in:
+                # Instagram now returns 403 on the anonymous graphql endpoint,
+                # which instaloader surfaces as a bogus "profile not found".
+                # For a well-known brand handle this is almost never a real
+                # deletion — it's the block. Abort with the actionable cause
+                # instead of skipping every profile with a misleading message.
+                raise BlockedError(
+                    "Could not load @%s. Instagram returns 403 on the "
+                    "anonymous GraphQL endpoint (see the 403 logged above), "
+                    "which shows up here as a false 'profile not found' — the "
+                    "account almost certainly still exists. Anonymous scraping "
+                    "is effectively blocked; rerun with --login USERNAME (use a "
+                    "throwaway account — see the docstring warning)." % username
+                )
             raise SkipProfile(
                 "@%s does not exist (renamed or deleted?) — skipping"
                 % username

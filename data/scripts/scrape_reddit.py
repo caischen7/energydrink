@@ -240,6 +240,17 @@ def http_get_json(url, max_retries=4):
                 continue
             raise
         except (urllib.error.URLError, OSError) as e:
+            if "CERTIFICATE_VERIFY_FAILED" in str(e):
+                # Not a Reddit block — the local Python has no CA bundle. Common
+                # on macOS with a python.org install. Retrying won't help.
+                raise BlockedError(
+                    "SSL certificate verification failed — this is a local "
+                    "Python setup issue, not a Reddit block. On macOS with a "
+                    "python.org Python, run the bundled installer once:\n"
+                    "  open \"/Applications/Python 3.x/Install Certificates.command\"\n"
+                    "(replace 3.x with your version), or: "
+                    "pip3 install --upgrade certifi. Then rerun."
+                ) from e
             attempt += 1
             if attempt <= max_retries:
                 wait = 5 * (2 ** (attempt - 1))
