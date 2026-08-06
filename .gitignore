@@ -4,3 +4,9 @@ dist/
 *.local
 .vite/
 .bqvenv/
+
+# Raw BigQuery table pulls: licensed third-party data (Euromonitor Passport,
+# Mintel GNPD/MULO) and large. Reproducible from data/sql/ — see data/bq/README.md.
+# The derived aggregates the dashboard reads are tracked, hence the negation.
+data/bq/*.csv
+!data/bq/derived/
