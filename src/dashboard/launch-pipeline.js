@@ -9,7 +9,8 @@
  * The uncomfortable finding for our own product thesis: "sugar free" is on
  * 72% of recent launches. It is not white space; it is the price of entry.
  */
-import { hBars, panel, VOLT } from '../charts.js';
+import { hBars, VOLT } from '../charts.js';
+import { panel } from './_panel.js';
 
 const GREEN = '#34c759';
 const DIMGREY = '#c7c7cc';

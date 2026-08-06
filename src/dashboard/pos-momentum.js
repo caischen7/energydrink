@@ -10,7 +10,8 @@
  * wrong. "Who's Moving" ranks Bang as a riser on mention share; its actual
  * sales fell 15.6%. See docs/bigquery-findings.md.
  */
-import { hBars, panel, fmtCompact, VOLT } from '../charts.js';
+import { hBars, fmtCompact, VOLT } from '../charts.js';
+import { panel } from './_panel.js';
 
 const GREEN = '#34c759';
 const RED = '#ff3b30';
