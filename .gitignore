@@ -8,3 +8,10 @@ __pycache__/
 # regenerable synthetic output from generate_sample_data.py (the two NEW source
 # dirs data/openfoodfacts + data/wikipedia ARE tracked — the dashboard reads them)
 data/sample/
+# local virtualenv for the BigQuery client
+.bqvenv/
+# raw BigQuery table pulls: licensed third-party data (Euromonitor Passport,
+# Mintel GNPD/MULO), reproducible from data/sql/ — see data/bq/README.md.
+# The derived aggregates the dashboard reads are tracked, hence the negation.
+data/bq/*.csv
+!data/bq/derived/
