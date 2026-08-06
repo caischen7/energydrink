@@ -7,6 +7,8 @@
 import '@fontsource-variable/inter';
 import './dashboard.css';
 import { hBars, vBars, scatter, area, multiLine, stackedBars, fmtCompact, fmtInt, VOLT, ICE } from './charts.js';
+import { posMomentum } from './dashboard/pos-momentum.js';
+import { launchPipeline } from './dashboard/launch-pipeline.js';
 import { requireAuth } from './auth.js';
 
 /* populated by requireAuth() once the visitor authenticates (data is fetched
@@ -468,6 +470,9 @@ function main(loaded) {
   /* new sources — only render if the aggregate carries their data */
   if (data.nutrition?.brands?.length) panels.push(nutritionMap());
   if (data.wiki_interest?.length) panels.push(wikiInterest());
+  /* BigQuery-derived: measured sell-through + the launch pipeline */
+  if (data.pos_momentum?.length) panels.push(posMomentum(data));
+  if (data.launch_claims?.length) panels.push(launchPipeline(data));
   $('#charts').innerHTML = panels.join('');
   renderTable();
   $('#gen-at').textContent = new Date(data.generated_at).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';

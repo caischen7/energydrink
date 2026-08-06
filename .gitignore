@@ -15,3 +15,5 @@ data/sample/
 # The derived aggregates the dashboard reads are tracked, hence the negation.
 data/bq/*.csv
 !data/bq/derived/
+energydrink/
+energydrink/
