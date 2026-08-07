@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Cross-source market insights and the data model behind them." />
+  <meta name="robots" content="noindex" />
+  <title>Insights — Bogus Banana Market Intel</title>
+  <link rel="icon" type="image/svg+xml" href="/mascot.svg" />
+  <script type="module" src="/src/insights.js"></script>
+</head>
+<body class="dash">
+  <header class="site-head">
+    <a class="logo" href="./index.html" data-hover>
+      Bogus&nbsp;Banana<sup>®</sup>
+    </a>
+    <nav class="nav mono" aria-label="Insight sections">
+      <a href="#top-findings" data-hover>FINDINGS</a>
+      <a href="#by-source" data-hover>BY&nbsp;SOURCE</a>
+      <a href="#model" data-hover>DATA&nbsp;MODEL</a>
+    </nav>
+    <div class="head-right">
+      <a class="btn-mint" href="./dashboard.html" data-hover>← Dashboard</a>
+    </div>
+  </header>
+
+  <main class="dash-main">
+    <section class="dash-hero">
+      <h1 class="dash-title">Market Insights</h1>
+      <p class="dash-sub">
+        Findings from <b class="volt">seven independent data sources</b> — point-of-sale transactions,
+        consumer survey, product launches, retail share, consumer profiling and ingredient decks.
+        Grouped by where each finding comes from, because a claim backed by sales data and a claim
+        backed by stated intent are not the same kind of claim.
+      </p>
+    </section>
+
+    <section id="top-findings">
+      <h2 class="sec-h mono">HEADLINE FINDINGS</h2>
+      <div id="headlines" class="ins-grid"></div>
+    </section>
+
+    <section id="by-source">
+      <h2 class="sec-h mono">EVERY FINDING, BY SOURCE</h2>
+      <p class="sec-note">
+        Each block is one dataset: what it measures, what it cannot tell you, and what it showed.
+      </p>
+      <div id="sources"></div>
+    </section>
+
+    <section id="model">
+      <h2 class="sec-h mono">DATA MODEL — HOW THE SOURCES CONNECT</h2>
+      <p class="sec-note">
+        Solid lines are reliable key joins. Dashed lines are fuzzy joins on brand name or barcode,
+        which need normalisation first. The dotted line is not a join at all — those two sources
+        share no key and can only be compared conceptually.
+      </p>
+      <div id="er"></div>
+      <div id="er-tables"></div>
+    </section>
+  </main>
+
+  <footer class="dash-foot mono">
+    <span class="dim">SOURCES: PDI · MINTEL · EUROMONITOR PASSPORT · SIMMONS · USDA</span>
+    <span class="dim">AGGREGATE GENERATED <i id="gen-at">—</i></span>
+  </footer>
+</body>
+</html>
