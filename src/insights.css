@@ -1,0 +1,183 @@
+/* Insights page — layered on dashboard.css (which itself @imports style.css). */
+
+.sec-h {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--dim);
+  font-weight: 600;
+  margin: 3rem 0 0.6rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--line);
+}
+.sec-note {
+  font-size: 13px;
+  color: var(--dim);
+  max-width: 78ch;
+  margin: 0 0 1.4rem;
+  line-height: 1.6;
+}
+
+/* ---------- insight cards ---------- */
+.ins-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 14px;
+}
+.ins-card {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--h);
+  border-radius: 12px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+.ins-card.hl { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
+.ins-card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.ins-src {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--h);
+  font-weight: 600;
+}
+.ins-tag {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--h);
+  color: #fff;
+  font-weight: 600;
+}
+.ins-card h3 {
+  font-size: 15.5px;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  margin: 0 0 8px;
+}
+.ins-find { font-size: 13px; line-height: 1.6; margin: 0 0 9px; }
+.ins-why {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--dim);
+  margin: 0 0 12px;
+}
+.ins-why b { color: var(--ink); }
+.ins-metric {
+  margin-top: auto;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--h);
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  letter-spacing: 0;
+}
+
+/* ---------- per-source blocks ---------- */
+.srcb {
+  border-top: 2px solid var(--h);
+  padding-top: 18px;
+  margin-bottom: 2.6rem;
+}
+.srcb-head { margin-bottom: 16px; max-width: 82ch; }
+.srcb-t {
+  font-size: 19px;
+  letter-spacing: -0.015em;
+  margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.srcb-k {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--h);
+  border: 1px solid var(--h);
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-weight: 600;
+}
+.srcb-s { font-size: 11px; margin: 0 0 8px; letter-spacing: 0; }
+.srcb-w { font-size: 13.5px; line-height: 1.6; margin: 0 0 6px; }
+.srcb-l { font-size: 12.5px; line-height: 1.6; color: var(--dim); margin: 0; }
+.srcb-l b { color: var(--ink); }
+
+/* ---------- ER diagram ---------- */
+.er-wrap {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  overflow-x: auto;
+}
+.er-wrap svg { width: 100%; min-width: 720px; height: auto; display: block; }
+.er-t { font-size: 12.5px; font-weight: 600; fill: var(--ink); font-family: var(--f-sans); }
+.er-r { font-size: 10.5px; fill: var(--dim); font-family: var(--f-sans); }
+.er-lbl { font-size: 9.5px; fill: var(--dim); font-family: var(--f-sans); }
+.er-node { cursor: help; }
+.er-node:hover rect:first-child { fill: var(--bg-3); }
+.er-key {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--dim);
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  letter-spacing: 0;
+}
+.er-key .k {
+  display: inline-block;
+  width: 22px;
+  height: 0;
+  border-top-width: 2px;
+  margin-right: 7px;
+  vertical-align: middle;
+}
+.er-key .k.solid { border-top-style: solid; border-color: var(--accent); }
+.er-key .k.dash { border-top-style: dashed; border-color: #ff9f0a; }
+.er-key .k.dot { border-top-style: dotted; border-color: #c7c7cc; }
+
+/* ---------- table under the diagram ---------- */
+.tbl-wrap { width: 100%; overflow-x: auto; margin-top: 18px; }
+.tbl-wrap .cols code {
+  font-size: 10.5px;
+  background: var(--bg-3);
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-right: 3px;
+  white-space: nowrap;
+}
+.tbl-wrap .note { color: var(--dim); font-size: 11.5px; max-width: 34ch; white-space: normal; }
+.tbl-wrap .dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 7px;
+  vertical-align: middle;
+}
+.dash-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 1.6rem 0 3rem;
+  max-width: 1400px;
+  margin: 3rem auto 0;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+}
+
+@media (max-width: 640px) {
+  .ins-grid { grid-template-columns: 1fr; }
+}
