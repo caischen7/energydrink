@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Energy drink need-state segments sized by market share." />
+  <meta name="robots" content="noindex" />
+  <title>Segments — Bogus Banana Market Intel</title>
+  <link rel="icon" type="image/svg+xml" href="/mascot.svg" />
+  <script type="module" src="/src/segments.js"></script>
+</head>
+<body class="dash">
+  <header class="site-head">
+    <a class="logo" href="./index.html" data-hover>Bogus&nbsp;Banana<sup>®</sup></a>
+    <nav class="nav mono" aria-label="Sections">
+      <a href="./dashboard.html" data-hover>DASHBOARD</a>
+      <a href="./insights.html" data-hover>INSIGHTS</a>
+    </nav>
+    <div class="head-right"><a class="btn-mint" href="./dashboard.html" data-hover>← Dashboard</a></div>
+  </header>
+
+  <main class="dash-main">
+    <section class="dash-hero">
+      <h1 class="dash-title">Who Each Drink Is For</h1>
+      <p class="seg-intro">
+        Every SKU in the panel sorted into the <b>need it fulfils</b> — not the flavour or the
+        brand, but the reason someone reaches for it. Each box is one need-state and
+        <b>its area is trailing-12-month sales</b>, so the map doubles as a market-share picture.
+        <b>Click any box</b> to see the brands and products inside it.
+        Total measured: <b id="total">—</b> across the <span id="window">—</span>.
+      </p>
+    </section>
+
+    <div id="map" class="map-wrap"></div>
+    <div id="legend" class="legend"></div>
+    <div id="detail"></div>
+
+    <section class="methodology mono" style="margin-top:3rem">
+      <div class="sec-label"><b class="volt">//</b> HOW SEGMENTS WERE ASSIGNED</div>
+      <div class="method-grid">
+        <p><b class="volt">RULE-BASED.</b> The dataset has no "need state" field. Each SKU is
+          assigned by a documented rule set over brand, <span class="dim">PRODUCT_TYPE</span>,
+          <span class="dim">SUB_PRODUCT_TYPE</span> and the product description — see
+          <span class="dim">data/scripts/add_segments.py</span>. This is an authored judgement, not
+          a measurement, and reasonable people would place some brands differently.</p>
+        <p><b class="volt">ORDER MATTERS.</b> Positioning beats formulation: Celsius and Bang are
+          both sugar-free, but they sit in Wellness and Fitness because that is who they are sold
+          to. "Zero-Sugar Mainstream" therefore holds only the zero variants of classic brands.</p>
+        <p><b class="volt">SALES BASIS.</b> Box area and share use trailing-12-month revenue from
+          the PDI convenience-store panel. Under 0.4% of sales fall in "Other / Niche", so the
+          map covers essentially the whole measured category.</p>
+        <p><b class="volt">CHANNEL CAVEAT.</b> Convenience stores only — no club, grocery or
+          e-commerce. Segments that over-index in those channels (wellness especially) are
+          understated here relative to their true national size.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="dash-foot mono">
+    <span class="dim">PDI C-STORE PANEL · TRAILING 12 MONTHS</span>
+    <span class="dim">AGGREGATE GENERATED <i id="gen-at">—</i></span>
+  </footer>
+</body>
+</html>
