@@ -13,6 +13,7 @@ export default defineConfig({
         dashboard: resolve(__dirname, 'dashboard.html'),
         admin: resolve(__dirname, 'admin.html'),
         insights: resolve(__dirname, 'insights.html'),
+        segments: resolve(__dirname, 'segments.html'),
       },
     },
   },

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Deploy ION — Liquid Hardware (static Vite site) to Google Cloud Run as a
+# Deploy Bogus Banana (static Vite site) to Google Cloud Run as a
 # public service. Mirrors the Cloud Run deploy used in caischen7/msbai-dwd-csc9720.
 #
 # Prereqs:
@@ -11,11 +11,11 @@
 #
 # Usage (from the repo root):
 #   GCP_PROJECT=my-project ./deploy.sh
-#   # optional overrides: GCP_REGION=us-central1 SERVICE_NAME=ion-liquid-hardware
+#   # optional overrides: GCP_REGION=us-central1 SERVICE_NAME=bogus-banana
 set -euo pipefail
 
 REGION="${GCP_REGION:-us-central1}"
-SERVICE="${SERVICE_NAME:-ion-liquid-hardware}"
+SERVICE="${SERVICE_NAME:-bogus-banana}"
 
 # Resolve the project: explicit env var wins, then the managed .cloud-config.json,
 # then whatever `gcloud config set project` already points at.
