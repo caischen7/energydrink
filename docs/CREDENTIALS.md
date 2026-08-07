@@ -1,4 +1,4 @@
-# ION_OS — Admin Credentials (private)
+# Bogus Banana — Admin Credentials (private)
 
 > Internal reference for the repo owner. Kept in the repo because it is
 > **private**. Not served by the site — `docs/` is excluded from the deploy image

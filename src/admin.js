@@ -24,9 +24,9 @@ const $ = (s, el = document) => el.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 const ADMIN_AUTH = {
-  storageKey: 'ion_admin_auth',
-  user: 'yamazato1234',
-  passHash: '99a64a77a81e1b1860c02f09413a67aeb74ac3a3a8cc039ef9593a5a331ed526',
+  storageKey: 'bb_admin_auth',
+  user: 'bogusbanana',
+  passHash: '788cff7db31f3dcc13b13fa972115a4d7fec41afbddc91f9e0ac0b73f0da8d0a',
   dataUrl: 'admin/config.json', // relative → /admin/config.json (nginx-guarded)
   title: 'RESTRICTED — SITE SCOUT',
 };
