@@ -17,8 +17,8 @@
 | Field | Value |
 | --- | --- |
 | Page | `/admin.html` — **not linked from public navigation** (bookmark it) |
-| Username | `yamazato1234` |
-| Password | `yamazato1234` |
+| Username | `bogusbanana` |
+| Password | `bogusbanana1234` |
 
 Same two-layer pattern as the dashboard, with **separate credentials**: the
 client-side check lives in `src/admin.js` (`ADMIN_AUTH.passHash`, SHA-256), and
