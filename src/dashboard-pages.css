@@ -1,0 +1,94 @@
+/* One-panel-per-view pagination for the dashboard (see dashboard-pages.js). */
+
+/* Panel nav — horizontal, scrollable, wraps on wide screens. */
+.pg-nav {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin: 0 0 1.6rem;
+  padding-bottom: 1.2rem;
+  border-bottom: 1px solid var(--line);
+}
+.pg-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--dim);
+  font-family: inherit;
+  font-size: 11.5px;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.pg-chip:hover { border-color: var(--accent); color: var(--accent); }
+.pg-chip.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+.pg-chip .pg-n {
+  font-size: 9.5px;
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+}
+.pg-chip.on .pg-n { opacity: 0.85; }
+.pg-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* A single panel now owns the viewport, so let it breathe. */
+.paginated .charts-grid { display: block; }
+.paginated .charts-grid .panel-card { margin: 0; }
+.paginated .panel-card .pc-body { padding: 1.8rem 1.6rem; }
+
+/* Prev / next */
+.pg-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 1.8rem 0 0;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--line);
+}
+.pg-btn {
+  padding: 9px 17px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.pg-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.pg-btn:disabled { opacity: 0.35; cursor: default; }
+.pg-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pg-pos {
+  font-size: 11.5px;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 720px) {
+  .pg-nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .pg-nav::-webkit-scrollbar { display: none; }
+  .paginated .panel-card .pc-body { padding: 1.2rem 1rem; }
+}
+
+/* Keep the long-scroll layout for anyone who prints the page. */
+@media print {
+  .pg-nav, .pg-pager { display: none; }
+  .paginated .panel-card[hidden] { display: block !important; }
+}
