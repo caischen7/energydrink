@@ -1,4 +1,4 @@
-# ION_OS — Admin Credentials (private)
+# Bogus Banana — Admin Credentials (private)
 
 > Internal reference for the repo owner. Kept in the repo because it is
 > **private**. Not served by the site — `docs/` is excluded from the deploy image
@@ -17,8 +17,8 @@
 | Field | Value |
 | --- | --- |
 | Page | `/admin.html` — **not linked from public navigation** (bookmark it) |
-| Username | `yamazato1234` |
-| Password | `yamazato1234` |
+| Username | `bogusbanana` |
+| Password | `bogusbanana1234` |
 
 Same two-layer pattern as the dashboard, with **separate credentials**: the
 client-side check lives in `src/admin.js` (`ADMIN_AUTH.passHash`, SHA-256), and
@@ -57,10 +57,11 @@ printf '%s' 'NEW_PASSWORD' | sha256sum     # paste the hex into PASS_HASH
 - `.htpasswd` / `.htpasswd-admin` (hashed) ship inside the deployed image —
   that's how Basic Auth works. The hashes are apr1/MD5-based and the passwords
   are short, so treat both credentials as **low-strength**; don't reuse them
-  anywhere that matters. The admin login's username and password being identical
-  makes it especially guessable — worth rotating before any real use.
+  anywhere that matters.
 - The server gate protects the **data**, which is the licensed/sensitive part.
   The dashboard's HTML/JS shell is public (it contains no figures).
 - This repo is private today. **If you ever make it public** (e.g. the GitHub
-  Pages deploy option), rotate the password and scrub `.htpasswd` + this file from
-  git history first — committed secrets persist in history even after deletion.
+  Pages deploy option), rotate both passwords and scrub `.htpasswd`,
+  `.htpasswd-admin` and this file from git history first — committed secrets
+  persist in history even after deletion. The retired admin credential is still
+  reachable in history, so treat it as burned.
