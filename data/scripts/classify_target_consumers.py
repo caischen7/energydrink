@@ -38,31 +38,69 @@ ADDED = ["target_consumer", "target_age", "target_gender", "target_notes"]
 AUDIENCE = {
     "Young adults": (
         "18-34", "Male-skewing",
-        "Habit and brand loyalty. Red Bull indexes 198 on 25-34, Monster 177."),
+        "Drinks it out of habit and brand loyalty. 25-34s are about twice as "
+        "likely as the average adult to drink Red Bull, and 1.8x for Monster."),
     "Calorie-cutters": (
         "25-44", "Mixed",
-        "Same mainstream drinker cutting sugar. Reaches older and more female buyers."),
+        "The same mainstream drinker cutting sugar, not chasing fitness. "
+        "The zero-sugar lines reach older and more female buyers than the sugared ones."),
     "Gym & fitness": (
         "24-35", "Male-skewing (~70/30)",
-        "Ready-to-drink pre-workout. Buys on caffeine dose, aminos, zero sugar."),
+        "Wants a pre-workout they can drink from a can. Buys on caffeine dose, "
+        "aminos and zero sugar. Roughly 7 in 10 are men."),
     "Women (fitness & wellness)": (
         "18-34", "Female-skewing",
-        "Millennial and Gen Z women. Slim cans, fruit flavors, wellness framing."),
+        "Millennial and Gen Z women with fitness and wellness goals. Slim cans, "
+        "fruit flavors, wellness language instead of extreme-sports language."),
     "Gamers & creators": (
         "16-27", "Male-skewing",
-        "Bought for the influencer or flavor drop as much as the caffeine."),
+        "Buys the influencer and the flavour drop as much as the caffeine. "
+        "Mostly reached online, so convenience stores understate this group."),
     "Shift workers & military": (
         "25-44", "Male-skewing",
-        "Price per ounce first. Drivers, trades, deployed personnel."),
+        "Price per ounce decides it. Drivers, trades and deployed personnel "
+        "buying the cheapest effective can on the shelf."),
     "Health-conscious adults": (
         "30-55", "Mixed",
-        "Rejects the stimulant framing. Organic, yerba mate, plant caffeine."),
+        "Rejects the stimulant framing entirely. Wants organic, yerba mate or "
+        "plant caffeine, and skews older and better-off than the category."),
     "Coffee drinkers": (
         "30-55", "Mixed",
-        "Wants the caffeine without the energy-drink identity."),
+        "Wants the caffeine without identifying as an energy-drink drinker. "
+        "Comes in through cold brew and canned coffee rather than the energy aisle."),
     "Older functional users": (
         "35-54", "Male-skewing",
-        "A dose, not a drink. 5-hour Energy indexes 221 on sports fandom."),
+        "Takes it as a dose, not a drink. Heavily skewed toward avid sports "
+        "fans, who are more than twice as likely as average to buy it."),
+}
+
+# Where a brand's own measured audience differs from its group, say so on the
+# row itself rather than making the reader infer it from the group note.
+BRAND_NOTE = {
+    "Rockstar":
+        "Reads as a young brand but its drinkers are concentrated in the 35-44 "
+        "band, who are about 1.8x more likely than average to drink it.",
+    "NOS":
+        "Skews distinctly male - about three quarters of drinkers are in "
+        "male-headed households - and concentrates in the 25-34 band.",
+    "Bang":
+        "The youngest audience measured in the category: 18-24s are nearly "
+        "twice as likely as the average adult to drink it.",
+    "5-Hour Energy":
+        "Taken as a dose, not a drink. Avid sports fans are over twice as "
+        "likely as average to buy it, and Black/African American adults 1.75x.",
+    "Red Bull":
+        "25-34s are about twice as likely as the average adult to drink it - "
+        "the youngest-skewing large brand in the category.",
+    "Monster":
+        "25-34s are about 1.8x as likely as average to drink it, with a "
+        "noticeable skew toward lower-income households.",
+    "Celsius":
+        "Read as a women's brand, but consumption is close to an even 50/50 "
+        "split between men and women.",
+    "Alani Nu":
+        "Built specifically for Millennial and Gen Z women, and the audience "
+        "matches the intent more closely than any other brand here.",
 }
 
 # ------------------------------------------------------ brand -> audience
@@ -197,6 +235,11 @@ def main():
     for r in rows:
         aud, age = classify(r)
         _, gender, note = AUDIENCE[aud]
+        brand = (r.get("canonical_brand") or "").strip()
+        # a brand-specific note only applies while the SKU still sits in that
+        # brand's own audience - a sugar-free Monster is a calorie-cutter now
+        if brand in BRAND_NOTE and aud == BRAND.get(brand):
+            note = BRAND_NOTE[brand]
         r["target_consumer"] = aud
         r["target_age"] = age
         r["target_gender"] = gender
