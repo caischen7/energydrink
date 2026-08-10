@@ -30,7 +30,8 @@ import sys
 
 SRC = os.path.join(os.path.dirname(__file__), "..", "bq", "pdi_unique_products.csv")
 
-ADDED = ["target_consumer", "target_age", "target_gender", "target_notes"]
+ADDED = ["target_consumer", "target_age", "target_gender", "target_notes",
+         "flavor_family"]
 
 # ------------------------------------------------- audience -> age/gender/note
 # Age bands for the Simmons-measured brands are the ones that actually
@@ -182,6 +183,51 @@ PERFORMANCE = re.compile(
     r"pre[\s-]?workout|bcaa|amino|creatine|performance|\bpump\b|\bfit\b|protein", re.I)
 
 
+# ------------------------------------------------------------- flavor families
+# 860 distinct raw flavor strings collapse to 14 families. Order matters: the
+# first pattern to match wins, so the specific ones (Sour/candy, Cola) sit above
+# the broad fruit buckets that would otherwise swallow them.
+FLAVOR_FAMILIES = [
+    ("Original", r"\borig|classic|\bthe original\b|regular"),
+    ("Coffee & cream", r"coffee|espresso|latte|mocha|cappuccino|vanilla|cream(?!sicle)|caramel|horchata"),
+    ("Sour & candy", r"sour|candy|gummy|bubble ?gum|cotton|razz|slush|freeze|rainbow|"
+                      r"swedish fish|birthday cake|sherbet|sorbet|marshmallow|s'?more"),
+    ("Cola & soda", r"cola|root ?beer|dr\.? ?pepper|cream ?soda|ginger"),
+    ("Watermelon", r"watermelon"),
+    ("Berry", r"berry|berries|raspberry|blueberry|strawberr|blackberry|acai|cranberr|juneberry|cherry"),
+    ("Tropical", r"tropical|mango|pineapple|passion|guava|coconut|papaya|dragon ?fruit|kiwi|banana|hawaii"),
+    ("Citrus", r"citrus|orange|lemon|lime|grapefruit|tangerine|clementine|yuzu"),
+    ("Grape", r"grape"),
+    ("Apple & pear", r"apple|pear"),
+    ("Peach & stone fruit", r"peach|apricot|nectarine|plum|mango peach"),
+    ("Punch & mixed fruit", r"punch|fruit|melon|mixed|blast|blend|medley"),
+    ("Tea & botanical", r"tea|mate|yerba|mint|menthol|lavender|hibiscus|ginseng|matcha"),
+    ("Melon & other", r"melon|cucumber|honeydew|cantaloupe"),
+]
+FLAVOR_RX = [(name, re.compile(rx, re.I)) for name, rx in FLAVOR_FAMILIES]
+
+
+def flavor_family(row):
+    """
+    Group the raw flavor into one of 14 families.
+
+    FLAVOR is blank on 499 of 2,309 SKUs, so fall back to the product
+    description, which usually names the flavor inline
+    ("RED BULL WATERMELON ENERGY DRINK 12 OZ CAN").
+    """
+    raw = (row.get("FLAVOR") or "").strip()
+    text = raw or (row.get("PRODUCT_DESCRIPTION") or "")
+    if not text.strip():
+        return "Unspecified"
+    for name, rx in FLAVOR_RX:
+        if rx.search(text):
+            return name
+    # A named flavor that matches nothing is not a gap in the rules — it is an
+    # invented name (Frose Rose, Cosmic Stardust, Witch's Brew). That is Mintel's
+    # "branded flavors" trend, so it gets its own family rather than a junk bucket.
+    return "Novelty & branded" if raw else "Unspecified"
+
+
 def blob(row):
     """Everything textual about the SKU, for the attribute rules to read."""
     return " ".join(
@@ -244,6 +290,7 @@ def main():
         r["target_age"] = age
         r["target_gender"] = gender
         r["target_notes"] = note
+        r["flavor_family"] = flavor_family(r)
 
     with open(path, "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=base + ADDED, extrasaction="ignore")

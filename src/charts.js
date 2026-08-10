@@ -337,7 +337,9 @@ export function multiLine(months, series, opts = {}) {
  * slivers meeting at a point. Slices under `minLabelPct` get a leader line
  * instead of an inline label, because their arc is too short to sit text on.
  *
- * opts: { size, thickness, fmt, centerLabel, centerValue, minLabelPct }
+ * opts: { size, thickness, fmt, centerLabel, centerValue, minLabelPct, labels, active }
+ *   labels:false suppresses all slice labels (for small "you are here" rings)
+ *   active:<label> dims every other slice, marking the current selection
  */
 export function donut(rows, opts = {}) {
   const {
@@ -347,6 +349,8 @@ export function donut(rows, opts = {}) {
     centerLabel = '',
     centerValue = '',
     minLabelPct = 4,
+    labels = true,
+    active = null,
   } = opts;
 
   const cx = size / 2;
@@ -381,7 +385,8 @@ export function donut(rows, opts = {}) {
 
   const arcs = slices
     .map(
-      ({ row, i, d, pct }) => `<path d="${d}" fill="${row.color}" class="c-slice"
+      ({ row, i, d, pct }) => `<path d="${d}" fill="${row.color}" class="c-slice${
+        active && row.label !== active ? ' c-slice--off' : ''}"
         style="--i:${i}" data-aud="${esc(row.label)}" tabindex="0" role="button"
         aria-label="${esc(row.label)}, ${pct.toFixed(1)} percent">
         <title>${esc(row.label)} — ${pct.toFixed(1)}% · ${fmt(row.value)}</title></path>`
@@ -389,7 +394,7 @@ export function donut(rows, opts = {}) {
     .join('');
 
   /* Inline labels for the fat slices; leader lines for everything else. */
-  const labels = slices
+  const labelSvg = !labels ? '' : slices
     .map(({ row, mid, pct }) => {
       if (pct >= minLabelPct) {
         const [lx, ly] = pt((rOuter + rInner) / 2, mid);
@@ -415,7 +420,7 @@ export function donut(rows, opts = {}) {
 
   return `<svg viewBox="0 0 ${size} ${size}" class="chart chart--donut"
     preserveAspectRatio="xMidYMid meet" role="img"
-    aria-label="Share of energy-drink sales by target audience">${arcs}${labels}${center}</svg>`;
+    aria-label="Share of energy-drink sales by target audience">${arcs}${labelSvg}${center}</svg>`;
 }
 
 export { VOLT, ICE, DIM, LINE, SERIES_COLORS };

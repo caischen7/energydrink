@@ -16,6 +16,8 @@
       <a href="./dashboard.html" data-hover>DASHBOARD</a>
       <a href="./insights.html" data-hover>INSIGHTS</a>
       <a href="./segments.html" data-hover>SEGMENTS</a>
+      <a href="#demand" data-hover>DEMAND</a>
+      <a href="#flavor" data-hover>FLAVOR</a>
       <a href="#table" data-hover>TABLE</a>
     </nav>
     <div class="head-right">
@@ -71,6 +73,61 @@
       </p>
       <div id="channel-table" class="table-wrap"></div>
 
+      <h3 class="sec-h mono">WHY THE THREE CHARTS DISAGREE</h3>
+      <p class="sec-note">
+        The same nine audiences appear three times on this page with different numbers.
+        That is not an inconsistency — <b>two separate things</b> are changing, and it
+        is worth keeping them apart.
+      </p>
+
+      <div class="delta-pair">
+        <div class="delta-col">
+          <h4 class="delta-h">1 · Channel <span class="mono dim">chart 1 → chart 2</span></h4>
+          <p class="delta-lead">
+            Nothing about consumers changes here. The first chart counts only
+            convenience stores; the second counts the whole market. Audiences that sell
+            through grocery, mass and club <b>grow</b>; audiences that live in the
+            c-store cooler <b>shrink</b>.
+          </p>
+          <ul class="delta-list" id="delta-channel"></ul>
+        </div>
+        <div class="delta-col">
+          <h4 class="delta-h">2 · Time <span class="mono dim">chart 2 → chart 3</span></h4>
+          <p class="delta-lead">
+            Now the market itself moves, from $26.9B to $38.6B. Shares here are
+            projections of measured trends, not a re-measurement. Note that
+            <b>every audience except Calorie-cutters still grows in dollars</b> — a
+            falling share of a market that grows 43% is not a shrinking business.
+          </p>
+          <ul class="delta-list" id="delta-time"></ul>
+        </div>
+      </div>
+
+      <div class="fc-caveat fc-caveat--tight">
+        <h4 class="mono">THE SHORT VERSION</h4>
+        <p>
+          <b>Young adults</b> fall in both steps — slightly on channel (67.6% → 64.9%,
+          because Red Bull and Monster are distributed everywhere, so their audience
+          looks similar in any channel) and sharply over time (64.9% → 56.5%). They are
+          not losing customers; they are being diluted as the category recruits people
+          who were never energy-drink buyers.
+        </p>
+        <p>
+          <b>Gym &amp; fitness</b> falls in both steps too, and this one is a real
+          decline rather than dilution: performance brands are convenience-heavy, and
+          the two with grocery distribution are shrinking outright (Bang -8%,
+          Reign -22%). The energy that used to go into "pre-workout in a can" has
+          migrated to the wellness framing instead.
+        </p>
+        <p>
+          <b>Women</b> is the only audience that rises in both steps, and it rises a
+          lot: +6.6pp from counting the right channels, then +9.9pp more from trend.
+          Roughly <b>two fifths of that increase is a measurement fix, not a
+          forecast</b> — those sales are already happening today and the c-store-only
+          view simply could not see them.
+        </p>
+      </div>
+
       <h3 class="sec-h mono">REASONING, AUDIENCE BY AUDIENCE</h3>
       <div id="why" class="why-grid"></div>
 
@@ -102,6 +159,34 @@
           broadening, not one segment beating another.
         </p>
       </div>
+    </section>
+
+    <section id="flavor" class="aud-top">
+      <h2 class="sec-h mono">FLAVOR — WHAT THE CATEGORY ACTUALLY SELLS</h2>
+      <p class="sec-note">
+        860 raw flavor names collapsed into 15 families, weighted by revenue.
+        Different audiences want visibly different things, which the cross-tab below
+        makes plain — and each audience's own flavor ring sits inside its drill-down.
+      </p>
+      <div class="aud-layout">
+        <div id="pie-flavor"></div>
+        <ul id="flavor-legend" class="fl-legend"></ul>
+      </div>
+
+      <h3 class="sec-h mono">FLAVOR MIX BY AUDIENCE</h3>
+      <p class="sec-note">
+        Read across a row: each cell is that flavor's share of that audience's sales.
+        Darker means more concentrated.
+      </p>
+      <div id="flavor-matrix" class="table-wrap"></div>
+      <p class="dt-note">
+        <b>One caveat that matters.</b> 470 SKUs — 48% of revenue — carry no flavor in
+        the product record, mostly bare "MONSTER" and "RED BULL" entries where PDI's
+        master data is sparse. Those are excluded from every flavor figure rather than
+        guessed at, so this describes the 52% of sales where the flavor is actually
+        known. Because the missing rows skew heavily to the two biggest mainstream
+        brands, <b>Original is if anything understated</b> here.
+      </p>
     </section>
 
     <section id="table" class="aud-top">

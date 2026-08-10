@@ -147,6 +147,53 @@ function renderDemand() {
   draw('#pie-now', D.now);
   draw('#pie-future', D.future);
 
+  /* Why the three rings differ — two distinct causes, kept separate on purpose. */
+  const deltaList = (items, withWhy) => items.map((r) => `
+    <li class="dl-row" data-aud="${esc(r.name)}">
+      <i style="background:${colorOf(r.name)}"></i>
+      <span class="dl-n">${esc(r.name)}</span>
+      <span class="dl-m mono">${r.from}% → <b>${r.to}%</b></span>
+      <span class="dl-d mono ${r.d >= 0 ? 'up' : 'down'}">${r.d >= 0 ? '+' : ''}${r.d}pp</span>
+      ${withWhy && r.why ? `<p class="dl-why">${esc(r.why)}</p>` : ''}
+    </li>`).join('');
+
+  $('#delta-channel').innerHTML = deltaList(D.deltas.channel, true);
+  $('#delta-time').innerHTML = deltaList(D.deltas.time, false);
+}
+
+/* ------------------------------------------------- category-wide flavor mix -- */
+function renderFlavors() {
+  const F = DATA.flavors;
+  if (!F) return;
+  const rows = F.fams.map((f, i) => ({
+    label: f.f, value: f.r, color: FLAVOR_COLOR[i % FLAVOR_COLOR.length],
+  }));
+  $('#pie-flavor').innerHTML = donut(rows, {
+    size: 440, thickness: 100, fmt: money, minLabelPct: 6,
+    centerValue: money(F.total_known),
+    centerLabel: 'SALES WITH KNOWN FLAVOR',
+  });
+  $('#flavor-legend').innerHTML = F.fams.map((f, i) => `
+    <li><i style="background:${FLAVOR_COLOR[i % FLAVOR_COLOR.length]}"></i>
+      <span>${esc(f.f)}</span><b class="mono">${f.share}%</b>
+      <span class="fl-n mono">${int(f.n)} SKU</span></li>`).join('');
+
+  /* Flavor share by audience — the cross-tab that shows preferences actually differ. */
+  const auds = DATA.auds.filter((a) => (a.flav || []).length);
+  const fams = F.fams.slice(0, 8).map((f) => f.f);
+  $('#flavor-matrix').innerHTML = `<table class="intel-table mono">
+    <thead><tr><th class="tl">AUDIENCE</th>
+      ${fams.map((f) => `<th>${esc(f.split(' ')[0])}</th>`).join('')}</tr></thead>
+    <tbody>${auds.map((a) => `<tr data-aud="${esc(a.name)}">
+      <td class="tl"><span class="dot" style="background:${colorOf(a.name)}"></span>${esc(a.name)}</td>
+      ${fams.map((f) => {
+        const hit = a.flav.find((x) => x.f === f);
+        const v = hit ? hit.share : 0;
+        /* Shade by intensity so the pattern reads without reading every number. */
+        return `<td class="heat" style="--a:${Math.min(1, v / 45).toFixed(2)}">${
+          v ? v + '%' : '·'}</td>`;
+      }).join('')}</tr>`).join('')}</tbody></table>`;
+
   /* Where the two channels disagree — the evidence behind the whole-market split. */
   $('#channel-table').innerHTML = `<table class="intel-table mono">
     <thead><tr><th class="tl">AUDIENCE</th><th>CONVENIENCE<br /><span class="th-s">PDI measured</span></th>
@@ -191,6 +238,157 @@ function renderTable() {
   </table>`;
 }
 
+/* ------------------------------------------------------- SKU table (sortable) */
+/*
+ * The whole SKU list ships in the aggregate, so sorting and filtering are local —
+ * no refetch. Default view is the top 12 by revenue; "Show all" lifts the cap.
+ */
+const SKU_COLS = [
+  { key: 'd', label: 'PRODUCT', tl: true, fmt: (p) => esc(p.d) },
+  { key: 'b', label: 'BRAND', tl: true, fmt: (p) => esc(p.b) },
+  { key: 'fl', label: 'FLAVOR', tl: true, fmt: (p) => esc(p.fl) || '—' },
+  { key: 'ff', label: 'FAMILY', tl: true, fmt: (p) => esc(p.ff) },
+  { key: 'sz', label: 'SIZE', tl: true, fmt: (p) => esc(p.sz) || '—' },
+  { key: 'st', label: 'STORES', fmt: (p) => int(p.st) },
+  { key: 'r', label: 'REVENUE', fmt: (p) => money(p.r) },
+  { key: 'last', label: 'LAST SOLD', tl: true, fmt: (p) => esc(p.last) },
+];
+const skuState = { key: 'r', dir: -1, all: false, q: '' };
+
+function renderSkus(a) {
+  const q = skuState.q.trim().toLowerCase();
+  let rows = a.prod;
+  if (q) {
+    rows = rows.filter((p) =>
+      `${p.d} ${p.b} ${p.fl} ${p.ff} ${p.sz}`.toLowerCase().includes(q));
+  }
+  const total = rows.length;
+
+  const { key, dir } = skuState;
+  rows = [...rows].sort((x, y) => {
+    const xv = x[key];
+    const yv = y[key];
+    /* Size sorts as a number ("8.4 OZ" < "16 OZ"); everything else by type. */
+    if (key === 'sz') return dir * ((parseFloat(xv) || 0) - (parseFloat(yv) || 0));
+    if (typeof xv === 'number') return dir * (xv - yv);
+    return dir * String(xv).localeCompare(String(yv));
+  });
+
+  const shown = skuState.all ? rows : rows.slice(0, 12);
+
+  $('#sku-table').innerHTML = `
+    <thead><tr>${SKU_COLS.map((c) => `
+      <th class="${c.tl ? 'tl' : ''} ${c.key === key ? 'sorted' : ''}" data-sk="${c.key}"
+          role="button" tabindex="0" aria-sort="${
+            c.key === key ? (dir < 0 ? 'descending' : 'ascending') : 'none'}">
+        ${c.label}<i class="sort-caret">${c.key === key ? (dir < 0 ? '▼' : '▲') : ''}</i>
+      </th>`).join('')}</tr></thead>
+    <tbody>${shown.map((p) => `<tr>${SKU_COLS.map((c) => `
+      <td class="${c.tl ? 'tl' : ''} ${c.key === 'd' ? 'pd' : ''}">${c.fmt(p)}</td>`).join('')}</tr>`).join('')}</tbody>`;
+
+  $('#sku-note').textContent = skuState.all
+    ? `Showing all ${int(total)} SKUs${q ? ' matching your filter' : ''}.`
+    : `Showing ${int(shown.length)} of ${int(total)}${q ? ' matching' : ''} SKUs.`;
+  $('#sku-all').textContent = skuState.all
+    ? 'Show top 12 only'
+    : `Show all ${int(total)} SKUs`;
+
+  $$('#sku-table th').forEach((th) => {
+    const go = () => {
+      const k = th.dataset.sk;
+      /* First click on a new column: numbers descend, text ascends. */
+      skuState.dir = k === skuState.key ? -skuState.dir : (k === 'r' || k === 'st' ? -1 : 1);
+      skuState.key = k;
+      renderSkus(a);
+    };
+    th.addEventListener('click', go);
+    th.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
+    });
+  });
+  $('#sku-all').onclick = () => { skuState.all = !skuState.all; renderSkus(a); };
+  const box = $('#sku-q');
+  box.oninput = () => {
+    skuState.q = box.value;
+    renderSkus(a);
+    $('#sku-q').focus();
+  };
+  box.value = skuState.q;
+}
+
+/* ------------------------------------------------------------ flavor donut --- */
+function flavorBlock(a, col) {
+  const fams = (a.flav || []).filter((f) => f.share >= 0.1);
+  if (!fams.length) return '<p class="dt-note">No flavor data for this audience.</p>';
+  const rows = fams.map((f, i) => ({
+    label: f.f, value: f.r, color: FLAVOR_COLOR[i % FLAVOR_COLOR.length],
+  }));
+  const unk = a.flav_unknown || { r: 0, n: 0 };
+  const top = fams[0];
+  return `<div class="fl-wrap">
+    <div class="fl-chart">${donut(rows, {
+      size: 360, thickness: 84, fmt: money, minLabelPct: 7,
+      centerValue: top.share + '%', centerLabel: top.f.toUpperCase(),
+    })}</div>
+    <ul class="fl-legend">
+      ${fams.map((f, i) => `<li>
+        <i style="background:${FLAVOR_COLOR[i % FLAVOR_COLOR.length]}"></i>
+        <span>${esc(f.f)}</span>
+        <b class="mono">${f.share}%</b>
+        <span class="fl-n mono">${int(f.n)} SKU</span>
+      </li>`).join('')}
+    </ul>
+  </div>
+  <p class="dt-note">
+    Share of this audience's revenue where the flavor is known.
+    ${unk.n ? `${int(unk.n)} SKUs (${money(unk.r)}) carry no flavor in the product
+    record — mostly bare "MONSTER" / "RED BULL" entries — and are excluded rather
+    than guessed at.` : ''}
+  </p>`;
+}
+
+const FLAVOR_COLOR = [
+  '#0071e3', '#ff9f0a', '#34c759', '#ff375f', '#5e5ce6', '#00a5a5',
+  '#8e5cd9', '#c76b1e', '#e0245e', '#1a8a3a', '#7d7d82', '#b38600',
+  '#4a7ec7', '#9b5de5', '#86868b',
+];
+
+/* ------------------------------------------------------- audience switcher -- */
+/*
+ * Stays pinned at the top of the drill-down so you can move between audiences
+ * without bouncing back to the full page. The ring is the same split as the
+ * main chart; the active audience is opaque and the rest are dimmed, so it
+ * doubles as a "you are here" marker.
+ *
+ * No handlers needed — the slices and chips carry data-aud, which the delegated
+ * click listener in main() already routes to openAud().
+ */
+function switcher(active) {
+  const rows = DATA.auds.map((a) => ({
+    label: a.name,
+    value: a.rev,
+    color: colorOf(a.name),
+  }));
+  const cur = DATA.auds.find((a) => a.name === active);
+  return `<div class="dt-switch">
+    <div class="sw-chart">${donut(rows, {
+      size: 200, thickness: 46, fmt: money, labels: false, active,
+      centerValue: cur ? cur.share + '%' : '',
+      centerLabel: 'OF SALES',
+    })}</div>
+    <div class="sw-side">
+      <p class="sw-h mono">JUMP TO ANOTHER AUDIENCE</p>
+      <div class="sw-chips">
+        ${DATA.auds.map((a) => `
+          <button class="sw-chip${a.name === active ? ' on' : ''}" data-aud="${esc(a.name)}">
+            <i style="background:${colorOf(a.name)}"></i>${esc(a.name)}
+            <b class="mono">${a.share}%</b>
+          </button>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
 function openAud(name) {
   const a = DATA.auds.find((x) => x.name === name);
   if (!a) return;
@@ -198,6 +396,7 @@ function openAud(name) {
   const maxBrand = Math.max(...a.top.map((b) => b.r), 1);
 
   $('#detail').innerHTML = `
+    ${switcher(name)}
     <div class="dt-head" style="--c:${col}">
       <button class="dt-back mono" id="back">← All audiences</button>
       <h2>${esc(a.name)}</h2>
@@ -217,19 +416,20 @@ function openAud(name) {
         <span class="br-bar" style="width:${Math.max(2, (b.r / maxBrand) * 100)}%;background:${col}"></span>
         <span class="br-v mono">${money(b.r)}</span></div>`).join('')}
     </div>
-    <h3 class="dt-h mono">TOP PRODUCTS</h3>
-    <div class="tbl-wrap"><table class="intel-table mono">
-      <thead><tr><th class="tl">PRODUCT</th><th class="tl">BRAND</th><th class="tl">FLAVOR</th>
-        <th class="tl">SIZE</th><th>STORES</th><th>REVENUE</th><th class="tl">LAST SOLD</th></tr></thead>
-      <tbody>${a.prod.map((p) => `<tr>
-        <td class="tl pd">${esc(p.d)}</td><td class="tl">${esc(p.b)}</td>
-        <td class="tl">${esc(p.fl) || '—'}</td><td class="tl">${esc(p.sz) || '—'}</td>
-        <td>${int(p.st)}</td><td>${money(p.r)}</td>
-        <td class="tl">${esc(p.last)}</td></tr>`).join('')}</tbody>
-    </table></div>
-    <p class="dt-note">Top ${a.prod.length} of ${int(a.skus)} SKUs by lifetime revenue.</p>`;
+    <h3 class="dt-h mono">FLAVOR MIX</h3>
+    ${flavorBlock(a, col)}
+    <h3 class="dt-h mono">PRODUCTS</h3>
+    <div class="sku-bar">
+      <input type="search" id="sku-q" class="sku-q" placeholder="Filter by product, brand, flavor or size…"
+             aria-label="Filter products" />
+      <button class="sku-toggle mono" id="sku-all">Show all ${int(a.skus)} SKUs</button>
+    </div>
+    <div class="tbl-wrap"><table class="intel-table mono" id="sku-table"></table></div>
+    <p class="dt-note" id="sku-note"></p>`;
 
   document.body.classList.add('drilled');
+  Object.assign(skuState, { key: 'r', dir: -1, all: false, q: '' });
+  renderSkus(a);
   $('#back').addEventListener('click', closeAud);
   $('#detail').scrollIntoView?.({ behavior: 'smooth', block: 'start' });
 }
@@ -255,6 +455,7 @@ function main(data) {
   $('#window').textContent = DATA.window;
   renderChart();
   renderDemand();
+  renderFlavors();
   renderTable();
 
   /* One delegated set of handlers covers the slices, the legend and the table —
