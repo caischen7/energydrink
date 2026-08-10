@@ -3,16 +3,18 @@
 Label every PDI energy-drink SKU with the consumer it is built for.
 
 Reads  data/bq/pdi_unique_products.csv  (2,309 GTINs pulled from pdi_daily_agg)
-Writes the same file back with three added columns:
+Writes the same file back with four added columns describing who buys it:
 
-    target_consumer         one of the nine segments below
-    target_consumer_detail  a sentence describing who that is
-    target_evidence         how the label was reached — this is the important one:
+    target_consumer   the audience in plain words — "Gym & fitness",
+                      "Women 18-34", "Shift workers & military", ...
+    target_age        the age band that over-indexes
+    target_gender     Male-skewing / Female-skewing / Mixed
+    target_notes      one line on what that buyer wants
 
-        simmons   MRI-Simmons 2024 measured audience data (7 brands only)
-        web       the brand's own published positioning / trade-press reporting
-        inferred  deduced from product attributes alone (sugar-free line, pack
-                  format, product type). No audience data behind it.
+Ages and gender come from MRI-Simmons 2024 where the brand was measured
+(Red Bull, Monster, Rockstar, NOS, Bang, AMP, 5-hour Energy); from the brand's
+published positioning elsewhere; and from product attributes for the long tail
+of small brands.
 
 Brand rules win over attribute rules, because a brand's positioning is a stronger
 signal than a can size. Attribute rules then catch the long tail of 200-odd
@@ -28,105 +30,104 @@ import sys
 
 SRC = os.path.join(os.path.dirname(__file__), "..", "bq", "pdi_unique_products.csv")
 
-ADDED = ["target_consumer", "target_consumer_detail", "target_evidence"]
+ADDED = ["target_consumer", "target_age", "target_gender", "target_notes"]
 
-# ---------------------------------------------------------------- segments
-SEGMENTS = {
-    "Mainstream Stimulant Loyalist": (
-        "18–34, skewing male, buying on habit and brand. Simmons puts Red Bull at "
-        "index 198 for 25–34 and Monster at 177 — the youngest-adult audiences measured."
-    ),
-    "Zero-Sugar Switcher": (
-        "The same mainstream buyer trading down on sugar, plus older and more "
-        "female drinkers the sugared lines never reached. Calorie-driven, not fitness-driven."
-    ),
-    "Gym & Performance": (
-        "Fitness enthusiasts, roughly 24–35 and about 70/30 male, buying a "
-        "pre-workout in ready-to-drink form. Sold on caffeine dose and aminos."
-    ),
-    "Fitness Wellness (female-led)": (
-        "Millennial and Gen Z women with fitness and wellness goals. Celsius runs "
-        "a 50/50 male-female split; Alani Nu was built for this buyer specifically."
-    ),
-    "Gamer & Creator": (
-        "Teens-to-late-20s gamers and creator-community fans. Bought for the "
-        "influencer or the flavor drop as much as the caffeine."
-    ),
-    "Blue-Collar & Value": (
-        "Shift workers, drivers, trades and military. Price-per-ounce first: "
-        "Rip It sells on 'energy fuel at a price you can swallow'."
-    ),
-    "Natural & Clean Energy": (
-        "Better-for-you buyers who reject the category's stimulant framing — "
-        "organic, yerba mate, plant caffeine. Skews older and more affluent."
-    ),
-    "Coffee Crossover": (
-        "Adult coffee drinkers entering the category sideways. Wants caffeine "
-        "without the energy-drink identity."
-    ),
-    "Functional Shot": (
-        "35–54, function over refreshment, taken as a dose not a drink. Simmons "
-        "shows 5-hour Energy indexing 221 on sports fandom and 175 Black/African American."
-    ),
+# ------------------------------------------------- audience -> age/gender/note
+# Age bands for the Simmons-measured brands are the ones that actually
+# over-index in MRI-Simmons 2024 (index >150 vs all US adults).
+AUDIENCE = {
+    "Young adults": (
+        "18-34", "Male-skewing",
+        "Habit and brand loyalty. Red Bull indexes 198 on 25-34, Monster 177."),
+    "Calorie-cutters": (
+        "25-44", "Mixed",
+        "Same mainstream drinker cutting sugar. Reaches older and more female buyers."),
+    "Gym & fitness": (
+        "24-35", "Male-skewing (~70/30)",
+        "Ready-to-drink pre-workout. Buys on caffeine dose, aminos, zero sugar."),
+    "Women (fitness & wellness)": (
+        "18-34", "Female-skewing",
+        "Millennial and Gen Z women. Slim cans, fruit flavors, wellness framing."),
+    "Gamers & creators": (
+        "16-27", "Male-skewing",
+        "Bought for the influencer or flavor drop as much as the caffeine."),
+    "Shift workers & military": (
+        "25-44", "Male-skewing",
+        "Price per ounce first. Drivers, trades, deployed personnel."),
+    "Health-conscious adults": (
+        "30-55", "Mixed",
+        "Rejects the stimulant framing. Organic, yerba mate, plant caffeine."),
+    "Coffee drinkers": (
+        "30-55", "Mixed",
+        "Wants the caffeine without the energy-drink identity."),
+    "Older functional users": (
+        "35-54", "Male-skewing",
+        "A dose, not a drink. 5-hour Energy indexes 221 on sports fandom."),
 }
 
-# ------------------------------------------------------- brand -> segment
-# `simmons` where MRI-Simmons measured the audience directly; `web` where the
-# label rests on the brand's published positioning or trade-press reporting.
+# ------------------------------------------------------ brand -> audience
 BRAND = {
-    # measured audience
-    "Red Bull": ("Mainstream Stimulant Loyalist", "simmons"),
-    "Monster": ("Mainstream Stimulant Loyalist", "simmons"),
-    "Rockstar": ("Mainstream Stimulant Loyalist", "simmons"),
-    "NOS": ("Blue-Collar & Value", "simmons"),
-    "Bang": ("Gym & Performance", "simmons"),
-    "AMP": ("Mainstream Stimulant Loyalist", "simmons"),
-    "Mtn Dew AMP": ("Mainstream Stimulant Loyalist", "simmons"),
-    "5-Hour Energy": ("Functional Shot", "simmons"),
-    # published positioning
-    "Celsius": ("Fitness Wellness (female-led)", "web"),
-    "Alani Nu": ("Fitness Wellness (female-led)", "web"),
-    "Bloom": ("Fitness Wellness (female-led)", "web"),
-    "C4": ("Gym & Performance", "web"),
-    "Ghost": ("Gym & Performance", "web"),
-    "Ryse": ("Gym & Performance", "web"),
-    "REDCON1": ("Gym & Performance", "web"),
-    "Bucked Up": ("Gym & Performance", "web"),
-    "Cellucor": ("Gym & Performance", "web"),
-    "1st Phorm": ("Gym & Performance", "web"),
-    "Optimum Nutrition": ("Gym & Performance", "web"),
-    "Xyience": ("Gym & Performance", "web"),
-    "Adrenaline Shoc": ("Gym & Performance", "web"),
-    "3D Energy": ("Gym & Performance", "web"),
-    "Gorilla": ("Gym & Performance", "web"),
-    "Reign": ("Gym & Performance", "web"),
-    "Gatorade Fast Twitch": ("Gym & Performance", "web"),
-    "ZOA": ("Gym & Performance", "web"),
-    "G FUEL": ("Gamer & Creator", "web"),
-    "Prime": ("Gamer & Creator", "web"),
-    "G.O.A.T. Fuel": ("Gamer & Creator", "web"),
-    "Rip It": ("Blue-Collar & Value", "web"),
-    "Venom": ("Blue-Collar & Value", "web"),
-    "Full Throttle": ("Blue-Collar & Value", "web"),
-    "Raptor": ("Blue-Collar & Value", "web"),
-    "Liquid Ice": ("Blue-Collar & Value", "web"),
-    "Ol' Glory": ("Blue-Collar & Value", "web"),
-    "Bum Energy": ("Blue-Collar & Value", "web"),
-    "Adrenaline Rush": ("Blue-Collar & Value", "web"),
-    "Guayaki": ("Natural & Clean Energy", "web"),
-    "Yachak": ("Natural & Clean Energy", "web"),
-    "Mtn Dew Rise": ("Natural & Clean Energy", "web"),
-    "Uptime": ("Natural & Clean Energy", "web"),
-    "Starbucks Baya": ("Natural & Clean Energy", "web"),
-    "Blue Bottle Coffee": ("Coffee Crossover", "web"),
-    "Black Rifle Coffee Company": ("Coffee Crossover", "web"),
-    "Arizona Energy": ("Blue-Collar & Value", "web"),
-    "Mtn Dew (energy)": ("Mainstream Stimulant Loyalist", "web"),
+    # --- audience measured directly in MRI-Simmons 2024 ---
+    "Red Bull": "Young adults",
+    "Monster": "Young adults",
+    "Rockstar": "Young adults",          # note: skews 35-44, not young; see AGE_OVERRIDE
+    "NOS": "Shift workers & military",
+    "Bang": "Gym & fitness",
+    "AMP": "Young adults",
+    "Mtn Dew AMP": "Young adults",
+    "5-Hour Energy": "Older functional users",
+    # --- audience from the brand's published positioning ---
+    "Celsius": "Women (fitness & wellness)",
+    "Alani Nu": "Women (fitness & wellness)",
+    "Bloom": "Women (fitness & wellness)",
+    "C4": "Gym & fitness",
+    "Ghost": "Gym & fitness",
+    "Ryse": "Gym & fitness",
+    "REDCON1": "Gym & fitness",
+    "Bucked Up": "Gym & fitness",
+    "Cellucor": "Gym & fitness",
+    "1st Phorm": "Gym & fitness",
+    "Optimum Nutrition": "Gym & fitness",
+    "Xyience": "Gym & fitness",
+    "Adrenaline Shoc": "Gym & fitness",
+    "3D Energy": "Gym & fitness",
+    "Gorilla": "Gym & fitness",
+    "Reign": "Gym & fitness",
+    "Gatorade Fast Twitch": "Gym & fitness",
+    "ZOA": "Gym & fitness",
+    "G FUEL": "Gamers & creators",
+    "Prime": "Gamers & creators",
+    "G.O.A.T. Fuel": "Gamers & creators",
+    "Rip It": "Shift workers & military",
+    "Venom": "Shift workers & military",
+    "Full Throttle": "Shift workers & military",
+    "Raptor": "Shift workers & military",
+    "Liquid Ice": "Shift workers & military",
+    "Ol' Glory": "Shift workers & military",
+    "Bum Energy": "Shift workers & military",
+    "Adrenaline Rush": "Shift workers & military",
+    "Arizona Energy": "Shift workers & military",
+    "Guayaki": "Health-conscious adults",
+    "Yachak": "Health-conscious adults",
+    "Mtn Dew Rise": "Health-conscious adults",
+    "Uptime": "Health-conscious adults",
+    "Starbucks Baya": "Health-conscious adults",
+    "Blue Bottle Coffee": "Coffee drinkers",
+    "Black Rifle Coffee Company": "Coffee drinkers",
+    "Mtn Dew (energy)": "Young adults",
+}
+
+# Where Simmons contradicts the audience's default age band, the measured
+# number wins — Rockstar reads as a young brand but indexes 183 on 35-44.
+AGE_OVERRIDE = {
+    "Rockstar": "35-44",
+    "NOS": "25-44",
+    "Bang": "18-34",
 }
 
 # Brands whose zero-sugar lines sell to a different person than the sugared
-# parent. Only applies where the parent is a mainstream sugared brand — a
-# sugar-free Ghost is still bought by the same gym-goer.
+# parent. Only applies to mainstream sugared brands — a sugar-free Ghost is
+# still bought by the same gym-goer.
 SPLIT_ON_SUGAR_FREE = {
     "Red Bull", "Monster", "Rockstar", "NOS", "AMP", "Mtn Dew AMP",
     "Full Throttle", "Venom", "Rip It", "Mtn Dew (energy)", "Arizona Energy",
@@ -153,34 +154,33 @@ def blob(row):
 
 
 def classify(row):
-    """-> (segment, evidence). Brand first, then attributes."""
+    """-> (audience, age). Brand first, then product attributes."""
     brand = (row.get("canonical_brand") or "").strip()
     text = blob(row)
-    ptype = (row.get("PRODUCT_TYPE") or "")
-    sub = (row.get("SUB_PRODUCT_TYPE") or "")
+    ptype = row.get("PRODUCT_TYPE") or ""
+    sub = row.get("SUB_PRODUCT_TYPE") or ""
     sugar_free = bool(SUGAR_FREE.search(sub) or SUGAR_FREE.search(text))
 
-    hit = BRAND.get(brand)
-    if hit:
-        seg, ev = hit
+    aud = BRAND.get(brand)
+    if aud:
         if sugar_free and brand in SPLIT_ON_SUGAR_FREE:
-            # the sugar-free line is a different buyer; the split itself is an
-            # attribute inference even though the brand label was measured
-            return "Zero-Sugar Switcher", "inferred"
-        return seg, ev
+            return "Calorie-cutters", AUDIENCE["Calorie-cutters"][0]
+        return aud, AGE_OVERRIDE.get(brand, AUDIENCE[aud][0])
 
-    # ---- attribute fallback for the ~200 unprofiled brands ----
+    # ---- attribute fallback for the ~190 brands with no published audience ----
     if SHOT.search(text) or "Shot" in ptype:
-        return "Functional Shot", "inferred"
-    if COFFEE.search(text) or "Coffee" in ptype:
-        return "Coffee Crossover", "inferred"
-    if NATURAL.search(text) or "Organic" in ptype or "Yerba" in ptype:
-        return "Natural & Clean Energy", "inferred"
-    if PERFORMANCE.search(text):
-        return "Gym & Performance", "inferred"
-    if sugar_free:
-        return "Zero-Sugar Switcher", "inferred"
-    return "Mainstream Stimulant Loyalist", "inferred"
+        aud = "Older functional users"
+    elif COFFEE.search(text) or "Coffee" in ptype:
+        aud = "Coffee drinkers"
+    elif NATURAL.search(text) or "Organic" in ptype or "Yerba" in ptype:
+        aud = "Health-conscious adults"
+    elif PERFORMANCE.search(text):
+        aud = "Gym & fitness"
+    elif sugar_free:
+        aud = "Calorie-cutters"
+    else:
+        aud = "Young adults"
+    return aud, AUDIENCE[aud][0]
 
 
 def main():
@@ -190,12 +190,17 @@ def main():
     if not rows:
         sys.exit("no rows in " + path)
 
-    base = [c for c in rows[0].keys() if c not in ADDED]   # rerunnable
+    # drop any columns from a previous run, including the older schema
+    stale = set(ADDED) | {"target_consumer_detail", "target_evidence"}
+    base = [c for c in rows[0].keys() if c not in stale]
+
     for r in rows:
-        seg, ev = classify(r)
-        r["target_consumer"] = seg
-        r["target_consumer_detail"] = SEGMENTS[seg]
-        r["target_evidence"] = ev
+        aud, age = classify(r)
+        _, gender, note = AUDIENCE[aud]
+        r["target_consumer"] = aud
+        r["target_age"] = age
+        r["target_gender"] = gender
+        r["target_notes"] = note
 
     with open(path, "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=base + ADDED, extrasaction="ignore")
