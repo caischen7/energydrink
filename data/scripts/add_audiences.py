@@ -5,10 +5,15 @@ Fold the target-audience analysis into the dashboard aggregate.
 Source of truth is data/bq/pdi_unique_products.csv, labelled by
 classify_target_consumers.py. That file is licensed PDI data and stays out of
 the repo, so the reduced aggregate is embedded here as a literal — same pattern
-as add_segments.py. Rerun classify_target_consumers.py, re-reduce, and paste if
-the labels change.
+as add_segments.py.
 
-Writes  data["audiences"]  into public/data/dashboard.json. Idempotent.
+Carries three views of the same nine audiences:
+  auds            what convenience-store sell-through looks like (PDI, measured)
+  demand.now      total US demand 2025, PDI blended with Mintel MULO on Mintel
+                  channel weights (convenience 59.9% / everything else 40.1%)
+  demand.future   2030 projection against Mintel's $38.6B central forecast
+
+Writes data["audiences"] into public/data/dashboard.json. Idempotent.
 """
 import json
 import os
@@ -1366,7 +1371,227 @@ AUD = json.loads(r'''
     }
    ]
   }
- ]
+ ],
+ "demand": {
+  "now": {
+   "label": "US demand today (2025)",
+   "sub": "All channels. Convenience shares measured from PDI, multi-outlet from Mintel MULO brand sales, blended on Mintel channel weights.",
+   "market": 26948.0,
+   "auds": [
+    {
+     "name": "Young adults",
+     "share": 64.9,
+     "usd": 17497.3,
+     "age": "18-34",
+     "gender": "Male-skewing"
+    },
+    {
+     "name": "Women (fitness & wellness)",
+     "share": 18.4,
+     "usd": 4947.7,
+     "age": "18-34",
+     "gender": "Female-skewing"
+    },
+    {
+     "name": "Gym & fitness",
+     "share": 9.5,
+     "usd": 2549.3,
+     "age": "18-34",
+     "gender": "Male-skewing (~70/30)"
+    },
+    {
+     "name": "Shift workers & military",
+     "share": 4.2,
+     "usd": 1129.1,
+     "age": "25-44",
+     "gender": "Male-skewing"
+    },
+    {
+     "name": "Calorie-cutters",
+     "share": 2.2,
+     "usd": 598.2,
+     "age": "25-44",
+     "gender": "Mixed"
+    },
+    {
+     "name": "Health-conscious adults",
+     "share": 0.5,
+     "usd": 121.3,
+     "age": "30-55",
+     "gender": "Mixed"
+    },
+    {
+     "name": "Gamers & creators",
+     "share": 0.2,
+     "usd": 59.3,
+     "age": "16-27",
+     "gender": "Male-skewing"
+    },
+    {
+     "name": "Coffee drinkers",
+     "share": 0.2,
+     "usd": 45.8,
+     "age": "30-55",
+     "gender": "Mixed"
+    },
+    {
+     "name": "Older functional users",
+     "share": 0.0,
+     "usd": 2.7,
+     "age": "35-54",
+     "gender": "Male-skewing"
+    }
+   ]
+  },
+  "future": {
+   "label": "Projected US demand (2030)",
+   "sub": "Mintel's central forecast of $38.6B, split by extrapolating each audience's measured share drift and damping it for saturation.",
+   "market": 38600.52,
+   "auds": [
+    {
+     "name": "Young adults",
+     "share": 56.5,
+     "usd": 21809.3,
+     "age": "18-34",
+     "gender": "Male-skewing"
+    },
+    {
+     "name": "Women (fitness & wellness)",
+     "share": 28.3,
+     "usd": 10923.9,
+     "age": "18-34",
+     "gender": "Female-skewing"
+    },
+    {
+     "name": "Gym & fitness",
+     "share": 8.1,
+     "usd": 3126.6,
+     "age": "18-34",
+     "gender": "Male-skewing (~70/30)"
+    },
+    {
+     "name": "Shift workers & military",
+     "share": 3.3,
+     "usd": 1273.8,
+     "age": "25-44",
+     "gender": "Male-skewing"
+    },
+    {
+     "name": "Gamers & creators",
+     "share": 1.6,
+     "usd": 617.6,
+     "age": "16-27",
+     "gender": "Male-skewing"
+    },
+    {
+     "name": "Health-conscious adults",
+     "share": 0.9,
+     "usd": 347.4,
+     "age": "30-55",
+     "gender": "Mixed"
+    },
+    {
+     "name": "Calorie-cutters",
+     "share": 0.8,
+     "usd": 308.8,
+     "age": "25-44",
+     "gender": "Mixed"
+    },
+    {
+     "name": "Coffee drinkers",
+     "share": 0.4,
+     "usd": 154.4,
+     "age": "30-55",
+     "gender": "Mixed"
+    },
+    {
+     "name": "Older functional users",
+     "share": 0.1,
+     "usd": 38.6,
+     "age": "35-54",
+     "gender": "Male-skewing"
+    }
+   ]
+  },
+  "channels": {
+   "convenience": 16131,
+   "supermarket": 3632,
+   "other": 7185
+  },
+  "band": {
+   "low90": 30026.56,
+   "high90": 47174.48
+  },
+  "why": {
+   "Young adults": "Still the biggest audience by far, and still growing in dollars \u2014 but its share erodes about 2-3 points a year in both channels as the category widens beyond it. Red Bull and Monster are each growing 15% in multi-outlet; they are not shrinking, they are being diluted.",
+   "Women (fitness & wellness)": "The clearest trend in the data. Went from 0.2% to 11.8% of convenience sales in six years, and is already 24% of multi-outlet sales where Celsius and Alani Nu concentrate. Alani Nu alone grew 84% year on year. Mintel's survey backs it: 39% of consumers want naturally-sweetened energy.",
+   "Gym & fitness": "Flat in convenience for four years, and losing multi-outlet share as Bang (-8%) and Reign (-22%) decline. The RTD pre-workout idea is mature; the growth has migrated to the wellness framing rather than the performance one.",
+   "Shift workers & military": "Slow structural decline. Value brands lose share whenever the category premiumises, and c-store traffic is the channel most exposed to that.",
+   "Calorie-cutters": "The sharpest faller, and it is a definitional shift rather than a real collapse: sugar-free stopped being a distinct proposition. 72% of 2024-26 launches claim it, so it is now table stakes folded into every other audience.",
+   "Health-conscious adults": "Small but compounding. Yerba mate and plant-caffeine brands sell mainly through natural grocery, which convenience data barely sees, so the true base is larger than 0.5%.",
+   "Gamers & creators": "Understated everywhere in this data \u2014 G FUEL and Prime sell primarily through e-commerce and mass, and the 'other' channel that carries them grew 28% in 2025. Held at a floor of 1.6% for 2030 rather than trended, because both measured channels are blind to it.",
+   "Coffee drinkers": "Early but real. Coffee-energy hybrids convert adults who reject the energy-drink identity, and the entry point is cold brew rather than the energy aisle.",
+   "Older functional users": "Shots remain a niche in this dataset, though trade reporting suggests 2oz formats are outgrowing large cans in channels PDI does not cover."
+  },
+  "cagr": {
+   "Young adults": 4.5,
+   "Gym & fitness": 4.2,
+   "Women (fitness & wellness)": 17.2,
+   "Shift workers & military": 2.4,
+   "Calorie-cutters": -12.4,
+   "Health-conscious adults": 23.4,
+   "Gamers & creators": 59.8,
+   "Coffee drinkers": 27.5,
+   "Older functional users": 70.3
+  },
+  "pdi_vs_mulo": [
+   {
+    "name": "Young adults",
+    "pdi": 67.6,
+    "mulo": 61.0
+   },
+   {
+    "name": "Women (fitness & wellness)",
+    "pdi": 11.8,
+    "mulo": 28.2
+   },
+   {
+    "name": "Gym & fitness",
+    "pdi": 11.7,
+    "mulo": 6.2
+   },
+   {
+    "name": "Shift workers & military",
+    "pdi": 4.9,
+    "mulo": 3.1
+   },
+   {
+    "name": "Calorie-cutters",
+    "pdi": 3.0,
+    "mulo": 1.1
+   },
+   {
+    "name": "Health-conscious adults",
+    "pdi": 0.6,
+    "mulo": 0.2
+   },
+   {
+    "name": "Gamers & creators",
+    "pdi": 0.3,
+    "mulo": 0.1
+   },
+   {
+    "name": "Coffee drinkers",
+    "pdi": 0.2,
+    "mulo": 0.1
+   },
+   {
+    "name": "Older functional users",
+    "pdi": 0.0,
+    "mulo": 0.0
+   }
+  ]
+ }
 }
 ''')
 
@@ -1380,7 +1605,7 @@ def main():
     data["audiences"] = AUD
     with open(path, "w") as fh:
         json.dump(data, fh, separators=(",", ":"))
-    print(f"wrote {len(AUD['auds'])} audiences -> {path}")
+    print(f"wrote {len(AUD['auds'])} audiences + demand views -> {path}")
 
 
 if __name__ == "__main__":

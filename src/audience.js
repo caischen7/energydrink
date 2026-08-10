@@ -34,6 +34,25 @@ let DATA;
 const colorOf = (name) => COLOR[DATA.auds.findIndex((a) => a.name === name) % COLOR.length];
 
 /* ---------------------------------------------------------------- hover card */
+/* Whole-market rows, appended to the card so hovering either demand donut shows
+   the figure that donut is actually drawn from — not just the c-store numbers. */
+function demandRows(name) {
+  const D = DATA.demand;
+  if (!D) return '';
+  const now = D.now.auds.find((a) => a.name === name);
+  const fut = D.future.auds.find((a) => a.name === name);
+  if (!now || !fut) return '';
+  const cagr = D.cagr[name];
+  return `<dl class="tip-grid tip-grid--demand">
+      <div><dt>US demand 2025</dt><dd>${money(now.usd * 1e6)} · ${now.share}%</dd></div>
+      <div><dt>Projected 2030</dt><dd>${money(fut.usd * 1e6)} · ${fut.share}%</dd></div>
+      <div><dt>$ growth /yr</dt><dd class="${cagr >= 0 ? 'up' : 'down'}">${
+        cagr == null ? '—' : (cagr >= 0 ? '+' : '') + cagr + '%'}</dd></div>
+      <div><dt>Share shift</dt><dd class="${fut.share >= now.share ? 'up' : 'down'}">${
+        (fut.share - now.share >= 0 ? '+' : '') + (fut.share - now.share).toFixed(1)}pp</dd></div>
+    </dl>`;
+}
+
 function showTip(name, ev) {
   const a = DATA.auds.find((x) => x.name === name);
   if (!a) return;
@@ -50,6 +69,7 @@ function showTip(name, ev) {
       <div><dt>SKUs</dt><dd>${int(a.skus)}</dd></div>
       <div><dt>Brands</dt><dd>${int(a.brandN)}</dd></div>
     </dl>
+    ${demandRows(name)}
     <p class="tip-note">${esc(a.note)}</p>
     <p class="tip-cta mono">Click for brands &amp; products →</p>`;
   tip.hidden = false;
@@ -88,6 +108,73 @@ function renderChart() {
       <span class="lg-meta mono">${esc(a.age)} · ${esc(a.gender)}</span>
       <span class="lg-v mono">${a.share}%</span>
     </button>`).join('');
+}
+
+/* ------------------------------------------------- demand: today vs 2030 ---- */
+/*
+ * The same nine audiences at whole-market scale. `auds` above is convenience
+ * sell-through only; these two are all channels, so the shares differ — that
+ * gap is the point, and the comparison table below makes it explicit.
+ */
+function renderDemand() {
+  const D = DATA.demand;
+  if (!D) return;
+
+  const draw = (host, block) => {
+    const rows = block.auds.map((a) => ({
+      label: a.name, value: a.usd, color: colorOf(a.name),
+    }));
+    $(host).innerHTML = `
+      <h3 class="dm-h">${esc(block.label)}</h3>
+      <p class="dm-sub">${esc(block.sub)}</p>
+      ${donut(rows, {
+        size: 420,
+        thickness: 96,
+        fmt: (v) => money(v * 1e6),
+        centerValue: money(block.market * 1e6),
+        centerLabel: 'US MARKET',
+      })}
+      <ul class="dm-legend">
+        ${block.auds.filter((a) => a.share >= 0.15).map((a) => `
+          <li data-aud="${esc(a.name)}">
+            <i style="background:${colorOf(a.name)}"></i>
+            <span>${esc(a.name)}</span>
+            <b class="mono">${a.share}%</b>
+          </li>`).join('')}
+      </ul>`;
+  };
+
+  draw('#pie-now', D.now);
+  draw('#pie-future', D.future);
+
+  /* Where the two channels disagree — the evidence behind the whole-market split. */
+  $('#channel-table').innerHTML = `<table class="intel-table mono">
+    <thead><tr><th class="tl">AUDIENCE</th><th>CONVENIENCE<br /><span class="th-s">PDI measured</span></th>
+      <th>MULTI-OUTLET<br /><span class="th-s">Mintel MULO</span></th>
+      <th>ALL CHANNELS<br /><span class="th-s">2025 blended</span></th>
+      <th>2030<br /><span class="th-s">projected</span></th>
+      <th>$ CAGR<br /><span class="th-s">25→30</span></th></tr></thead>
+    <tbody>${D.pdi_vs_mulo.map((r) => {
+      const now = D.now.auds.find((a) => a.name === r.name);
+      const fut = D.future.auds.find((a) => a.name === r.name);
+      const cagr = DATA.demand.cagr[r.name];
+      return `<tr data-aud="${esc(r.name)}">
+        <td class="tl"><span class="dot" style="background:${colorOf(r.name)}"></span>${esc(r.name)}</td>
+        <td>${r.pdi}%</td><td>${r.mulo}%</td><td><b>${now.share}%</b></td>
+        <td>${fut.share}%</td>
+        <td class="${cagr >= 0 ? 'up' : 'down'}">${cagr == null ? '—' : (cagr >= 0 ? '+' : '') + cagr + '%'}</td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+
+  $('#why').innerHTML = D.future.auds.map((a) => `
+    <article class="why-card" style="--c:${colorOf(a.name)}">
+      <header>
+        <h4>${esc(a.name)}</h4>
+        <span class="why-move mono">${D.now.auds.find((x) => x.name === a.name).share}%
+          → <b>${a.share}%</b></span>
+      </header>
+      <p>${esc(D.why[a.name] || '')}</p>
+    </article>`).join('');
 }
 
 function renderTable() {
@@ -167,6 +254,7 @@ function main(data) {
   $('#brands').textContent = int(DATA.brands);
   $('#window').textContent = DATA.window;
   renderChart();
+  renderDemand();
   renderTable();
 
   /* One delegated set of handlers covers the slices, the legend and the table —

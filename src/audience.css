@@ -179,3 +179,116 @@ body.drilled .aud-top { display: none; }
   #tip { width: 250px; }
   .br-row { grid-template-columns: 110px minmax(0, 1fr) 70px; }
 }
+
+/* ---------------------------------------------- total demand: today vs 2030 */
+.dm-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2.4rem;
+  margin: 1.6rem 0 2.4rem;
+}
+.dm-h {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+}
+.dm-sub {
+  margin: 0 0 1rem;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--dim);
+  max-width: 46ch;
+}
+.dm-legend {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dm-legend li {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.dm-legend li:hover { background: var(--card, #f5f5f7); }
+.dm-legend i { width: 10px; height: 10px; border-radius: 3px; }
+.dm-legend b { font-variant-numeric: tabular-nums; font-size: 12px; }
+
+/* second grid inside the hover card */
+.tip-grid--demand {
+  border-top: 1px solid var(--line);
+  padding-top: 9px;
+  margin-bottom: 8px;
+}
+.tip-grid dd.up { color: #1a8a3a; }
+.tip-grid dd.down { color: #c0392b; }
+
+.th-s {
+  display: block;
+  font-size: 8.5px;
+  font-weight: 400;
+  opacity: 0.6;
+  letter-spacing: 0.05em;
+}
+#channel-table td.up { color: #1a8a3a; }
+#channel-table td.down { color: #c0392b; }
+
+/* reasoning cards */
+.why-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0 2rem;
+}
+.why-card {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--c);
+  border-radius: 11px;
+  padding: 1rem 1.1rem;
+  background: var(--bg);
+}
+.why-card header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.why-card h4 { margin: 0; font-size: 13.5px; letter-spacing: -0.01em; }
+.why-move {
+  font-size: 11px;
+  color: var(--dim);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.why-move b { color: var(--c); }
+.why-card p { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--dim); }
+
+/* forecast caveat block */
+.fc-caveat {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1.3rem 1.5rem;
+  background: var(--card, #f5f5f7);
+  margin-top: 1.4rem;
+}
+.fc-caveat h4 {
+  margin: 0 0 0.8rem;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--dim);
+}
+.fc-caveat p {
+  margin: 0 0 0.8rem;
+  font-size: 13px;
+  line-height: 1.6;
+  max-width: 78ch;
+}
+.fc-caveat p:last-child { margin-bottom: 0; }

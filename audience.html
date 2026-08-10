@@ -47,6 +47,63 @@
 
     <section id="detail"></section>
 
+    <section id="demand" class="aud-top">
+      <h2 class="sec-h mono">TOTAL US DEMAND — TODAY AND 2030</h2>
+      <p class="sec-note">
+        The chart above is convenience-store sell-through, which is roughly
+        <b>60%</b> of the category. These two scale the same nine audiences to the
+        <b>whole US market</b> — $26.9B in 2025 — and then project it forward.
+        Hover either ring for the dollar figure behind a slice.
+      </p>
+      <div class="dm-pair">
+        <div id="pie-now"></div>
+        <div id="pie-future"></div>
+      </div>
+
+      <h3 class="sec-h mono">WHERE THE NUMBERS COME FROM</h3>
+      <p class="sec-note">
+        Convenience shares are measured from the PDI transaction data. Multi-outlet
+        shares are measured from Mintel MULO brand sales — mapping each brand to its
+        audience. The two are blended on Mintel's own channel weights (convenience
+        $16.1B, supermarket $3.6B, all other $7.2B). The gap between the first two
+        columns is the finding: <b>women are 11.8% of convenience sales but 28.2% of
+        multi-outlet</b>, which is why the c-store-only view understates them.
+      </p>
+      <div id="channel-table" class="table-wrap"></div>
+
+      <h3 class="sec-h mono">REASONING, AUDIENCE BY AUDIENCE</h3>
+      <div id="why" class="why-grid"></div>
+
+      <div class="fc-caveat">
+        <h4 class="mono">HOW THE 2030 SPLIT WAS BUILT — AND WHAT WOULD BREAK IT</h4>
+        <p>
+          The total is <b>not</b> my forecast: it is Mintel's central projection of
+          <b>$38.6B</b> for 2030, whose own 90% confidence band runs from $30.0B to
+          $47.2B. What I projected is the <em>split</em>, by taking each audience's
+          measured share drift — from PDI 2021-2025 and from MULO 2025-2026 — and
+          damping it 15% a year so trends flatten rather than run to absurdity.
+        </p>
+        <p>
+          Two figures are set by hand rather than trended, and both are stated
+          rather than hidden: <b>Gamers &amp; creators</b> and
+          <b>Health-conscious adults</b> are held at floors of 1.6% and 0.9%,
+          because both sell mainly through e-commerce and natural grocery, which
+          neither measured channel covers. Trending them from blind data would have
+          projected them to near zero, which would be a measurement artefact rather
+          than a forecast.
+        </p>
+        <p>
+          <b>The main risk is the women's line.</b> It carries the whole story —
+          18.4% to 28.3% — and rests on a trend that has run for six years without
+          slowing. If Celsius and Alani Nu are approaching saturation rather than
+          still compounding, that line lands nearer 22% and the young-adult decline
+          is correspondingly gentler. Worth noting that <b>every audience except
+          Calorie-cutters grows in absolute dollars</b>: this is a category
+          broadening, not one segment beating another.
+        </p>
+      </div>
+    </section>
+
     <section id="table" class="aud-top">
       <h2 class="sec-h mono">EVERY AUDIENCE</h2>
       <div id="aud-table" class="table-wrap"></div>
