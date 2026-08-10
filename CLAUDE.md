@@ -162,77 +162,59 @@ security caveat, and uninstall instructions.
 - Raw scraper data stays out of the repo — only regenerated CSVs under `data/`
   are tracked.
 
-## Status & handoff (updated 2026-06-18)
+## Status & handoff (updated 2026-08-10)
 
 **TL;DR for a new agent**
-- **Branches:** everything from this session is merged via **PR #2** into the
-  default branch `claude/wizardly-galileo-w6grgo`, and also lives on `main` and
-  `claude/wizardly-cori-wy508l` (all in sync) — so a fresh clone already has it
-  all. To continue, branch off the default (or `main`) and open a new PR. You can
-  set `main` as the default in repo Settings for a cleaner name (no API for it).
-- **Done & pushed:** this `CLAUDE.md`, the `README`, the curated
-  `.claude/skills/`, and the Google Cloud Run deploy setup. The build is green.
-- **Also done (2026-07 session):** two new data scrapers + sample generator +
-  two dashboard panels; site UX pass (mobile menu, progress bar, skip link);
-  and the gated **Site Scout admin tool** (`/admin.html`, creds in
-  `docs/CREDENTIALS.md`, config gated under `/admin/` via `.htpasswd-admin`).
-- **👉 Active task = §2 below:** analyze the energy-drink market data and
-  **recommend a new energy-drink concept** to feature on the site. Most of the
-  cleaned data is already in `data/` and ready to analyze right now.
-- **Not active / parked:** §1 deploy (setup is finished; only the user can run
-  the live deploy — see §1). A "combine all the user's repos" idea was raised
-  and then **cancelled** — do not act on it.
+- **Branch:** all current work is on **`claude/wizardly-galileo-w6grgo`** (the
+  default branch) — head `76eacb3`. `npm install && npm run build` is green and
+  emits **seven** pages. Note `claude/pensive-bell-9idinw` has diverged with a
+  separate lineage ("agent team" work) that has never been merged; ask before
+  integrating it.
+- **Not yet deployed.** Everything below exists in the repo but the live Cloud
+  Run service predates it. Deploy from Google Cloud Shell:
+  `cd ~/energydrink && git pull && GCP_PROJECT=msbai-dwd-csc9720 ./deploy.sh`
+  (the `GCP_PROJECT=` prefix is required — without it the script targets a
+  project with BigQuery read access only, which is the old `AUTH_PERMISSION_DENIED`).
+  Service name is **`bogus-banana`**.
 
-Detail follows.
+### Pages (all gated by `auth.js`, creds in `docs/CREDENTIALS.md`)
+| Page | What it is |
+| --- | --- |
+| `index.html` | the marketing site + 3D can |
+| `dashboard.html` | 19 chart panels, paginated one per view |
+| `insights.html` | 18 findings grouped by source + ER diagram |
+| `segments.html` | need-state treemap |
+| `audience.html` | **nine target audiences** — c-store donut, total US demand 2025, 2030 forecast, flavor analysis, full sortable SKU lists |
+| `compare.html` | **2025 vs 2030** — slope, paired bars, growth attribution |
+| `opportunity.html` | **board panel + White Space Finder + verdict** |
 
-### 1. Deploy — Google Cloud Run (setup DONE, not yet live)
-Committed: `Dockerfile` (Vite build → nginx on `$PORT`), `nginx.conf`,
-`deploy.sh`, `.dockerignore`, `.gcloudignore`, `docs/DEPLOY.md`. This Claude
-environment has **no `gcloud`/GCP credentials**, so deploy from **Google Cloud
-Shell** (the repo is private → authenticate first):
-```bash
-gh auth login                          # private repo; or use a PAT as password
-gh repo clone caischen7/energydrink
-cd energydrink                         # a fresh clone is already on the default branch
-# IMPORTANT: deploy the DEFAULT branch (claude/wizardly-galileo-w6grgo) — it has the
-# full site incl. the dashboard + login. `main` is STALE (pre-dashboard); do NOT deploy it.
-git checkout claude/wizardly-galileo-w6grgo && git pull
-gcloud config set project <PROJECT_ID> # e.g. msbai-dwd-csc9720 (already has billing)
-./deploy.sh                            # → service "ion-liquid-hardware", prints public URL
-```
-Past failures were: HTTPS password auth on a private repo (dead — use `gh`/PAT),
-pasting the literal `YOUR_PROJECT_ID`, and running the *old* Citibike
-`deploy.sh`. The energydrink `deploy.sh` builds from this repo's Dockerfile (no
-Buildpacks) and deploys a public Cloud Run service.
+### The audience analysis (the spine of the newer pages)
+`data/scripts/classify_target_consumers.py` labels all 2,309 PDI SKUs with
+`target_consumer` / `target_age` / `target_gender` / `target_notes` /
+`flavor_family`. Ages and gender come from MRI-Simmons 2024 where measured
+(7 brands), published positioning for ~35 more, product attributes for the tail.
+`data/scripts/add_audiences.py` embeds the reduced aggregate (SKU lists, flavor
+mix, demand, opportunity, board) into `public/data/dashboard.json` — the licensed
+PDI CSVs stay untracked under `data/bq/` (gitignored).
 
-### 2. Data analysis + product recommendation (IN PROGRESS — the active task)
-Goal: analyze the energy-drink market data and recommend a **new energy drink
-concept/positioning** ("platform") to feature on the site.
+**Key numbers, all reproducible from the aggregate:** US market $26.9B (2025) →
+$38.6B (2030, Mintel central, 90% band $30.0–47.2B). Convenience is 59.9% of it.
+Women (fitness & wellness) are 11.8% of convenience sales but **28.2% of
+multi-outlet**, 18.4% of total demand today, and take **51% of all growth to 2030**.
 
-- The user uploaded a ~272 MB `02_Data/` research corpus. Per repo convention
-  raw data is **not committed** and it only exists in the ephemeral container,
-  so in a new session the user must **re-upload the zip** to use the new sources.
-- Already-cleaned CSVs are in the repo — analyze these directly:
-  `data/amazon/products.csv` (75), `data/amazon/reviews.csv` (552),
-  `data/instagram/posts.csv` (431), `data/youtube/videos.csv` (68,930),
-  `data/youtube/comments.csv` (150,514),
-  `data/combined/brand_mentions_by_platform.csv` (2,466),
-  `data/combined/brand_summary.csv` (23 brands — the key cross-platform table).
-- New sources in the upload, not yet in the pipeline: **Reddit** (r/EnergyDrinks
-  posts+comments), **Mintel 2026 US Energy Report** (Full Databook `.xlsx`),
-  **Catalyst** datasets (`.xlsx`), an industry-report **PDF**, a market **.pptx**,
-  a strategy **.docx**.
+### Verification harness
+No test runner is configured, but Playwright drives the built site. Install
+`playwright` as a dev dep **temporarily** (it is deliberately not in
+`package.json`, to keep the Docker build lean), run `npm run build`, copy
+`public/data` into `dist/`, `npx vite preview --port 4173`, then point Chromium at
+`/opt/pw-browsers/chromium-1194/chrome-linux/chrome`. Doing this caught a
+`D is not defined` bug that `npm run build` passed cleanly.
 
-Next steps to produce the recommendation:
-1. `pip install pandas openpyxl` (not installed in the base env).
-2. Competitive landscape from cleaned CSVs: brand strength (`brand_summary.csv`),
-   price points + ratings (`amazon/products.csv`), reach
-   (`brand_mentions_by_platform.csv`), social engagement.
-3. Mine `amazon/reviews.csv` + YouTube/Reddit comments for unmet needs
-   (sugar/crash/jitters, taste, "natural/clean", focus, hydration, price).
-4. Read the Mintel/Catalyst `.xlsx` + the PDF for market size, growth, segments,
-   and 2026 trends (use pandas/openpyxl; the PDF can be read with the Read tool).
-5. Synthesize a positioning rec (name, target, functional angle, flavor system,
-   price, channel) that fills white space **and** fits ION's futuristic brand,
-   then map it to the site's editions/colorways (`src/can.js` `COLORWAYS`,
-   `index.html` `.edition` rows — see the `add-ion-colorway` skill).
+### Open items
+1. **Deploy** (above) — only the user can run it.
+2. `claude/pensive-bell-9idinw` divergence — needs a decision.
+3. Gamers & creators and Health-conscious adults are **held at floors** in the
+   2030 split, not trended, because e-commerce and natural grocery are invisible
+   in both PDI and MULO. If a channel source for those ever lands, replace the floors.
+4. Old admin credential (`yamazato1234`) remains in git history. Fine while the
+   repo is private; scrub before making it public.
