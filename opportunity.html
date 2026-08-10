@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Where the unmet need in energy drinks is — and where it only looks unmet." />
+  <meta name="robots" content="noindex" />
+  <title>Market Opportunity — Bogus Banana Market Intel</title>
+  <link rel="icon" type="image/svg+xml" href="/mascot.svg" />
+  <script type="module" src="/src/opportunity.js"></script>
+</head>
+<body class="dash">
+  <header class="site-head">
+    <a class="logo" href="./index.html" data-hover>Bogus&nbsp;Banana<sup>®</sup></a>
+    <nav class="nav mono" aria-label="Intel sections">
+      <a href="./dashboard.html" data-hover>DASHBOARD</a>
+      <a href="./audience.html" data-hover>AUDIENCE</a>
+      <a href="./compare.html" data-hover>2025&nbsp;vs&nbsp;2030</a>
+      <a href="#whitespace" data-hover>WHITE&nbsp;SPACE</a>
+      <a href="#verdict-sec" data-hover>VERDICT</a>
+    </nav>
+    <div class="head-right">
+      <a class="btn-mint" href="./audience.html" data-hover>← Audience</a>
+    </div>
+  </header>
+
+  <main class="dash-main">
+    <section class="dash-hero">
+      <h1 class="dash-title">Market Opportunity</h1>
+      <p class="dash-sub">
+        Where the unmet need is — and, just as usefully, where it only
+        <em>looks</em> unmet. An empty shelf can mean nobody tried, or it can mean
+        the market already said no. This page separates the two.
+      </p>
+    </section>
+
+    <section class="aud-top">
+      <h2 class="sec-h mono">THE BOARD</h2>
+      <p class="sec-note">
+        Four people who would each build a different company from the same numbers.
+        Their disagreements are kept rather than averaged away — that is where the
+        useful part is.
+      </p>
+      <div id="board" class="bd-grid"></div>
+
+      <h2 class="sec-h mono">WHERE THEY DISAGREE</h2>
+      <div id="debate"></div>
+    </section>
+
+    <section id="whitespace" class="aud-top">
+      <h2 class="sec-h mono">WHITE SPACE FINDER</h2>
+      <p class="sec-note">
+        Every audience against every flavor family. Colour is <b>revenue per SKU</b>
+        against the category median — how much money a single product in that cell
+        earns. A cell with $25M across 33 SKUs is a better place to launch than one
+        with $80M across 86, because the second is already fought over.
+      </p>
+      <div class="table-wrap"><div id="matrix"></div></div>
+      <p class="mx-key">
+        <span><i style="background:color-mix(in srgb, var(--accent) 8%, transparent)"></i>crowded — low revenue per SKU</span>
+        <span><i style="background:color-mix(in srgb, var(--accent) 70%, transparent)"></i>headroom — each SKU earns 4×+ the median</span>
+        <span><i style="background:transparent;border:1px solid var(--line)"></i>no measured sales</span>
+      </p>
+      <p class="dt-note">
+        Based on 2025 convenience-store revenue, excluding the 470 SKUs whose flavor
+        the product record does not name. Growth is the 2-year rate to 2025.
+      </p>
+
+      <h3 class="sec-h mono">RANKED — DEMAND, HEADROOM AND MOMENTUM TOGETHER</h3>
+      <p class="sec-note">
+        Scored on proven revenue, revenue per SKU versus the median, two-year growth,
+        and the audience's own forecast growth to 2030.
+      </p>
+      <ol id="under" class="op-list"></ol>
+
+      <h3 class="sec-h mono">UNTRIED vs REJECTED</h3>
+      <p class="sec-note">
+        The most important distinction on this page. Both look like gaps in a
+        spreadsheet. Only one of them is.
+      </p>
+      <div class="gap-pair">
+        <div class="gap-col good">
+          <h3>Genuinely untried</h3>
+          <p>Three SKUs or fewer have ever existed here, yet the flavor sells well to
+             other audiences. Nobody has run the experiment.</p>
+          <ul id="untried"></ul>
+        </div>
+        <div class="gap-col bad">
+          <h3>Tried and rejected</h3>
+          <p>Eight or more SKUs launched and the cell still earns under $0.5M. This is
+             not white space — it is a graveyard, and a naive gap analysis would send
+             you straight into it.</p>
+          <ul id="failed"></ul>
+        </div>
+      </div>
+
+      <h3 class="sec-h mono">CROSS-CHECK — WHAT CONSUMERS SAY THEY WANT</h3>
+      <p class="sec-note">
+        Sales data shows what people bought from what was offered. This shows what they
+        say they would buy if offered. Where the two agree, confidence is higher.
+        Mintel 2026, n=766 US energy-drink consumers.
+      </p>
+      <div id="concepts"></div>
+      <p class="dt-note">
+        Note the mismatch worth acting on: <b>39.4% want natural sweeteners</b> and
+        almost nothing on the shelf delivers it, while sugar-free — which 72% of recent
+        launches now claim — has stopped being a differentiator at all.
+      </p>
+    </section>
+
+    <section id="verdict-sec" class="aud-top">
+      <h2 class="sec-h mono">WHERE THE BOARD LANDS</h2>
+      <div id="verdict" class="vd-box"></div>
+      <p class="dt-note">
+        This is a reading of the evidence, not a guarantee. The strongest argument
+        against it is the base rate stated above: in ten years of this data, 150 new
+        brands entered, 9 reached $1M, and none reached $10M.
+      </p>
+    </section>
+  </main>
+
+  <footer class="dash-foot mono">
+    <span class="dim">SOURCES: PDI POINT-OF-SALE · MINTEL 2026 · MRI-SIMMONS 2024 · MINTEL GNPD + MULO</span>
+    <span class="dim">AGGREGATE GENERATED <i id="gen-at">—</i></span>
+  </footer>
+</body>
+</html>

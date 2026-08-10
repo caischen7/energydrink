@@ -16,6 +16,7 @@ export default defineConfig({
         segments: resolve(__dirname, 'segments.html'),
         audience: resolve(__dirname, 'audience.html'),
         compare: resolve(__dirname, 'compare.html'),
+        opportunity: resolve(__dirname, 'opportunity.html'),
       },
     },
   },
