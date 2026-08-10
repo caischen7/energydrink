@@ -98,7 +98,7 @@ function renderChart() {
   $('#pie').innerHTML = donut(rows, {
     fmt: money,
     centerValue: money(DATA.total),
-    centerLabel: 'TOTAL CATEGORY SALES',
+    centerLabel: 'C-STORE SALES 2016–2026',
   });
 
   $('#legend').innerHTML = DATA.auds.map((a) => `
@@ -159,6 +159,35 @@ function renderDemand() {
 
   $('#delta-channel').innerHTML = deltaList(D.deltas.channel, true);
   $('#delta-time').innerHTML = deltaList(D.deltas.time, false);
+
+  /* Where the two channels disagree — the evidence behind the whole-market split. */
+  $('#channel-table').innerHTML = `<table class="intel-table mono">
+    <thead><tr><th class="tl">AUDIENCE</th><th>CONVENIENCE<br /><span class="th-s">PDI measured</span></th>
+      <th>MULTI-OUTLET<br /><span class="th-s">Mintel MULO</span></th>
+      <th>ALL CHANNELS<br /><span class="th-s">2025 blended</span></th>
+      <th>2030<br /><span class="th-s">projected</span></th>
+      <th>$ CAGR<br /><span class="th-s">25→30</span></th></tr></thead>
+    <tbody>${D.pdi_vs_mulo.map((r) => {
+      const now = D.now.auds.find((a) => a.name === r.name);
+      const fut = D.future.auds.find((a) => a.name === r.name);
+      const cagr = DATA.demand.cagr[r.name];
+      return `<tr data-aud="${esc(r.name)}">
+        <td class="tl"><span class="dot" style="background:${colorOf(r.name)}"></span>${esc(r.name)}</td>
+        <td>${r.pdi}%</td><td>${r.mulo}%</td><td><b>${now.share}%</b></td>
+        <td>${fut.share}%</td>
+        <td class="${cagr >= 0 ? 'up' : 'down'}">${cagr == null ? '—' : (cagr >= 0 ? '+' : '') + cagr + '%'}</td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+
+  $('#why').innerHTML = D.future.auds.map((a) => `
+    <article class="why-card" style="--c:${colorOf(a.name)}">
+      <header>
+        <h4>${esc(a.name)}</h4>
+        <span class="why-move mono">${D.now.auds.find((x) => x.name === a.name).share}%
+          → <b>${a.share}%</b></span>
+      </header>
+      <p>${esc(D.why[a.name] || '')}</p>
+    </article>`).join('');
 }
 
 /* ------------------------------------------------- category-wide flavor mix -- */
@@ -194,34 +223,6 @@ function renderFlavors() {
           v ? v + '%' : '·'}</td>`;
       }).join('')}</tr>`).join('')}</tbody></table>`;
 
-  /* Where the two channels disagree — the evidence behind the whole-market split. */
-  $('#channel-table').innerHTML = `<table class="intel-table mono">
-    <thead><tr><th class="tl">AUDIENCE</th><th>CONVENIENCE<br /><span class="th-s">PDI measured</span></th>
-      <th>MULTI-OUTLET<br /><span class="th-s">Mintel MULO</span></th>
-      <th>ALL CHANNELS<br /><span class="th-s">2025 blended</span></th>
-      <th>2030<br /><span class="th-s">projected</span></th>
-      <th>$ CAGR<br /><span class="th-s">25→30</span></th></tr></thead>
-    <tbody>${D.pdi_vs_mulo.map((r) => {
-      const now = D.now.auds.find((a) => a.name === r.name);
-      const fut = D.future.auds.find((a) => a.name === r.name);
-      const cagr = DATA.demand.cagr[r.name];
-      return `<tr data-aud="${esc(r.name)}">
-        <td class="tl"><span class="dot" style="background:${colorOf(r.name)}"></span>${esc(r.name)}</td>
-        <td>${r.pdi}%</td><td>${r.mulo}%</td><td><b>${now.share}%</b></td>
-        <td>${fut.share}%</td>
-        <td class="${cagr >= 0 ? 'up' : 'down'}">${cagr == null ? '—' : (cagr >= 0 ? '+' : '') + cagr + '%'}</td>
-      </tr>`;
-    }).join('')}</tbody></table>`;
-
-  $('#why').innerHTML = D.future.auds.map((a) => `
-    <article class="why-card" style="--c:${colorOf(a.name)}">
-      <header>
-        <h4>${esc(a.name)}</h4>
-        <span class="why-move mono">${D.now.auds.find((x) => x.name === a.name).share}%
-          → <b>${a.share}%</b></span>
-      </header>
-      <p>${esc(D.why[a.name] || '')}</p>
-    </article>`).join('');
 }
 
 function renderTable() {
