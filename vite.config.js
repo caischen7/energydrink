@@ -14,6 +14,7 @@ export default defineConfig({
         admin: resolve(__dirname, 'admin.html'),
         insights: resolve(__dirname, 'insights.html'),
         segments: resolve(__dirname, 'segments.html'),
+        audience: resolve(__dirname, 'audience.html'),
       },
     },
   },

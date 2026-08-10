@@ -329,4 +329,93 @@ export function multiLine(months, series, opts = {}) {
   return `<svg viewBox="0 0 ${W} ${H}" class="chart" preserveAspectRatio="xMidYMid meet" role="img">${grid}${xl}${lines}${legend}</svg>`;
 }
 
+/*
+ * Donut chart. rows: [{label, value, color}]
+ *
+ * A donut rather than a full pie: the hole carries the total, and with one slice
+ * at 71% the remaining eight are thin wedges that read better as a ring than as
+ * slivers meeting at a point. Slices under `minLabelPct` get a leader line
+ * instead of an inline label, because their arc is too short to sit text on.
+ *
+ * opts: { size, thickness, fmt, centerLabel, centerValue, minLabelPct }
+ */
+export function donut(rows, opts = {}) {
+  const {
+    size = 460,
+    thickness = 108,
+    fmt = (v) => String(v),
+    centerLabel = '',
+    centerValue = '',
+    minLabelPct = 4,
+  } = opts;
+
+  const cx = size / 2;
+  const cy = size / 2;
+  const rOuter = size / 2 - 58;          // room for the leader-line labels
+  const rInner = rOuter - thickness;
+  const total = rows.reduce((s, r) => s + r.value, 0) || 1;
+
+  const pt = (r, a) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+
+  let angle = -Math.PI / 2;              // start at 12 o'clock
+  const slices = [];
+  rows.forEach((row, i) => {
+    const frac = row.value / total;
+    const sweep = frac * Math.PI * 2;
+    const a0 = angle;
+    const a1 = angle + sweep;
+    const mid = a0 + sweep / 2;
+    angle = a1;
+
+    const [x0, y0] = pt(rOuter, a0);
+    const [x1, y1] = pt(rOuter, a1);
+    const [x2, y2] = pt(rInner, a1);
+    const [x3, y3] = pt(rInner, a0);
+    const large = sweep > Math.PI ? 1 : 0;
+    const d = `M${x0} ${y0} A${rOuter} ${rOuter} 0 ${large} 1 ${x1} ${y1}
+               L${x2} ${y2} A${rInner} ${rInner} 0 ${large} 0 ${x3} ${y3} Z`;
+
+    const pct = frac * 100;
+    slices.push({ row, i, d, mid, pct });
+  });
+
+  const arcs = slices
+    .map(
+      ({ row, i, d, pct }) => `<path d="${d}" fill="${row.color}" class="c-slice"
+        style="--i:${i}" data-aud="${esc(row.label)}" tabindex="0" role="button"
+        aria-label="${esc(row.label)}, ${pct.toFixed(1)} percent">
+        <title>${esc(row.label)} — ${pct.toFixed(1)}% · ${fmt(row.value)}</title></path>`
+    )
+    .join('');
+
+  /* Inline labels for the fat slices; leader lines for everything else. */
+  const labels = slices
+    .map(({ row, mid, pct }) => {
+      if (pct >= minLabelPct) {
+        const [lx, ly] = pt((rOuter + rInner) / 2, mid);
+        return `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" class="c-slice-pct"
+          text-anchor="middle" dominant-baseline="middle">${pct.toFixed(1)}%</text>`;
+      }
+      const [ax, ay] = pt(rOuter + 2, mid);
+      const [bx, by] = pt(rOuter + 18, mid);
+      const right = Math.cos(mid) >= 0;
+      const tx = bx + (right ? 8 : -8);
+      return `<polyline points="${ax.toFixed(1)},${ay.toFixed(1)} ${bx.toFixed(1)},${by.toFixed(1)}"
+          fill="none" stroke="${row.color}" stroke-width="1.2"/>
+        <text x="${tx.toFixed(1)}" y="${by.toFixed(1)}" class="c-slice-out"
+          text-anchor="${right ? 'start' : 'end'}" dominant-baseline="middle"
+          fill="${row.color}">${pct.toFixed(1)}%</text>`;
+    })
+    .join('');
+
+  const center = centerValue
+    ? `<text x="${cx}" y="${cy - 6}" class="c-hole-v" text-anchor="middle">${esc(centerValue)}</text>
+       <text x="${cx}" y="${cy + 16}" class="c-hole-l" text-anchor="middle">${esc(centerLabel)}</text>`
+    : '';
+
+  return `<svg viewBox="0 0 ${size} ${size}" class="chart chart--donut"
+    preserveAspectRatio="xMidYMid meet" role="img"
+    aria-label="Share of energy-drink sales by target audience">${arcs}${labels}${center}</svg>`;
+}
+
 export { VOLT, ICE, DIM, LINE, SERIES_COLORS };

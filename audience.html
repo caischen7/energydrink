@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Who the energy-drink category actually sells to — category revenue split across nine target audiences." />
+  <meta name="robots" content="noindex" />
+  <title>Target Audience — Bogus Banana Market Intel</title>
+  <link rel="icon" type="image/svg+xml" href="/mascot.svg" />
+  <script type="module" src="/src/audience.js"></script>
+</head>
+<body class="dash">
+  <header class="site-head">
+    <a class="logo" href="./index.html" data-hover>Bogus&nbsp;Banana<sup>®</sup></a>
+    <nav class="nav mono" aria-label="Intel sections">
+      <a href="./dashboard.html" data-hover>DASHBOARD</a>
+      <a href="./insights.html" data-hover>INSIGHTS</a>
+      <a href="./segments.html" data-hover>SEGMENTS</a>
+      <a href="#table" data-hover>TABLE</a>
+    </nav>
+    <div class="head-right">
+      <a class="btn-mint" href="./dashboard.html" data-hover>← Dashboard</a>
+    </div>
+  </header>
+
+  <main class="dash-main">
+    <section class="dash-hero">
+      <h1 class="dash-title">Target Audience</h1>
+      <p class="dash-sub">
+        Every one of the <b class="volt"><i id="skus">—</i></b> products in the point-of-sale
+        data, labelled with the consumer it is built for, then weighed by what it
+        actually sells. <b class="volt"><i id="total">—</i></b> across
+        <b class="volt"><i id="brands">—</i></b> brands and nine audiences.
+      </p>
+    </section>
+
+    <section class="aud-top">
+      <p class="sec-note">
+        Hover a slice for the age, gender and size of that audience. Click to see the
+        brands and products inside it.
+      </p>
+      <div class="aud-layout">
+        <div id="pie"></div>
+        <div id="legend"></div>
+      </div>
+    </section>
+
+    <section id="detail"></section>
+
+    <section id="table" class="aud-top">
+      <h2 class="sec-h mono">EVERY AUDIENCE</h2>
+      <div id="aud-table" class="table-wrap"></div>
+      <p class="dt-note">
+        Ages and gender come from MRI-Simmons 2024 where the brand was measured
+        (Red Bull, Monster, Rockstar, NOS, Bang, AMP, 5-hour Energy), from published
+        brand positioning for another ~35 brands, and from product attributes for the
+        long tail of small brands. Revenue is <i id="window">—</i>.
+      </p>
+      <p class="dt-note">
+        <b>Read the small slices with care.</b> This is convenience-store data only —
+        no club, grocery, mass or e-commerce. Audiences reached mainly online, notably
+        gamers and creators, are understated here relative to their true size.
+      </p>
+    </section>
+  </main>
+
+  <div id="tip" hidden></div>
+
+  <footer class="dash-foot mono">
+    <span class="dim">SOURCE: PDI POINT-OF-SALE · MRI-SIMMONS 2024 · BRAND POSITIONING</span>
+    <span class="dim">AGGREGATE GENERATED <i id="gen-at">—</i></span>
+  </footer>
+</body>
+</html>
