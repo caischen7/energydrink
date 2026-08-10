@@ -490,6 +490,10 @@ function main(data) {
   });
   window.addEventListener('scroll', hideTip, { passive: true });
 
+  /* Deep link from the comparison page: #<audience> opens that drill-down. */
+  const hash = decodeURIComponent(location.hash.slice(1));
+  if (hash && DATA.auds.some((a) => a.name === hash)) openAud(hash);
+
   $('#gen-at').textContent =
     new Date(data.generated_at).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
 }

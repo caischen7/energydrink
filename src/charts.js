@@ -423,4 +423,119 @@ export function donut(rows, opts = {}) {
     aria-label="Share of energy-drink sales by target audience">${arcs}${labelSvg}${center}</svg>`;
 }
 
+/*
+ * Slope chart — two points per series, one line between them. rows:
+ * [{label, from, to, color}]
+ *
+ * The right tool for "these nine things all changed between two dates": a
+ * reader compares slopes at a glance, where two pie charts force them to hold
+ * percentages in their head. Labels collide when values are close, so tightly
+ * packed rows get nudged apart vertically.
+ *
+ * opts: { fmt, leftTitle, rightTitle, minGap }
+ */
+export function slope(rows, opts = {}) {
+  const { fmt = (v) => v + '%', leftTitle = '', rightTitle = '', minGap = 15 } = opts;
+  const W = 800;
+  const H = 460;
+  const padT = 54;
+  const padB = 30;
+  const xL = 250;
+  const xR = W - 250;
+  const ih = H - padT - padB;
+  const max = Math.max(...rows.flatMap((r) => [r.from, r.to]), 1);
+  const sy = (v) => padT + ih - (v / max) * ih;
+
+  /* Spread overlapping labels so none sit on top of another. */
+  const place = (key) => {
+    const sorted = rows
+      .map((r, i) => ({ i, y: sy(r[key]) }))
+      .sort((a, b) => a.y - b.y);
+    for (let k = 1; k < sorted.length; k++) {
+      if (sorted[k].y - sorted[k - 1].y < minGap) sorted[k].y = sorted[k - 1].y + minGap;
+    }
+    const out = [];
+    sorted.forEach((s) => { out[s.i] = s.y; });
+    return out;
+  };
+  const ly = place('from');
+  const ry = place('to');
+
+  const body = rows
+    .map((r, i) => {
+      const y0 = sy(r.from);
+      const y1 = sy(r.to);
+      const up = r.to >= r.from;
+      return `<g class="c-slope" data-aud="${esc(r.label)}" tabindex="0" role="button"
+                 aria-label="${esc(r.label)}: ${fmt(r.from)} to ${fmt(r.to)}">
+        <title>${esc(r.label)} — ${fmt(r.from)} → ${fmt(r.to)}</title>
+        <line x1="${xL}" y1="${y0}" x2="${xR}" y2="${y1}" stroke="${r.color}"
+              stroke-width="2.4" class="c-slope-line"/>
+        <circle cx="${xL}" cy="${y0}" r="4.5" fill="${r.color}"/>
+        <circle cx="${xR}" cy="${y1}" r="4.5" fill="${r.color}"/>
+        <text x="${xL - 12}" y="${ly[i]}" class="c-slope-l" text-anchor="end"
+              dominant-baseline="middle">${esc(r.label)}</text>
+        <text x="${xL - 12}" y="${ly[i] + 13}" class="c-slope-v" text-anchor="end"
+              dominant-baseline="middle" fill="${r.color}">${fmt(r.from)}</text>
+        <text x="${xR + 12}" y="${ry[i]}" class="c-slope-v ${up ? 'up' : 'down'}"
+              dominant-baseline="middle" fill="${r.color}">${fmt(r.to)}</text>
+      </g>`;
+    })
+    .join('');
+
+  return `<svg viewBox="0 0 ${W} ${H}" class="chart chart--slope"
+    preserveAspectRatio="xMidYMid meet" role="img"
+    aria-label="Share by audience, ${esc(leftTitle)} versus ${esc(rightTitle)}">
+    <text x="${xL}" y="26" class="c-slope-h" text-anchor="middle">${esc(leftTitle)}</text>
+    <text x="${xR}" y="26" class="c-slope-h" text-anchor="middle">${esc(rightTitle)}</text>
+    <line x1="${xL}" y1="${padT - 14}" x2="${xL}" y2="${padT + ih}" class="c-grid"/>
+    <line x1="${xR}" y1="${padT - 14}" x2="${xR}" y2="${padT + ih}" class="c-grid"/>
+    ${body}</svg>`;
+}
+
+/*
+ * Paired bars — two values per row, side by side. rows:
+ * [{label, a, b, color}]  opts: { fmt, aLabel, bLabel, labelW }
+ */
+export function groupedBars(rows, opts = {}) {
+  const { fmt = fmtCompact, aLabel = 'A', bLabel = 'B', labelW = 190 } = opts;
+  const W = 800;
+  const rowH = 44;
+  const gap = 12;
+  const barX = labelW + 8;
+  const valW = 92;
+  const barMax = W - barX - valW;
+  const H = rows.length * (rowH + gap) + 26;
+  const max = Math.max(...rows.flatMap((r) => [r.a, r.b]), 1);
+
+  const body = rows
+    .map((r, i) => {
+      const y = 26 + i * (rowH + gap);
+      const wa = Math.max(1.5, (r.a / max) * barMax);
+      const wb = Math.max(1.5, (r.b / max) * barMax);
+      return `<g data-aud="${esc(r.label)}" class="c-grp" tabindex="0" role="button"
+                 aria-label="${esc(r.label)}: ${fmt(r.a)} then ${fmt(r.b)}">
+        <text x="${labelW}" y="${y + rowH / 2}" class="c-lbl" text-anchor="end"
+              dominant-baseline="middle">${esc(r.label)}</text>
+        <rect x="${barX}" y="${y + 2}" width="${wa}" height="${rowH / 2 - 3}" rx="3"
+              fill="${r.color}" fill-opacity="0.42"><title>${esc(r.label)} ${esc(aLabel)}: ${fmt(r.a)}</title></rect>
+        <rect x="${barX}" y="${y + rowH / 2 + 1}" width="${wb}" height="${rowH / 2 - 3}" rx="3"
+              fill="${r.color}"><title>${esc(r.label)} ${esc(bLabel)}: ${fmt(r.b)}</title></rect>
+        <text x="${barX + wa + 7}" y="${y + rowH / 4 + 1}" class="c-val"
+              dominant-baseline="middle">${fmt(r.a)}</text>
+        <text x="${barX + wb + 7}" y="${y + (rowH * 3) / 4}" class="c-val"
+              dominant-baseline="middle">${fmt(r.b)}</text>
+      </g>`;
+    })
+    .join('');
+
+  return `<svg viewBox="0 0 ${W} ${H}" class="chart" preserveAspectRatio="xMidYMid meet" role="img">
+    <g transform="translate(${barX} 12)">
+      <rect width="13" height="7" rx="2" fill="${DIM}" fill-opacity="0.42"/>
+      <text x="19" y="6" class="c-lbl">${esc(aLabel)}</text>
+      <rect x="92" width="13" height="7" rx="2" fill="${DIM}"/>
+      <text x="111" y="6" class="c-lbl">${esc(bLabel)}</text>
+    </g>${body}</svg>`;
+}
+
 export { VOLT, ICE, DIM, LINE, SERIES_COLORS };

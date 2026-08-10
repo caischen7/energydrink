@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="US energy-drink demand compared: 2025 against 2030, by target audience." />
+  <meta name="robots" content="noindex" />
+  <title>2025 vs 2030 — Bogus Banana Market Intel</title>
+  <link rel="icon" type="image/svg+xml" href="/mascot.svg" />
+  <script type="module" src="/src/compare.js"></script>
+</head>
+<body class="dash">
+  <header class="site-head">
+    <a class="logo" href="./index.html" data-hover>Bogus&nbsp;Banana<sup>®</sup></a>
+    <nav class="nav mono" aria-label="Intel sections">
+      <a href="./dashboard.html" data-hover>DASHBOARD</a>
+      <a href="./insights.html" data-hover>INSIGHTS</a>
+      <a href="./segments.html" data-hover>SEGMENTS</a>
+      <a href="./audience.html" data-hover>AUDIENCE</a>
+      <a href="#growth" data-hover>GROWTH</a>
+      <a href="#table" data-hover>TABLE</a>
+    </nav>
+    <div class="head-right">
+      <a class="btn-mint" href="./audience.html" data-hover>← Audience</a>
+    </div>
+  </header>
+
+  <main class="dash-main">
+    <section class="dash-hero">
+      <h1 class="dash-title">2025 vs 2030</h1>
+      <p class="dash-sub">
+        The same nine audiences, five years apart. Every view on this page is a
+        <b class="volt">difference</b> rather than a snapshot — what grows, what
+        shrinks, and where the new demand actually lands.
+      </p>
+      <div id="kpis" class="cmp-kpis"></div>
+    </section>
+
+    <section class="aud-top">
+      <h2 class="sec-h mono">SHARE OF MARKET — 2025 → 2030</h2>
+      <p class="sec-note">
+        Slope, not two pies: a line you can follow beats two rings you have to compare
+        from memory. Steeper line, bigger change. Click any audience to open it.
+      </p>
+      <div id="slope"></div>
+      <p class="dt-note">
+        <b>Share is not size.</b> A line sloping down can still be a growing business —
+        see the dollar chart below, where every audience except Calorie-cutters gains.
+      </p>
+    </section>
+
+    <section class="aud-top">
+      <h2 class="sec-h mono">DEMAND IN DOLLARS — 2025 vs 2030</h2>
+      <p class="sec-note">
+        The same comparison in absolute terms. Pale bar is 2025, solid bar is 2030.
+      </p>
+      <div id="bars"></div>
+    </section>
+
+    <section id="growth" class="aud-top">
+      <h2 class="sec-h mono">WHERE THE NEW DEMAND GOES</h2>
+      <p class="sec-note">
+        The market adds roughly <b>$11.7B</b> between 2025 and 2030. This is that
+        growth alone — not the market, just the increase — split by who captures it.
+        It is the single most decision-relevant chart on the site.
+      </p>
+      <div class="aud-layout">
+        <div id="contrib"></div>
+        <ul id="contrib-legend" class="fl-legend"></ul>
+      </div>
+      <div class="fc-caveat">
+        <h4 class="mono">WHAT THIS CHART SAYS</h4>
+        <p>
+          <b>Women take about half of all new demand</b> — more than five billion
+          dollars, from an audience that barely existed in this category six years
+          ago. Young adults take roughly another third, but they need $17.5B of
+          existing base to do it, growing 4.5% a year against the women's segment's
+          17.2%.
+        </p>
+        <p>
+          Read the small segments by growth rate rather than by size.
+          <b>Gamers &amp; creators</b> and <b>Coffee drinkers</b> contribute little in
+          absolute dollars but compound fastest, and both are measured badly here
+          because they sell through e-commerce and grocery channels this data barely
+          covers. They are the segments most likely to be larger than shown.
+        </p>
+        <p>
+          <b>Calorie-cutters is the only audience that shrinks</b>, and it is not a
+          real collapse — sugar-free stopped being a distinct proposition once 72% of
+          launches claimed it. Those sales did not disappear; they moved inside the
+          other audiences.
+        </p>
+      </div>
+    </section>
+
+    <section id="table" class="aud-top">
+      <h2 class="sec-h mono">EVERY AUDIENCE, BOTH YEARS</h2>
+      <p class="sec-note">Click a column to sort. Click a row to open that audience.</p>
+      <div id="cmp-table" class="table-wrap"></div>
+    </section>
+
+    <section class="aud-top">
+      <h2 class="sec-h mono">AUDIENCE BY AUDIENCE</h2>
+      <div id="cards" class="cmp-cards"></div>
+    </section>
+
+    <section class="aud-top">
+      <div class="fc-caveat">
+        <h4 class="mono">HOW FIRM ARE THESE NUMBERS</h4>
+        <p>
+          The 2030 total is <b>Mintel's central forecast</b>, not mine. Its own 90%
+          confidence band spans <b><i id="band">—</i></b> — so treat the market total
+          as a range, and the per-audience dollars as scaling with it.
+        </p>
+        <p>
+          What I projected is the <em>split</em>, by extrapolating each audience's
+          measured share drift (PDI 2021–2025, Mintel MULO 2025–2026) and damping it
+          15% a year so trends flatten instead of running away. Two figures are set by
+          hand rather than trended — <b>Gamers &amp; creators</b> and
+          <b>Health-conscious adults</b> — because the channels they sell through are
+          not visible in this data, and trending them from blind measurements would
+          have driven them to zero.
+        </p>
+        <p>
+          <b>The women's line carries the result.</b> It rests on a six-year trend that
+          has not yet slowed. If Celsius and Alani Nu are nearer saturation than they
+          look, that segment lands closer to 22% than 28.3%, and the young-adult
+          decline is correspondingly gentler.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="dash-foot mono">
+    <span class="dim">SOURCES: PDI POINT-OF-SALE · MINTEL MARKET FORECAST + MULO · MRI-SIMMONS 2024</span>
+    <span class="dim">AGGREGATE GENERATED <i id="gen-at">—</i></span>
+  </footer>
+</body>
+</html>

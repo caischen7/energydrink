@@ -15,6 +15,7 @@ export default defineConfig({
         insights: resolve(__dirname, 'insights.html'),
         segments: resolve(__dirname, 'segments.html'),
         audience: resolve(__dirname, 'audience.html'),
+        compare: resolve(__dirname, 'compare.html'),
       },
     },
   },
