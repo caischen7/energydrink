@@ -205,6 +205,33 @@ function paceView() {
   $('#pace-note').textContent = P.note;
 }
 
+/*
+ * The forecast, run backwards. Nothing else on this site puts an empirical error
+ * bar on a projection, and a projection without one invites more confidence than
+ * it has earned.
+ */
+function backtestView() {
+  const B = D.backtest;
+  if (!B) return;
+  $('#bt').innerHTML = groupedBars(
+    B.rows.map((r) => ({
+      label: r.name || r.aud, a: r.pred, b: r.act,
+      color: Math.abs(r.err) >= 5 ? '#c0392b' : '#34c759',
+    })),
+    { fmt: (v) => v.toFixed(1) + '%', aLabel: 'model predicted', bLabel: 'actually happened', labelW: 190 }
+  );
+  $('#bt-tbl').innerHTML = `<table class="intel-table mono">
+    <thead><tr><th class="tl">AUDIENCE</th><th>PREDICTED 2025</th><th>ACTUAL 2025</th><th>ERROR</th></tr></thead>
+    <tbody>${B.rows.map((r) => `<tr>
+      <td class="tl">${esc(r.aud)}</td><td>${r.pred.toFixed(1)}%</td><td>${r.act.toFixed(1)}%</td>
+      <td class="${Math.abs(r.err) >= 5 ? 'down' : 'up'}">${r.err >= 0 ? '+' : ''}${r.err.toFixed(1)}pp</td></tr>`).join('')}
+      <tr class="tot-row"><td class="tl">MEAN ABSOLUTE ERROR</td><td></td><td></td>
+        <td><b>${B.mae.toFixed(1)}pp</b></td></tr></tbody></table>`;
+  $('#bt-note').textContent = B.note;
+  $('#bt-reading').textContent = B.reading;
+  $('#bt-impl').textContent = B.implication;
+}
+
 /* ------------------------------------------------------------------- boot --- */
 function main(data) {
   A = data.audiences;
@@ -221,6 +248,7 @@ function main(data) {
   barsView();
   contribView();
   paceView();
+  backtestView();
   tableView();
   cardsView();
 
