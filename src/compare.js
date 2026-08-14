@@ -29,9 +29,20 @@ const pp = (v) => (v == null || !isFinite(v) ? '—' : (v >= 0 ? '+' : '') + v.t
    CAGR are undefined rather than infinite — say so instead of throwing. */
 const pct = (v) => (v == null || !isFinite(v) ? '—' : (v >= 0 ? '+' : '') + v.toFixed(1) + '%');
 
+/*
+ * Categorical palette — the eight-slot validated set from the dataviz reference,
+ * assigned in fixed order so a colour always means the same audience. The ninth
+ * audience takes the neutral slot: the rule is that a 9th series never gets a
+ * generated hue, and "Older functional users" is 0.0% of demand, so it reads as
+ * the residual it is.
+ *
+ * The set this replaced failed four of the six palette checks. The worst pair was
+ * green vs orange at deltaE 5.1 for protanopia — which happened to be Gym &
+ * fitness against Women, the two audiences this whole analysis compares.
+ */
 const COLOR = [
-  '#0071e3', '#34c759', '#ff9f0a', '#5e5ce6',
-  '#ff375f', '#00a5a5', '#8e5cd9', '#c76b1e', '#86868b',
+  '#2a78d6', '#eb6834', '#1baf7a', '#eda100',
+  '#e87ba4', '#008300', '#4a3aa7', '#e34948', '#898781',
 ];
 
 let A, D, ROWS;

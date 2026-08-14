@@ -22,8 +22,8 @@ const money = (n) =>
 const int = (n) => (n == null ? '—' : Math.round(n).toLocaleString('en-US'));
 
 const COLOR = [
-  '#0071e3', '#34c759', '#ff9f0a', '#5e5ce6',
-  '#ff375f', '#00a5a5', '#8e5cd9', '#86868b',
+  '#2a78d6', '#eb6834', '#1baf7a', '#eda100',
+  '#e87ba4', '#008300', '#4a3aa7', '#e34948',
 ];
 
 /*

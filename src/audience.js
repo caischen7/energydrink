@@ -24,10 +24,20 @@ const money = (n) =>
   n >= 1e3 ? '$' + (n / 1e3).toFixed(0) + 'K' : '$' + Math.round(n);
 const int = (n) => (n == null ? '—' : Math.round(n).toLocaleString('en-US'));
 
-/* Distinct hues, ordered so the two biggest slices don't sit adjacent in tone. */
+/*
+ * Categorical palette — the eight-slot validated set from the dataviz reference,
+ * assigned in fixed order so a colour always means the same audience. The ninth
+ * audience takes the neutral slot: the rule is that a 9th series never gets a
+ * generated hue, and "Older functional users" is 0.0% of demand, so it reads as
+ * the residual it is.
+ *
+ * The set this replaced failed four of the six palette checks. The worst pair was
+ * green vs orange at deltaE 5.1 for protanopia — which happened to be Gym &
+ * fitness against Women, the two audiences this whole analysis compares.
+ */
 const COLOR = [
-  '#0071e3', '#34c759', '#ff9f0a', '#5e5ce6',
-  '#ff375f', '#00a5a5', '#8e5cd9', '#c76b1e', '#86868b',
+  '#2a78d6', '#eb6834', '#1baf7a', '#eda100',
+  '#e87ba4', '#008300', '#4a3aa7', '#e34948', '#898781',
 ];
 
 let DATA;
@@ -315,7 +325,8 @@ function renderDemand() {
 function renderFlavors() {
   const F = DATA.flavors;
   if (!F) return;
-  const rows = F.fams.map((f, i) => ({
+  const famsF = foldFlavors(F.fams);
+  const rows = famsF.map((f, i) => ({
     label: f.f, value: f.r, color: FLAVOR_COLOR[i % FLAVOR_COLOR.length],
   }));
   $('#pie-flavor').innerHTML = donut(rows, {
@@ -323,8 +334,9 @@ function renderFlavors() {
     centerValue: money(F.total_known),
     centerLabel: 'SALES WITH KNOWN FLAVOR',
   });
-  $('#flavor-legend').innerHTML = F.fams.map((f, i) => `
-    <li><i style="background:${FLAVOR_COLOR[i % FLAVOR_COLOR.length]}"></i>
+  $('#flavor-legend').innerHTML = famsF.map((f, i) => `
+    <li${f.tail ? ` title="Folded: ${esc(f.tail)}"` : ''}>
+      <i style="background:${FLAVOR_COLOR[i % FLAVOR_COLOR.length]}"></i>
       <span>${esc(f.f)}</span><b class="mono">${f.share}%</b>
       <span class="fl-n mono">${int(f.n)} SKU</span></li>`).join('');
 
@@ -440,7 +452,7 @@ function renderSkus(a) {
 
 /* ------------------------------------------------------------ flavor donut --- */
 function flavorBlock(a, col) {
-  const fams = (a.flav || []).filter((f) => f.share >= 0.1);
+  const fams = foldFlavors((a.flav || []).filter((f) => f.share >= 0.1));
   if (!fams.length) return '<p class="dt-note">No flavor data for this audience.</p>';
   const rows = fams.map((f, i) => ({
     label: f.f, value: f.r, color: FLAVOR_COLOR[i % FLAVOR_COLOR.length],
@@ -453,7 +465,7 @@ function flavorBlock(a, col) {
       centerValue: top.share + '%', centerLabel: top.f.toUpperCase(),
     })}</div>
     <ul class="fl-legend">
-      ${fams.map((f, i) => `<li>
+      ${fams.map((f, i) => `<li${f.tail ? ` title="${esc(f.tail)}"` : ''}>
         <i style="background:${FLAVOR_COLOR[i % FLAVOR_COLOR.length]}"></i>
         <span>${esc(f.f)}</span>
         <b class="mono">${f.share}%</b>
@@ -469,11 +481,28 @@ function flavorBlock(a, col) {
   </p>`;
 }
 
+/* Seven validated hues plus a neutral "Other". Fourteen categorical hues cannot be
+   told apart, so the tail folds rather than inventing colours nobody can name. */
 const FLAVOR_COLOR = [
-  '#0071e3', '#ff9f0a', '#34c759', '#ff375f', '#5e5ce6', '#00a5a5',
-  '#8e5cd9', '#c76b1e', '#e0245e', '#1a8a3a', '#7d7d82', '#b38600',
-  '#4a7ec7', '#9b5de5', '#86868b',
+  '#2a78d6', '#eb6834', '#1baf7a', '#eda100',
+  '#e87ba4', '#008300', '#4a3aa7', '#898781',
 ];
+const FLAVOR_TOP = 7;
+
+/* Keep the biggest FLAVOR_TOP families, sum the rest into one "Other" slice. */
+function foldFlavors(fams) {
+  const sorted = [...fams].sort((a, b) => b.r - a.r);
+  const head = sorted.slice(0, FLAVOR_TOP);
+  const tail = sorted.slice(FLAVOR_TOP);
+  if (!tail.length) return head;
+  return [...head, {
+    f: `Other (${tail.length} families)`,
+    r: tail.reduce((s, x) => s + x.r, 0),
+    n: tail.reduce((s, x) => s + x.n, 0),
+    share: +tail.reduce((s, x) => s + x.share, 0).toFixed(1),
+    tail: tail.map((x) => x.f).join(', '),
+  }];
+}
 
 /* ------------------------------------------------------- audience switcher -- */
 /*
