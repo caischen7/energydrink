@@ -216,6 +216,18 @@ function verdict() {
       ${v.why.map(([k, t]) => `<div class="vd-item">
         <span class="vd-k mono">${esc(k)}</span><p>${esc(t)}</p></div>`).join('')}
     </div>
+    ${v.price_correction ? `<div class="vd-fix">
+      <h4 class="mono">A CORRECTION TO AN EARLIER VERSION OF THIS VERDICT</h4>
+      <p class="vd-was">It previously read: &ldquo;${esc(v.price_correction.was)}&rdquo;</p>
+      <p>${esc(v.price_correction.why)}</p>
+      <div class="tbl-wrap"><table class="intel-table mono vd-tbl">
+        <thead><tr><th class="tl">PER OUNCE</th><th class="tl">ON A 16 OZ CAN</th>
+          <th>16 OZ REVENUE</th><th>SKUS</th><th>PER SKU</th></tr></thead>
+        <tbody>${v.price_correction.oz16.map((r, i) => `<tr class="${i === 0 ? 'up' : i === 2 ? 'down' : ''}">
+          <td class="tl">${esc(r.band)}</td><td class="tl">${esc(r.can)}</td>
+          <td>$${r.rev}M</td><td>${r.skus}</td><td>$${r.rps.toFixed(2)}M</td></tr>`).join('')}</tbody>
+      </table></div>
+    </div>` : ''}
     <h4 class="vd-risk-h mono">WHAT ARGUES AGAINST IT</h4>
     <ul class="vd-risks">${v.risks.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>`;
 }
