@@ -46,7 +46,7 @@ function demandRows(name) {
   return `<dl class="tip-grid tip-grid--demand">
       <div><dt>US demand 2025</dt><dd>${money(now.usd * 1e6)} · ${now.share}%</dd></div>
       <div><dt>Projected 2030</dt><dd>${money(fut.usd * 1e6)} · ${fut.share}%</dd></div>
-      <div><dt>$ growth /yr</dt><dd class="${cagr >= 0 ? 'up' : 'down'}">${
+      <div><dt>$ growth /yr</dt><dd class="${cagr == null ? '' : cagr >= 0 ? 'up' : 'down'}">${
         cagr == null ? '—' : (cagr >= 0 ? '+' : '') + cagr + '%'}</dd></div>
       <div><dt>Share shift</dt><dd class="${fut.share >= now.share ? 'up' : 'down'}">${
         (fut.share - now.share >= 0 ? '+' : '') + (fut.share - now.share).toFixed(1)}pp</dd></div>

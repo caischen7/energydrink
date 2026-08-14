@@ -24,8 +24,10 @@ const esc = (s) =>
 const money = (m) =>
   m >= 1000 ? '$' + (m / 1000).toFixed(m >= 10000 ? 1 : 2) + 'B' :
   m >= 1 ? '$' + m.toFixed(0) + 'M' : '$' + (m * 1000).toFixed(0) + 'K';
-const pp = (v) => (v >= 0 ? '+' : '') + v.toFixed(1) + 'pp';
-const pct = (v) => (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
+const pp = (v) => (v == null || !isFinite(v) ? '—' : (v >= 0 ? '+' : '') + v.toFixed(1) + 'pp');
+/* Some audiences have a zero 2025 base after the Passport revision, so growth and
+   CAGR are undefined rather than infinite — say so instead of throwing. */
+const pct = (v) => (v == null || !isFinite(v) ? '—' : (v >= 0 ? '+' : '') + v.toFixed(1) + '%');
 
 const COLOR = [
   '#0071e3', '#34c759', '#ff9f0a', '#5e5ce6',
@@ -53,8 +55,8 @@ function buildRows() {
         color: colorOf(a.name),
         usd25: n.usd, usd30: f.usd, add,
         sh25: n.share, sh30: f.share, dsh: +(f.share - n.share).toFixed(1),
-        growth: (f.usd / n.usd - 1) * 100,
-        cagr: D.cagr[a.name],
+        growth: n.usd > 0 ? (f.usd / n.usd - 1) * 100 : null,
+        cagr: D.cagr[a.name] == null ? null : D.cagr[a.name],
         contrib: (add / added) * 100,   // share of all category growth
         why: D.why[a.name] || '',
       };
@@ -122,8 +124,8 @@ const TABLE_COLS = [
   { k: 'usd25', l: '2025', f: (r) => money(r.usd25) },
   { k: 'usd30', l: '2030', f: (r) => money(r.usd30) },
   { k: 'add', l: 'Δ $', f: (r) => `<b class="${r.add >= 0 ? 'up' : 'down'}">${r.add >= 0 ? '+' : '−'}${money(Math.abs(r.add))}</b>` },
-  { k: 'growth', l: 'GROWTH', f: (r) => `<span class="${r.growth >= 0 ? 'up' : 'down'}">${pct(r.growth)}</span>` },
-  { k: 'cagr', l: 'CAGR', f: (r) => `<span class="${r.cagr >= 0 ? 'up' : 'down'}">${pct(r.cagr)}</span>` },
+  { k: 'growth', l: 'GROWTH', f: (r) => `<span class="${r.growth == null ? '' : r.growth >= 0 ? 'up' : 'down'}">${pct(r.growth)}</span>` },
+  { k: 'cagr', l: 'CAGR', f: (r) => `<span class="${r.cagr == null ? '' : r.cagr >= 0 ? 'up' : 'down'}">${pct(r.cagr)}</span>` },
   { k: 'sh25', l: 'SHARE 25', f: (r) => r.sh25 + '%' },
   { k: 'sh30', l: 'SHARE 30', f: (r) => r.sh30 + '%' },
   { k: 'dsh', l: 'Δ SHARE', f: (r) => `<span class="${r.dsh >= 0 ? 'up' : 'down'}">${pp(r.dsh)}</span>` },
@@ -135,6 +137,10 @@ function tableView() {
   const rows = [...ROWS].sort((x, y) => {
     const a = x[tState.k];
     const b = y[tState.k];
+    /* nulls sort last regardless of direction */
+    if (a == null && b == null) return 0;
+    if (a == null) return 1;
+    if (b == null) return -1;
     return typeof a === 'number' ? tState.dir * (a - b) : tState.dir * String(a).localeCompare(String(b));
   });
   $('#cmp-table').innerHTML = `<table class="intel-table mono">
@@ -173,7 +179,7 @@ function cardsView() {
         <div><span class="l mono">2030</span><span class="v">${money(r.usd30)}</span></div>
         <div class="cc-delta ${r.add >= 0 ? 'up' : 'down'}">
           <span class="v">${r.add >= 0 ? '+' : '−'}${money(Math.abs(r.add))}</span>
-          <span class="l mono">${pct(r.cagr)}/yr</span>
+          <span class="l mono">${r.cagr == null ? 'new segment' : pct(r.cagr) + '/yr'}</span>
         </div>
       </div>
       <div class="cc-share mono">
