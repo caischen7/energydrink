@@ -28,8 +28,11 @@ const esc = (s) =>
 /* SVG text does not wrap or ellipsise, so a long label silently runs out of the
    chart. Trim to what the column can hold. 7px/char is measured from the rendered
    label font — 6.2 under-estimated it and still let labels overrun by ~14px. */
+/* One constant for both sizing and clipping — two different values left the
+   column a character short of what it had just been sized to hold. */
+const CH = 7.8;
 const clip = (s, px) => {
-  const max = Math.floor(px / 7.8);
+  const max = Math.floor(px / CH);
   const t = String(s);
   return t.length <= max ? t : t.slice(0, Math.max(1, max - 1)) + '…';
 };
@@ -43,7 +46,15 @@ export function hBars(rows, opts = {}) {
   const W = 800;
   const rowH = 30;
   const gap = 8;
-  const labelW = opts.labelW || 150;
+  /*
+   * Grow the label column to fit the longest label rather than truncating it.
+   * A fixed width was cutting "Support physical performance" and seven other
+   * survey answers down to an ellipsis, which loses the very thing the row says.
+   * Capped at 46% of the frame so the bars stay readable; anything past that
+   * still clips, and the hover title keeps the full string either way.
+   */
+  const longest = Math.max(...rows.map((r) => String(r.label).length), 1);
+  const labelW = Math.min(Math.max(opts.labelW || 150, longest * CH + 8), W * 0.52);
   const valW = 86;
   const barX = labelW + 8;
   const barMax = W - barX - valW;

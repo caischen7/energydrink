@@ -16,7 +16,15 @@ const GREEN = '#34c759';
 const DIMGREY = '#c7c7cc';
 
 /* Claim labels are Mintel taxonomy strings — trim the prefix for display. */
-const short = (c) => c.replace(/^Functional - /, '').replace(/^Free from /, 'No ');
+/* GNPD claim strings are taxonomy paths — keep the part that distinguishes them. */
+const short = (c) =>
+  c.replace(/^Functional - /, '')
+    .replace(/^Free from /, 'No ')
+    .replace(/^Ethical - Environmentally Friendly Package.*/i, 'Eco packaging')
+    .replace(/^Ethical - /, '')
+    .replace(/^No Added\/Artificial (\w+)/i, (m, w) => 'No artificial ' + w.toLowerCase())
+    .replace(/^Vegan\/No Animal Ingredients.*/i, 'Vegan')
+    .replace(/ Ingredients$/, '');
 
 export function launchPipeline(data) {
   const rows = data.launch_claims;

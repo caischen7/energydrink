@@ -78,6 +78,7 @@ const CONCEPT_SHORT = (c) =>
     .replace(/^Made with /, '')
     .replace(/^Available in /, '')
     .replace(/^Products with /, '')
+    .replace(/^smaller can or portion size.*/i, 'Smaller can / portion')
     .replace(/^Infused with /, '')
     .replace(/^Customizable energy.*/, 'Customizable caffeine')
     .replace(/^Limited-edition /, 'LTO ')
@@ -106,6 +107,8 @@ const MOTIV_SHORT = (f) =>
     .replace(/^For the sense of /, '')
     .replace(/^For /, '')
     .replace(/^Out of /, '')
+    .replace(/^because friends\/peers drink them.*/i, 'Friends / peers drink it')
+    .replace(/^support physical performance.*/i, 'Physical performance')
     .replace(/"/g, '')
     .replace(/^(\w)/, (m) => m.toUpperCase());
 

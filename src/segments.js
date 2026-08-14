@@ -15,10 +15,19 @@ import { requireAuth } from './auth.js';
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (s) =>
   String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-/* Treemap boxes cannot wrap text either — trim the name to the box. */
-const clipTm = (s, px) => {
+/*
+ * SVG will not wrap text, so a name wider than its box has to be broken by hand.
+ * Split on the last space that still fits rather than truncating — "Zero-Sugar
+ * Mainstream" is the whole point of that box, and "Zero-Sugar Mains…" is not.
+ */
+const wrapTm = (s, px) => {
   const max = Math.floor(px / 5.6);
-  return String(s).length <= max ? String(s) : String(s).slice(0, Math.max(1, max - 1)) + '…';
+  const t = String(s);
+  if (t.length <= max) return [t];
+  const cut = t.lastIndexOf(' ', max);
+  if (cut < 4) return [t.slice(0, Math.max(1, max - 1)) + '…'];
+  const rest = t.slice(cut + 1);
+  return [t.slice(0, cut), rest.length <= max ? rest : rest.slice(0, Math.max(1, max - 1)) + '…'];
 };
 const money = (n) =>
   n >= 1e9 ? '$' + (n / 1e9).toFixed(2) + 'B' :
@@ -100,8 +109,13 @@ function renderMap() {
         ${big ? `<text x="${b.x + 16}" y="${b.y + 30}" class="tm-t" fill="${b.color}">${esc(b.name)}</text>
                  <text x="${b.x + 16}" y="${b.y + 52}" class="tm-v">${b.share}% · ${money(b.t12)}</text>
                  <text x="${b.x + 16}" y="${b.y + 72}" class="tm-s">${esc(b.who)}</text>`
-          : mid ? `<text x="${b.x + 10}" y="${b.y + 20}" class="tm-t sm" fill="${b.color}">${esc(clipTm(b.name, bw - 16))}</text>
-                   <text x="${b.x + 10}" y="${b.y + 38}" class="tm-v sm">${b.share}%</text>`
+          : mid ? (() => {
+              const lines = wrapTm(b.name, bw - 16);
+              return lines.map((ln, li) =>
+                `<text x="${b.x + 10}" y="${b.y + 18 + li * 13}" class="tm-t sm" fill="${b.color}">${esc(ln)}</text>`
+              ).join('') +
+              `<text x="${b.x + 10}" y="${b.y + 20 + lines.length * 13}" class="tm-v sm">${b.share}%</text>`;
+            })()
               : `<text x="${b.x + 6}" y="${b.y + 16}" class="tm-v sm">${b.share}%</text>`}
         <title>${esc(b.name)} — ${b.share}% of sales · ${money(b.t12)} · ${b.skus} SKUs · ${b.brands} brands</title>
       </g>`;

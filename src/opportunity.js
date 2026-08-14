@@ -126,7 +126,16 @@ function ranked() {
   /* Stated demand, as a cross-check on anything the sales data suggests. */
   $('#concepts').innerHTML = hBars(
     O.concepts.map((c, i) => ({
-      label: c.concept.split(' (')[0].slice(0, 34),
+      /* Mintel concept strings are full sentences; keep the distinguishing head. */
+      label: c.concept.split(' (')[0]
+        .replace(/^Offers additional /, '')
+        .replace(/^Made with /, '')
+        .replace(/^Infused with /, '')
+        .replace(/^Products with /, '')
+        .replace(/^Available in /, '')
+        .replace(/^Limited-edition /, 'LTO ')
+        .replace(/^Customizable energy.*/, 'Customizable caffeine')
+        .replace(/^(\w)/, (m) => m.toUpperCase()),
       value: c.pct,
       color: i === 0 ? '#0071e3' : undefined,
     })),
