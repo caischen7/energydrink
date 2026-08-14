@@ -8,7 +8,16 @@
   margin: 2rem 0 1rem;
 }
 #pie { min-width: 0; }
-.chart--donut { width: 100%; height: auto; max-height: 520px; }
+/* A donut's content is square. Letting the SVG box stretch to a wide column left
+   it 1.76x wider than its drawing, which pushed the legend far off to the right
+   and read as a squashed layout. Cap it and centre it. */
+.chart--donut {
+  width: 100%;
+  max-width: min(100%, 520px);
+  height: auto;
+  margin-inline: auto;
+  display: block;
+}
 
 /* Slices */
 .c-slice {

@@ -25,6 +25,15 @@ export function fmtInt(n) {
 const esc = (s) =>
   String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+/* SVG text does not wrap or ellipsise, so a long label silently runs out of the
+   chart. Trim to what the column can hold. 7px/char is measured from the rendered
+   label font — 6.2 under-estimated it and still let labels overrun by ~14px. */
+const clip = (s, px) => {
+  const max = Math.floor(px / 7.8);
+  const t = String(s);
+  return t.length <= max ? t : t.slice(0, Math.max(1, max - 1)) + '…';
+};
+
 /*
  * Horizontal bars with a label column. rows: [{label, value, color?}]
  * opts: { fmt, unit, accent }
@@ -48,12 +57,12 @@ export function hBars(rows, opts = {}) {
       const color = r.color || opts.accent || VOLT;
       return `
       <g class="hbar-row" transform="translate(0 ${y})">
-        <text x="${labelW}" y="${rowH / 2}" class="c-lbl" text-anchor="end" dominant-baseline="middle">${esc(r.label)}</text>
+        <text x="${labelW}" y="${rowH / 2}" class="c-lbl" text-anchor="end" dominant-baseline="middle">${esc(clip(r.label, labelW))}</text>
         <rect x="${barX}" y="2" width="${barMax}" height="${rowH - 4}" class="c-track"/>
         <rect x="${barX}" y="2" width="${w}" height="${rowH - 4}" fill="${color}" class="c-bar c-bar-h">
           <title>${esc(r.label)}: ${fmt(r.value)}${opts.unit ? ' ' + opts.unit : ''}</title>
         </rect>
-        <text x="${W}" y="${rowH / 2}" class="c-val" text-anchor="end" dominant-baseline="middle">${fmt(r.value)}</text>
+        <text x="${W - 2}" y="${rowH / 2}" class="c-val" text-anchor="end" dominant-baseline="middle">${fmt(r.value)}</text>
       </g>`;
     })
     .join('');
@@ -135,14 +144,28 @@ export function scatter(points, opts = {}) {
       <text x="${padL - 12}" y="${y}" class="c-lbl" text-anchor="end" dominant-baseline="middle">${v.toFixed(1)}</text>`;
   }
 
-  const dots = points
+  /* SVG has no label-collision engine. Place labels largest-bubble-first and skip
+     any that would land on one already drawn — a missing label beats two on top
+     of each other, and the hover title still carries the name. */
+  const placed = [];
+  const labelFits = (p) => {
+    const x = sx(p.x);
+    const y = sy(p.y) - sr(p.r) - 6;
+    const halfW = Math.max(18, String(p.label).length * 3.4);
+    const hit = placed.some((q) => Math.abs(q.y - y) < 14 && Math.abs(q.x - x) < q.halfW + halfW);
+    if (!hit) placed.push({ x, y, halfW });
+    return !hit;
+  };
+
+  const dots = [...points]
+    .sort((a, b) => (b.r || 0) - (a.r || 0))
     .map(
       (p) => `<g class="c-dot">
         <circle cx="${sx(p.x)}" cy="${sy(p.y)}" r="${sr(p.r)}" fill="${p.color || VOLT}" fill-opacity="0.16" stroke="${p.color || VOLT}" stroke-width="1.25">
           <title>${esc(opts.tip ? opts.tip(p) : `${p.label} — $${p.x} avg · ${p.y}★ · ${fmtInt(p.r)} ratings`)}</title>
         </circle>
         <circle cx="${sx(p.x)}" cy="${sy(p.y)}" r="2.5" fill="${p.color || VOLT}"/>
-        <text x="${sx(p.x)}" y="${sy(p.y) - sr(p.r) - 6}" class="c-pt-lbl" text-anchor="middle">${esc(p.label)}</text>
+        ${labelFits(p) ? `<text x="${sx(p.x)}" y="${sy(p.y) - sr(p.r) - 6}" class="c-pt-lbl" text-anchor="middle">${esc(p.label)}</text>` : ''}
       </g>`
     )
     .join('');
@@ -186,7 +209,8 @@ export function area(series, opts = {}) {
   const xlabels = series
     .map((s, i) =>
       i % every === 0 || i === n - 1
-        ? `<text x="${sx(i)}" y="${H - padB + 24}" class="c-lbl" text-anchor="middle">${esc(s.label)}</text>`
+        ? `<text x="${sx(i)}" y="${H - padB + 24}" class="c-lbl" text-anchor="${
+            i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}">${esc(s.label)}</text>`
         : ''
     )
     .join('');
@@ -243,7 +267,7 @@ export function stackedBars(rows, opts = {}) {
         x += sw;
       });
       return `<g transform="translate(0 ${y})">
-        <text x="${labelW}" y="${rowH / 2}" class="c-lbl" text-anchor="end" dominant-baseline="middle">${esc(r.label)}</text>
+        <text x="${labelW}" y="${rowH / 2}" class="c-lbl" text-anchor="end" dominant-baseline="middle">${esc(clip(r.label, labelW))}</text>
         ${parts}
         <text x="${W}" y="${rowH / 2}" class="c-val" text-anchor="end" dominant-baseline="middle">${fmt(r.total)}</text>
       </g>`;
@@ -298,7 +322,8 @@ export function multiLine(months, series, opts = {}) {
   let xl = '';
   months.forEach((m, i) => {
     if (i % every === 0 || i === n - 1) {
-      xl += `<text x="${sx(i)}" y="${H - padB + 22}" class="c-lbl" text-anchor="middle">${esc(m)}</text>`;
+      xl += `<text x="${sx(i)}" y="${H - padB + 22}" class="c-lbl" text-anchor="${
+        i === 0 ? 'start' : i >= months.length - 1 ? 'end' : 'middle'}">${esc(m)}</text>`;
     }
   });
 
@@ -401,6 +426,9 @@ export function donut(rows, opts = {}) {
         return `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" class="c-slice-pct"
           text-anchor="middle" dominant-baseline="middle">${pct.toFixed(1)}%</text>`;
       }
+      /* Below ~1.5% the leader lines converge and the numbers land on top of each
+         other. The legend already names those slices, so drop the label. */
+      if (pct < 3) return '';
       const [ax, ay] = pt(rOuter + 2, mid);
       const [bx, by] = pt(rOuter + 18, mid);
       const right = Math.cos(mid) >= 0;
@@ -435,27 +463,44 @@ export function donut(rows, opts = {}) {
  * opts: { fmt, leftTitle, rightTitle, minGap }
  */
 export function slope(rows, opts = {}) {
-  const { fmt = (v) => v + '%', leftTitle = '', rightTitle = '', minGap = 15 } = opts;
-  const W = 800;
-  const H = 460;
-  const padT = 54;
-  const padB = 30;
-  const xL = 250;
-  const xR = W - 250;
-  const ih = H - padT - padB;
+  const { fmt = (v) => v + '%', leftTitle = '', rightTitle = '' } = opts;
+  const W = 900;
+  const ROW = 26;                       // vertical room a label needs, in viewBox units
+  const padT = 58;
+  const padB = 28;
+  /* Height follows the series count. A fixed height forced nine labels into space
+     for four, which is what pushed them outside the box. */
+  const ih = Math.max(240, (rows.length - 1) * ROW + 40);
+  const H = padT + ih + padB;
+  const xL = 330;                        // room for "Women (fitness & wellness)"
+  const xR = W - 120;
   const max = Math.max(...rows.flatMap((r) => [r.from, r.to]), 1);
   const sy = (v) => padT + ih - (v / max) * ih;
 
-  /* Spread overlapping labels so none sit on top of another. */
+  /*
+   * Spread labels that would sit on top of each other, without letting the spread
+   * run past either edge. A single downward pass is not enough: seven of nine
+   * audiences cluster under 4%, so pushing them all down overflowed the bottom,
+   * and correcting by shifting the block up then overflowed the top. Two passes
+   * — down from the top, then up from the bottom — settle against both bounds.
+   */
+  const top = padT;
+  const bot = padT + ih;
   const place = (key) => {
-    const sorted = rows
-      .map((r, i) => ({ i, y: sy(r[key]) }))
-      .sort((a, b) => a.y - b.y);
-    for (let k = 1; k < sorted.length; k++) {
-      if (sorted[k].y - sorted[k - 1].y < minGap) sorted[k].y = sorted[k - 1].y + minGap;
+    const order = rows.map((r, i) => ({ i, y: sy(r[key]) })).sort((a, b) => a.y - b.y);
+    for (let k = 1; k < order.length; k++) {
+      order[k].y = Math.max(order[k].y, order[k - 1].y + ROW);
+    }
+    order[order.length - 1].y = Math.min(order[order.length - 1].y, bot);
+    for (let k = order.length - 2; k >= 0; k--) {
+      order[k].y = Math.min(order[k].y, order[k + 1].y - ROW);
+    }
+    order[0].y = Math.max(order[0].y, top);
+    for (let k = 1; k < order.length; k++) {
+      order[k].y = Math.max(order[k].y, order[k - 1].y + ROW);
     }
     const out = [];
-    sorted.forEach((s) => { out[s.i] = s.y; });
+    order.forEach((o) => { out[o.i] = o.y; });
     return out;
   };
   const ly = place('from');
@@ -465,7 +510,6 @@ export function slope(rows, opts = {}) {
     .map((r, i) => {
       const y0 = sy(r.from);
       const y1 = sy(r.to);
-      const up = r.to >= r.from;
       return `<g class="c-slope" data-aud="${esc(r.label)}" tabindex="0" role="button"
                  aria-label="${esc(r.label)}: ${fmt(r.from)} to ${fmt(r.to)}">
         <title>${esc(r.label)} — ${fmt(r.from)} → ${fmt(r.to)}</title>
@@ -473,11 +517,10 @@ export function slope(rows, opts = {}) {
               stroke-width="2.4" class="c-slope-line"/>
         <circle cx="${xL}" cy="${y0}" r="4.5" fill="${r.color}"/>
         <circle cx="${xR}" cy="${y1}" r="4.5" fill="${r.color}"/>
-        <text x="${xL - 12}" y="${ly[i]}" class="c-slope-l" text-anchor="end"
-              dominant-baseline="middle">${esc(r.label)}</text>
-        <text x="${xL - 12}" y="${ly[i] + 13}" class="c-slope-v" text-anchor="end"
-              dominant-baseline="middle" fill="${r.color}">${fmt(r.from)}</text>
-        <text x="${xR + 12}" y="${ry[i]}" class="c-slope-v ${up ? 'up' : 'down'}"
+        <text x="${xL - 14}" y="${ly[i]}" class="c-slope-l" text-anchor="end"
+              dominant-baseline="middle">${esc(clip(r.label, xL - 34 - fmt(r.from).length * 7))}
+          <tspan class="c-slope-v" fill="${r.color}"> ${fmt(r.from)}</tspan></text>
+        <text x="${xR + 14}" y="${ry[i]}" class="c-slope-v" text-anchor="start"
               dominant-baseline="middle" fill="${r.color}">${fmt(r.to)}</text>
       </g>`;
     })
@@ -488,8 +531,8 @@ export function slope(rows, opts = {}) {
     aria-label="Share by audience, ${esc(leftTitle)} versus ${esc(rightTitle)}">
     <text x="${xL}" y="26" class="c-slope-h" text-anchor="middle">${esc(leftTitle)}</text>
     <text x="${xR}" y="26" class="c-slope-h" text-anchor="middle">${esc(rightTitle)}</text>
-    <line x1="${xL}" y1="${padT - 14}" x2="${xL}" y2="${padT + ih}" class="c-grid"/>
-    <line x1="${xR}" y1="${padT - 14}" x2="${xR}" y2="${padT + ih}" class="c-grid"/>
+    <line x1="${xL}" y1="${padT - 16}" x2="${xL}" y2="${padT + ih}" class="c-grid"/>
+    <line x1="${xR}" y1="${padT - 16}" x2="${xR}" y2="${padT + ih}" class="c-grid"/>
     ${body}</svg>`;
 }
 
@@ -506,6 +549,9 @@ export function groupedBars(rows, opts = {}) {
   const valW = 92;
   const barMax = W - barX - valW;
   const H = rows.length * (rowH + gap) + 26;
+  /* Space the second legend key past the first label instead of at a fixed 92px,
+     which "model predicted" overran. */
+  const legendGap = Math.max(92, 26 + aLabel.length * 6.2);
   const max = Math.max(...rows.flatMap((r) => [r.a, r.b]), 1);
 
   const body = rows
@@ -533,8 +579,8 @@ export function groupedBars(rows, opts = {}) {
     <g transform="translate(${barX} 12)">
       <rect width="13" height="7" rx="2" fill="${DIM}" fill-opacity="0.42"/>
       <text x="19" y="6" class="c-lbl">${esc(aLabel)}</text>
-      <rect x="92" width="13" height="7" rx="2" fill="${DIM}"/>
-      <text x="111" y="6" class="c-lbl">${esc(bLabel)}</text>
+      <rect x="${legendGap}" width="13" height="7" rx="2" fill="${DIM}"/>
+      <text x="${legendGap + 19}" y="6" class="c-lbl">${esc(bLabel)}</text>
     </g>${body}</svg>`;
 }
 

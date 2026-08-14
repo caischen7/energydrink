@@ -57,11 +57,34 @@ function erDiagram(er) {
     const [x, y] = POS[id] || [W / 2, H / 2];
     return { x, y, cx: x + BOX.w / 2, cy: y + BOX.h / 2 };
   };
+  /*
+   * Edge labels sat at the exact midpoint, so edges whose midpoints coincide
+   * stacked their labels — and some landed on a table box. Try a few positions
+   * along each edge and take the first that is clear of everything placed so far.
+   */
+  const placedLabels = er.tables.map((t) => {
+    const p2 = anchor(t.label === undefined ? t.id : t.id);
+    return { x: p2.cx, y: p2.cy, w: BOX.w, h: BOX.h };
+  });
+  const freeSpot = (a, b) => {
+    for (const f of [0.5, 0.36, 0.64, 0.28, 0.72]) {
+      const x = a.cx + (b.cx - a.cx) * f;
+      const y = a.cy + (b.cy - a.cy) * f;
+      const hit = placedLabels.some((q) =>
+        Math.abs(q.x - x) < (q.w + 104) / 2 - 6 && Math.abs(q.y - y) < (q.h + 18) / 2 - 4);
+      if (!hit) { placedLabels.push({ x, y, w: 104, h: 18 }); return [x, y]; }
+    }
+    const x = a.cx + (b.cx - a.cx) * 0.5;
+    const y = a.cy + (b.cy - a.cy) * 0.5;
+    placedLabels.push({ x, y, w: 104, h: 18 });
+    return [x, y];
+  };
+
   const edges = er.edges.map((e) => {
     const a = anchor(e.a), b = anchor(e.b);
     const dash = e.kind === 'strong' ? '' : e.kind === 'fuzzy' ? 'stroke-dasharray="6 5"' : 'stroke-dasharray="2 6"';
-    const col = e.kind === 'strong' ? '#0071e3' : e.kind === 'fuzzy' ? '#ff9f0a' : '#c7c7cc';
-    const mx = (a.cx + b.cx) / 2, my = (a.cy + b.cy) / 2;
+    const col = e.kind === 'strong' ? '#2a78d6' : e.kind === 'fuzzy' ? '#eb6834' : '#c3c2b7';
+    const [mx, my] = freeSpot(a, b);
     return `<g class="er-edge">
       <line x1="${a.cx}" y1="${a.cy}" x2="${b.cx}" y2="${b.cy}" stroke="${col}" stroke-width="1.6" ${dash}/>
       <rect x="${mx - 52}" y="${my - 9}" width="104" height="18" rx="9" fill="var(--bg)" opacity=".92"/>

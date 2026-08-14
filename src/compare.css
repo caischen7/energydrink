@@ -28,7 +28,9 @@
 .ck-s { font-size: 10.5px; color: var(--dim); opacity: 0.85; }
 
 /* Slope chart */
-.chart--slope { width: 100%; height: auto; max-height: 480px; }
+/* Height now scales with the series count inside the viewBox, so no max-height —
+   capping it here is what squashed nine rows into space for four. */
+.chart--slope { width: 100%; height: auto; display: block; }
 .c-slope { cursor: pointer; }
 .c-slope-line { transition: stroke-width 0.15s, opacity 0.15s; }
 .c-slope:hover .c-slope-line { stroke-width: 4; }
