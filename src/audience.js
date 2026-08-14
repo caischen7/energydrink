@@ -204,6 +204,33 @@ function renderMakeup() {
   $('#occ-note').textContent = V.occ_note;
 }
 
+
+/* ------------------------------------------------------- data quality audit -- */
+/*
+ * Published rather than kept in a notebook, because two of the corrections on
+ * this site came from exactly this kind of check and the failing row below is
+ * one I got wrong first time round.
+ */
+function renderQuality() {
+  const Q = DATA.data_quality;
+  if (!Q) return;
+  const ICON = { pass: '✓', fail: '✕', partial: '~' };
+  $('#dq-checks').innerHTML = Q.checks.map(([name, state, detail]) => `
+    <li class="dq-row dq-${state}">
+      <span class="dq-i" aria-hidden="true">${ICON[state]}</span>
+      <span class="dq-n">${esc(name)}</span>
+      <span class="dq-d">${esc(detail)}</span>
+    </li>`).join('');
+  $('#dq-blank').innerHTML = Q.blank.map(([c, n, pct]) => `
+    <li><span class="mono">${esc(c)}</span>
+      <span class="dq-bar" style="width:${Math.max(2, pct * 2)}%"></span>
+      <b class="mono">${pct}%</b><span class="dim mono">${int(n)} rows</span></li>`).join('');
+  $('#dq-note').textContent = Q.note;
+  $('#dq-impact').textContent = Q.impact;
+  $('#dq-rows').textContent = int(Q.rows);
+  $('#dq-gtins').textContent = int(Q.gtins);
+}
+
 /* ------------------------------------------------- demand: today vs 2030 ---- */
 /*
  * The same nine audiences at whole-market scale. `auds` above is convenience
@@ -551,6 +578,7 @@ function main(data) {
   renderChart();
   renderChannels();
   renderMakeup();
+  renderQuality();
   renderDemand();
   renderFlavors();
   renderTable();

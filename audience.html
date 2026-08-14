@@ -20,6 +20,7 @@
       <a href="./opportunity.html" data-hover>OPPORTUNITY</a>
       <a href="#channel" data-hover>CHANNEL</a>
       <a href="#makeup" data-hover>MAKEUP</a>
+      <a href="#quality" data-hover>QUALITY</a>
       <a href="#demand" data-hover>DEMAND</a>
       <a href="#flavor" data-hover>FLAVOR</a>
       <a href="#table" data-hover>TABLE</a>
@@ -33,9 +34,9 @@
     <section class="dash-hero">
       <h1 class="dash-title">Target Audience</h1>
       <p class="dash-sub">
-        Every one of the <b class="volt"><i id="skus">—</i></b> products in the point-of-sale
-        data, labelled with the consumer it is built for, then weighed by what it
-        actually sells — <b class="volt"><i id="total">—</i></b> across
+        Every one of the <b class="volt"><i id="skus">—</i></b> distinct products in the
+        point-of-sale data, labelled with the consumer it is built for, then weighed by
+        what it actually sells — <b class="volt"><i id="total">—</i></b> across
         <b class="volt"><i id="brands">—</i></b> brands and nine audiences.
       </p>
     </section>
@@ -118,6 +119,28 @@
         <div><h4 class="dm-h">Occasions consumers report</h4><div id="occ"></div>
           <p class="dt-note" id="occ-note">—</p></div>
       </div>
+    </section>
+
+
+    <section id="quality" class="aud-top">
+      <h2 class="sec-h mono">DATA QUALITY — WHAT THIS EXTRACT GETS WRONG</h2>
+      <p class="sec-note">
+        <b><i id="dq-rows">—</i></b> rows describing <b><i id="dq-gtins">—</i></b> distinct
+        barcodes. Published rather than kept in a notebook, because two of the
+        corrections on this site came from checks like these.
+      </p>
+      <ul id="dq-checks" class="dq-list"></ul>
+      <p class="dt-note" id="dq-note">—</p>
+      <div class="fc-caveat">
+        <h4 class="mono">WHAT IT CHANGES</h4>
+        <p id="dq-impact">—</p>
+      </div>
+      <h3 class="sec-h mono">MISSING FIELDS</h3>
+      <p class="sec-note">
+        Share of rows where PDI's master record leaves the field blank. This is why
+        flavor analysis covers 52% of revenue rather than all of it.
+      </p>
+      <ul id="dq-blank" class="dq-blank"></ul>
     </section>
 
     <section id="demand" class="aud-top">

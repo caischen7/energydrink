@@ -514,3 +514,32 @@ body.drilled .aud-top { display: none; }
 #chan-table .up { color: #1a8a3a; }
 #chan-table .down { color: #c0392b; }
 #chan-table .dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 8px; }
+
+/* data quality audit */
+.dq-list { list-style: none; margin: 1rem 0; padding: 0; }
+.dq-row {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 300px) minmax(0, 1fr);
+  gap: 12px; align-items: baseline;
+  padding: 10px 0; border-top: 1px solid var(--line);
+}
+.dq-i { font-weight: 700; text-align: center; }
+.dq-pass .dq-i { color: #1a8a3a; }
+.dq-fail .dq-i { color: #c0392b; }
+.dq-partial .dq-i { color: #b38600; }
+.dq-n { font-size: 13px; font-weight: 550; }
+.dq-d { font-size: 12px; color: var(--dim); line-height: 1.5; }
+.dq-blank { list-style: none; margin: .8rem 0 0; padding: 0; }
+.dq-blank li {
+  display: grid; grid-template-columns: 190px minmax(0, 1fr) 48px 78px;
+  gap: 10px; align-items: center; padding: 5px 0; font-size: 12px;
+}
+.dq-bar { height: 9px; border-radius: 5px; background: #c0392b; opacity: .55; min-width: 2px; }
+.dq-blank b { text-align: right; font-variant-numeric: tabular-nums; }
+.dq-blank .dim { font-size: 10.5px; text-align: right; }
+@media (max-width: 760px) {
+  .dq-row { grid-template-columns: 20px minmax(0, 1fr); }
+  .dq-d { grid-column: 2; }
+  .dq-blank li { grid-template-columns: 120px minmax(0,1fr) 44px; }
+  .dq-blank .dim { display: none; }
+}
