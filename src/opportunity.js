@@ -81,6 +81,12 @@ function matrix() {
         c.cagr == null ? '' : ` · ${pct(c.cagr)} a year`}">
       <b>${money(c.rev)}</b><span class="mx-s">${c.skus} SKU</span>${grow}</td>`;
   };
+  const sc = O.scaled;
+  if (sc) {
+    $('#mx-scope').textContent =
+      sc.note + ' Flavor is unknown for 470 SKUs, which are excluded. Growth is the 2-year rate to 2025.';
+    $('#mx-caveat').innerHTML = '<b>Not directly comparable:</b> ' + esc(sc.caveat);
+  }
   $('#matrix').innerHTML = `<table class="intel-table mono mx-table">
     <thead><tr><th class="tl">AUDIENCE</th>
       ${O.fams.map((f) => `<th class="mx-h"><span>${esc(f)}</span></th>`).join('')}</tr></thead>

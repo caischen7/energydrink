@@ -81,6 +81,14 @@ INSIGHTS = {
       "scale": "Brand sales and share, 2025 vs 2026",
       "what": "Broader-channel retail dollars — a cross-check on the c-store view.",
       "limit": "Top brands only."
+    },
+    {
+      "id": "passport",
+      "name": "Euromonitor Passport",
+      "kind": "All-channel market intelligence",
+      "scale": "210 rows \u00b7 US energy drinks \u00b7 brand + company share, 2016-2025",
+      "what": "Retail value share by brand and company across every channel including e-commerce, on one consistent methodology for a decade.",
+      "limit": "Modelled estimates, not measured transactions. Brand level only \u2014 no flavor, size or store detail \u2014 and the long tail collapses into a single 'Others' bucket."
     }
   ],
   "insights": [
@@ -227,6 +235,34 @@ INSIGHTS = {
       "finding": "9.6% of recent launches are strawberry; it is 0.1% of sales. Lime, berry, cherry and orange follow the same pattern.",
       "why": "Launch activity is a poor guide to demand. Watermelon is the exception — heavily launched and genuinely growing.",
       "metric": "9.6% of launches, 0.1% of sales"
+    },
+    {
+      "src": "passport", "tier": "headline",
+      "title": "A 210-row table overturned the headline",
+      "finding": "Euromonitor Passport measures every channel and puts the women's fitness audience at 12.1% of US retail value. An earlier estimate that used Mintel MULO to stand in for all non-convenience sales put it at 18.4% \u2014 MULO covers top brands only, so it over-weights Celsius and Alani Nu.",
+      "why": "Row count and analytical value are unrelated. PDI has 1.09 billion rows and sees one channel; Passport has 210 and sees all of them. Triangulate before trusting any single source.",
+      "metric": "women 18.4% \u2192 12.1% after re-anchoring"
+    },
+    {
+      "src": "mintel_survey", "tier": "headline",
+      "title": "Nobody is building for the alcohol occasion",
+      "finding": "16% of consumers use energy drinks as an alcohol mixer and 14% as an alcohol alternative. A further 20% use them to replace coffee, against a coffee-crossover segment measuring 0.2% of convenience sales.",
+      "why": "These occasions are larger than most of the audiences the category segments on, and no major brand is positioned for them. Stated occasions run well ahead of what the shelf offers.",
+      "metric": "30% combined alcohol-adjacent use, no dedicated products"
+    },
+    {
+      "src": "mintel_survey", "tier": "support",
+      "title": "Energy shots are the one shrinking segment",
+      "finding": "Shots fell from $1.09B in 2019 to $0.87B in 2025, forecast to $0.75B by 2030. Drinks grew 13.9% in 2025 alone.",
+      "why": "The 2oz format is in structural decline in measured retail, whatever the trade press says about discretion and portability.",
+      "metric": "shots -20% since 2019 while drinks nearly doubled"
+    },
+    {
+      "src": "combined", "tier": "support",
+      "title": "The $26.9B survives an independent check",
+      "finding": "Mintel publishes spend per household separately from its market total. Dividing one by the other implies 128-135M US households across seven years, against a Census count near 131-132M.",
+      "why": "Two separately derived figures agreeing to within a couple of percent is a real validation of the market size, not a restatement of it.",
+      "metric": "implied households within ~2% of Census, 2019-2025"
     }
   ],
   "er": {

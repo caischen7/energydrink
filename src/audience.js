@@ -11,7 +11,7 @@
 import '@fontsource-variable/inter';
 import './dashboard.css';
 import './audience.css';
-import { donut, groupedBars } from './charts.js';
+import { donut, groupedBars, hBars } from './charts.js';
 import { requireAuth } from './auth.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -153,6 +153,55 @@ function renderChannels() {
 
   $('#chan-notes').innerHTML = order.map(([k, c]) => `
     <li style="--c:${CH_COLOR[k]}"><b>${esc(c.label)}</b> — ${esc(c.note)}</li>`).join('');
+}
+
+
+/* ---------------------------------------- segment, brands, and cross-checks --- */
+/*
+ * Three things that all describe the same $26.9B from different angles: what form
+ * it is sold in, which brands hold it, and whether the total survives an
+ * independent check. The last one matters most — a market figure nobody has
+ * verified is just a number someone published.
+ */
+function renderMakeup() {
+  const D = DATA.demand;
+  const S = D.segments_dw, B = D.brand_dollars, V = D.validation;
+  if (!S || !B || !V) return;
+
+  const last = S.rows[S.rows.length - 2];
+  $('#seg-bars').innerHTML = groupedBars(
+    S.rows.filter((r) => !r.fc).map((r) => ({
+      label: String(r.y), a: r.shots, b: r.drinks, color: r.y === 2025 ? '#0071e3' : '#86868b',
+    })),
+    { fmt: (v) => money(v * 1e6), aLabel: 'Energy shots', bLabel: 'Energy drinks', labelW: 70 }
+  );
+  $('#seg-note').textContent = S.note;
+
+  $('#brand-dollars').innerHTML = hBars(
+    B.rows.map((r, i) => ({ label: r.b, value: r.usd, color: i === 0 ? '#0071e3' : undefined })),
+    { fmt: (v) => money(v * 1e6), labelW: 130, accent: '#c7c7cc' }
+  );
+
+  $('#hh-table').innerHTML = `<table class="intel-table mono">
+    <thead><tr><th class="tl">YEAR</th><th>SPEND / HOUSEHOLD</th><th>IMPLIED US HOUSEHOLDS</th></tr></thead>
+    <tbody>${V.household.rows.map(([y, sp, hh]) => `<tr>
+      <td class="tl">${y}</td><td>$${sp.toFixed(2)}</td><td>${hh}M</td></tr>`).join('')}</tbody></table>`;
+  $('#hh-note').textContent = V.household.note;
+
+  $('#freq').innerHTML = hBars(
+    V.frequency.map(([l, v]) => ({ label: l, value: v, color: l === 'Energy drinks' ? '#0071e3' : undefined })),
+    { fmt: (v) => v + '%', labelW: 190, accent: '#c7c7cc' }
+  );
+  $('#freq-note').textContent = V.freq_note;
+
+  $('#occ').innerHTML = hBars(
+    V.occasions.map(([l, v]) => ({
+      label: l, value: v,
+      color: /alcohol|coffee/i.test(l) ? '#ff375f' : undefined,
+    })),
+    { fmt: (v) => v + '%', labelW: 210, accent: '#c7c7cc' }
+  );
+  $('#occ-note').textContent = V.occ_note;
 }
 
 /* ------------------------------------------------- demand: today vs 2030 ---- */
@@ -501,6 +550,7 @@ function main(data) {
   $('#window').textContent = DATA.window;
   renderChart();
   renderChannels();
+  renderMakeup();
   renderDemand();
   renderFlavors();
   renderTable();
