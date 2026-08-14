@@ -1,14 +1,15 @@
 # Installed skills — provenance & maintenance
 
-A **curated set of 24 skills** lives under `.claude/skills/`, chosen for this
+A **set of 55 skills** lives under `.claude/skills/`, chosen for this
 repo's frontend / marketing landing-page work. One skill (`add-ion-colorway`)
-is authored in this repo; the other 23 are vendored from five public sources
+is authored in this repo; the other 54 are vendored from six public sources
 and committed here so they persist (this environment is ephemeral — only
 committed files survive).
 
 > [!CAUTION]
 > The `anthropics/skills` set is official. `alirezarezvani/claude-skills`,
-> `antigravity-awesome-skills`, `spjoshis/claude-code-plugins` and
+> `antigravity-awesome-skills`, `spjoshis/claude-code-plugins`,
+> `nimrodfisher/data-analytics-skills` and
 > `ipeirotis/cloud-bootstrap` are **community,
 > unverified** (`risk: unknown`). Skills are instructions an agent may auto-load
 > based on their `description`; review one before relying on it and treat bundled
@@ -49,6 +50,32 @@ committed files survive).
   and the one file copied in. Note the skill lives at
   `plugins/data-analyst/skills/data-visualization/`, nested inside a plugin rather
   than at the top level.
+
+## nimrodfisher/data-analytics-skills — community — `8849884` (31)
+
+The full set, requested for the energy-drink analysis work. Six categories:
+
+- **Data quality / validation** — data-quality-audit, programmatic-eda, query-validation,
+  metric-reconciliation, schema-mapper
+- **Documentation** — analysis-assumptions-log, analysis-documentation, data-catalog-entry,
+  semantic-model-builder, sql-to-business-logic
+- **Analysis** — ab-test-analysis, business-metrics-calculator, cohort-analysis,
+  funnel-analysis, root-cause-investigation, segmentation-analysis, time-series-analysis
+- **Storytelling** — dashboard-specification, data-narrative-builder,
+  executive-summary-generator, insight-synthesis, visualization-builder
+- **Stakeholder comms** — analysis-qa-checklist, impact-quantification, methodology-explainer,
+  stakeholder-requirements-gathering, technical-to-business-translator
+- **Workflow** — analysis-planning, analysis-retrospective, context-packager, peer-review-template
+
+> [!WARNING]
+> These bundle **69 Python scripts** — far more executable code than any other vendored
+> set here. A keyword scan flagged network/exec/secret strings in `context-packager` and
+> `schema-mapper`. Nothing has been executed: the two skills used so far
+> (`data-quality-audit`, `analysis-assumptions-log`) were applied by following their
+> written method, not by running their CLIs. Review any script before running it.
+
+`metric-reconciliation` and `schema-mapper` appear twice in the source repo (categories 01
+and 02); the first copy of each was taken.
 
 ## ipeirotis/cloud-bootstrap — community — `f8984b7` (1)
 
