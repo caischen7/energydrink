@@ -145,3 +145,29 @@
   .op-row { grid-template-columns: 24px minmax(0, 1fr); }
   .op-nums { grid-column: 2; text-align: left; }
 }
+
+/* e-commerce signal */
+.ec-list li { padding: 9px 0; border-top: 1px solid var(--line); font-size: 12.5px; line-height: 1.5; }
+.ec-fmt {
+  display: inline-block;
+  font-size: 9.5px;
+  padding: 2px 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  margin-left: 6px;
+  color: var(--dim);
+}
+.ec-list li span.dim { display: block; font-size: 10.5px; margin-top: 3px; }
+.ec-claims { list-style: none; margin: 0; padding: 0; }
+.ec-claims li {
+  display: grid;
+  grid-template-columns: 148px minmax(0, 1fr) 34px;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 0;
+  border-top: 1px solid var(--line);
+}
+.ec-c { font-size: 12.5px; }
+.ec-bar { height: 9px; border-radius: 5px; background: var(--accent); }
+.ec-claims b { text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; }
+.ec-claims b.down { color: #c0392b; }

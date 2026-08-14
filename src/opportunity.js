@@ -128,6 +128,34 @@ function ranked() {
   );
 }
 
+
+/* ------------------------------------------------------- e-commerce signal --- */
+/*
+ * The Amazon scrape is too narrow to measure share — four search terms — so it is
+ * used qualitatively: which *kinds* of brand exist online that never reach a
+ * convenience cooler, and which claims appear in the copy. Both bear directly on
+ * the white space, and both come from a source independent of PDI and Mintel.
+ */
+function ecom() {
+  const E = O.ecom;
+  if (!E) return;
+  $('#ecom-brands').innerHTML = E.absent.map((a) => `
+    <li><b>${esc(a.b)}</b> <span class="ec-fmt mono">${esc(a.fmt)}</span>
+      <span class="mono dim">${esc(a.t)}</span></li>`).join('');
+
+  const max = Math.max(...E.claims.map((c) => c.n), 1);
+  $('#ecom-claims').innerHTML = E.claims.map((c) => `
+    <li>
+      <span class="ec-c">${esc(c.c)}</span>
+      <span class="ec-bar" style="width:${Math.max(1.5, (c.n / max) * 100)}%;
+        ${c.n === 0 ? 'background:#c0392b;min-width:3px' : ''}"></span>
+      <b class="mono ${c.n === 0 ? 'down' : ''}">${c.n}</b>
+    </li>`).join('');
+
+  $('#ecom-caveat').textContent = E.caveat;
+  $('#ecom-n').textContent = `${E.n_absent} of ${E.n_brands}`;
+}
+
 function verdict() {
   const v = O.verdict;
   $('#verdict').innerHTML = `
@@ -151,6 +179,7 @@ function main(data) {
   board();
   matrix();
   ranked();
+  ecom();
   verdict();
   $('#gen-at').textContent =
     new Date(data.generated_at).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
