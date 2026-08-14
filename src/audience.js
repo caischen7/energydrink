@@ -11,7 +11,7 @@
 import '@fontsource-variable/inter';
 import './dashboard.css';
 import './audience.css';
-import { donut } from './charts.js';
+import { donut, groupedBars } from './charts.js';
 import { requireAuth } from './auth.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -108,6 +108,51 @@ function renderChart() {
       <span class="lg-meta mono">${esc(a.age)} · ${esc(a.gender)}</span>
       <span class="lg-v mono">${a.share}%</span>
     </button>`).join('');
+}
+
+
+/* -------------------------------------------------- channel makeup (measured) */
+/*
+ * Where the $26.9B is actually bought. This is measured Mintel data, not a
+ * model — and it is the section that justifies every caveat elsewhere on the
+ * site: convenience, the only channel PDI can see, has shed 8.8 points of share
+ * since 2019 and is the slowest-growing of the three.
+ */
+function renderChannels() {
+  const C = DATA.demand && DATA.demand.channel_detail;
+  if (!C) return;
+  const order = Object.entries(C.chs).sort((a, b) => b[1].y2025 - a[1].y2025);
+  const CH_COLOR = { convenience: '#0071e3', other: '#ff9f0a', supermarket: '#34c759' };
+
+  $('#chan-pie').innerHTML = donut(
+    order.map(([k, c]) => ({ label: c.label, value: c.y2025, color: CH_COLOR[k] })),
+    { size: 380, thickness: 88, fmt: (v) => money(v * 1e6), minLabelPct: 6,
+      centerValue: money(C.tot25 * 1e6), centerLabel: 'US MARKET 2025' }
+  );
+
+  $('#chan-bars').innerHTML = groupedBars(
+    order.map(([k, c]) => ({ label: c.label, a: c.y2019, b: c.y2025, color: CH_COLOR[k] })),
+    { fmt: (v) => money(v * 1e6), aLabel: '2019', bLabel: '2025', labelW: 150 }
+  );
+
+  $('#chan-table').innerHTML = `<table class="intel-table mono">
+    <thead><tr><th class="tl">CHANNEL</th><th>2019</th><th>2025</th>
+      <th>SHARE 2019</th><th>SHARE 2025</th><th>Δ SHARE</th>
+      <th>6-YR CAGR</th><th>2025 YoY</th></tr></thead>
+    <tbody>${order.map(([k, c]) => `<tr>
+      <td class="tl"><span class="dot" style="background:${CH_COLOR[k]}"></span>${esc(c.label)}</td>
+      <td>${money(c.y2019 * 1e6)}</td><td><b>${money(c.y2025 * 1e6)}</b></td>
+      <td>${c.share19}%</td><td>${c.share25}%</td>
+      <td class="${c.dshare >= 0 ? 'up' : 'down'}">${c.dshare >= 0 ? '+' : ''}${c.dshare}pp</td>
+      <td class="${c.cagr6 >= 0 ? 'up' : 'down'}">+${c.cagr6}%</td>
+      <td class="${c.yoy >= 0 ? 'up' : 'down'}">+${c.yoy}%</td></tr>`).join('')}
+      <tr class="tot-row"><td class="tl">TOTAL</td>
+        <td>${money(C.tot19 * 1e6)}</td><td><b>${money(C.tot25 * 1e6)}</b></td>
+        <td>100%</td><td>100%</td><td>—</td><td>+${C.cagr6}%</td><td>—</td></tr>
+    </tbody></table>`;
+
+  $('#chan-notes').innerHTML = order.map(([k, c]) => `
+    <li style="--c:${CH_COLOR[k]}"><b>${esc(c.label)}</b> — ${esc(c.note)}</li>`).join('');
 }
 
 /* ------------------------------------------------- demand: today vs 2030 ---- */
@@ -455,6 +500,7 @@ function main(data) {
   $('#brands').textContent = int(DATA.brands);
   $('#window').textContent = DATA.window;
   renderChart();
+  renderChannels();
   renderDemand();
   renderFlavors();
   renderTable();
