@@ -204,12 +204,31 @@ Audience split is anchored on **Euromonitor Passport** (all-channel, 210 rows) �
 aggregates into `public/data/dashboard.json` (licensed CSVs stay untracked under `data/bq/`).
 `fetch_sec_edgar.py` is written but **cannot run here** — the egress proxy denies sec.gov (403).
 
-### Verification harness (no test runner is configured)
-Install `playwright` as a dev dep **temporarily** — deliberately not in `package.json`, to keep the
-Docker build lean — then `npm run build`, `cp -r public/data dist/`, `npx vite preview --port 4173`,
-and point Chromium at `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`. Five suites live in the
-session scratchpad: structure, interaction, responsive, facts, opportunity. This caught a
-`D is not defined` bug that `npm run build` passed cleanly, and a click-blocking SVG label.
+### Verification harness — `npm run check`
+```bash
+npm i -D playwright          # deliberately NOT in package.json: it would triple the Docker build
+npm run build && cp -r public/data dist/
+npx vite preview --port 4173 &
+npm run check                # 359 checks; or: npm run check -- charts facts
+```
+`data/scripts/check_site.mjs` runs four suites over all seven pages:
+
+| Suite | What it catches |
+| --- | --- |
+| `structure` | runtime errors, empty chart containers, missing h1/alt |
+| `charts` | at 1440px **and** 390px: box-vs-content distortion, labels escaping the frame, overlapping labels, **truncated labels** |
+| `responsive` | horizontal scroll, text under 9.5px, at three widths |
+| `facts` | every number in page copy still matches the aggregate it came from |
+
+**`npm run build` catches none of this** — it compiled a page that threw
+`D is not defined` at runtime just as happily as a working one. The chart suite exists because
+three rounds of chart work each fixed a defect the previous round introduced (overflow →
+truncation → an off-by-one between the sizing and clipping constants). Run it before every push
+that touches `src/charts.js` or any page copy carrying a number.
+
+One gotcha if you extend it: measure text geometry in **screen space**. `getBBox()` returns
+coordinates local to a transformed `<g>`, and `hBars` wraps every row in one — measuring that way
+once reported 132 collisions on a 12-row chart, all phantom.
 
 ### Open items
 1. **Deploy** — only the user can run it.
