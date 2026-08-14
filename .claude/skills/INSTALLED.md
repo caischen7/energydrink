@@ -1,14 +1,15 @@
 # Installed skills — provenance & maintenance
 
-A **curated set of 23 skills** lives under `.claude/skills/`, chosen for this
+A **curated set of 24 skills** lives under `.claude/skills/`, chosen for this
 repo's frontend / marketing landing-page work. One skill (`add-ion-colorway`)
-is authored in this repo; the other 22 are vendored from four public sources
+is authored in this repo; the other 23 are vendored from five public sources
 and committed here so they persist (this environment is ephemeral — only
 committed files survive).
 
 > [!CAUTION]
 > The `anthropics/skills` set is official. `alirezarezvani/claude-skills`,
-> `antigravity-awesome-skills`, and `ipeirotis/cloud-bootstrap` are **community,
+> `antigravity-awesome-skills`, `spjoshis/claude-code-plugins` and
+> `ipeirotis/cloud-bootstrap` are **community,
 > unverified** (`risk: unknown`). Skills are instructions an agent may auto-load
 > based on their `description`; review one before relying on it and treat bundled
 > scripts as untrusted code. **`cloud-bootstrap` handles cloud credentials and
@@ -35,6 +36,19 @@ committed files survive).
 
 - frontend-ui-dark-ts (the single skill explicitly requested; React/Tailwind/
   Framer Motion — not directly used by this vanilla three.js site)
+
+## spjoshis/claude-code-plugins — community — `ddcf16e` (1)
+
+- **data-visualization** — chart-selection guide, dashboard layout principles and
+  data-storytelling practice. Guidance text only: a single `SKILL.md`, no scripts
+  and no network calls (checked before installing).
+
+  Requested as `npx skillfish add spjoshis/claude-code-plugins data-visualization`.
+  skillfish could not fetch it — this environment's `GITHUB_TOKEN` returns 401 and
+  the unauthenticated GitHub API was rate-limited — so the repo was cloned directly
+  and the one file copied in. Note the skill lives at
+  `plugins/data-analyst/skills/data-visualization/`, nested inside a plugin rather
+  than at the top level.
 
 ## ipeirotis/cloud-bootstrap — community — `f8984b7` (1)
 
