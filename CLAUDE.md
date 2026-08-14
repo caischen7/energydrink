@@ -162,59 +162,61 @@ security caveat, and uninstall instructions.
 - Raw scraper data stays out of the repo — only regenerated CSVs under `data/`
   are tracked.
 
-## Status & handoff (updated 2026-08-10)
+## Status & handoff (updated 2026-08-14)
 
 **TL;DR for a new agent**
-- **Branch:** all current work is on **`claude/wizardly-galileo-w6grgo`** (the
-  default branch) — head `76eacb3`. `npm install && npm run build` is green and
-  emits **seven** pages. Note `claude/pensive-bell-9idinw` has diverged with a
-  separate lineage ("agent team" work) that has never been merged; ask before
-  integrating it.
-- **Not yet deployed.** Everything below exists in the repo but the live Cloud
-  Run service predates it. Deploy from Google Cloud Shell:
-  `cd ~/energydrink && git pull && GCP_PROJECT=msbai-dwd-csc9720 ./deploy.sh`
-  (the `GCP_PROJECT=` prefix is required — without it the script targets a
-  project with BigQuery read access only, which is the old `AUTH_PERMISSION_DENIED`).
-  Service name is **`bogus-banana`**.
+- **Branch:** `claude/wizardly-galileo-w6grgo` (default) — head `233355c`.
+  `npm install && npm run build` is green and emits **seven** pages.
+  `claude/pensive-bell-9idinw` has diverged with unmerged "agent team" work — ask before touching it.
+- **NOT DEPLOYED.** Everything below is repo-only; the live Cloud Run service predates all of it:
+  `cd ~/energydrink && git pull && GCP_PROJECT=msbai-dwd-csc9720 ./deploy.sh` (the prefix is
+  required — without it the script targets a BigQuery-read-only project). Service: **`bogus-banana`**.
 
-### Pages (all gated by `auth.js`, creds in `docs/CREDENTIALS.md`)
-| Page | What it is |
-| --- | --- |
-| `index.html` | the marketing site + 3D can |
-| `dashboard.html` | 19 chart panels, paginated one per view |
-| `insights.html` | 18 findings grouped by source + ER diagram |
-| `segments.html` | need-state treemap |
-| `audience.html` | **nine target audiences** — c-store donut, total US demand 2025, 2030 forecast, flavor analysis, full sortable SKU lists |
-| `compare.html` | **2025 vs 2030** — slope, paired bars, growth attribution |
-| `opportunity.html` | **board panel + White Space Finder + verdict** |
+### Pages (gated by `auth.js`; creds in `docs/CREDENTIALS.md`)
+`index` · `dashboard` (19 paginated panels) · `insights` (22 findings, 8 sources, ER diagram) ·
+`segments` (need-state treemap) · `audience` (channel, makeup, demand, flavor, full SKU lists) ·
+`compare` (2025 vs 2030) · `opportunity` (board, White Space Finder, price×size, verdict)
 
-### The audience analysis (the spine of the newer pages)
-`data/scripts/classify_target_consumers.py` labels all 2,309 PDI SKUs with
-`target_consumer` / `target_age` / `target_gender` / `target_notes` /
-`flavor_family`. Ages and gender come from MRI-Simmons 2024 where measured
-(7 brands), published positioning for ~35 more, product attributes for the tail.
-`data/scripts/add_audiences.py` embeds the reduced aggregate (SKU lists, flavor
-mix, demand, opportunity, board) into `public/data/dashboard.json` — the licensed
-PDI CSVs stay untracked under `data/bq/` (gitignored).
+### The numbers that matter, and where they came from
+US market **$26.9B (2025) → $38.6B (2030)**, Mintel central, 90% band $30.0–47.2B.
+Channels: convenience $16.1B (59.9%, and **down 8.8pp of share since 2019**), other $7.2B, supermarket $3.6B.
+Audience split is anchored on **Euromonitor Passport** (all-channel, 210 rows) — *not* on PDI or MULO.
 
-**Key numbers, all reproducible from the aggregate:** US market $26.9B (2025) →
-$38.6B (2030, Mintel central, 90% band $30.0–47.2B). Convenience is 59.9% of it.
-Women (fitness & wellness) are 11.8% of convenience sales but **28.2% of
-multi-outlet**, 18.4% of total demand today, and take **51% of all growth to 2030**.
+**Two corrections already made — do not reintroduce them:**
+1. An earlier build used Mintel MULO to represent all non-convenience sales and put the women's
+   audience at 18.4% of 2025 demand. MULO is top-brands-only, which over-weights Celsius and
+   Alani Nu. Passport measures **12.1%**; the site now says **13.2%** after the tail is allocated.
+   The superseded estimate is kept at `demand.alt_mulo` for audit.
+2. The site claimed the women's trend "has not yet slowed". It has: annual share gains ran
+   +2.4, +4.1, +2.9, **+1.0pp** (2025), while the 2030 projection implies 1.84pp/yr.
 
-### Verification harness
-No test runner is configured, but Playwright drives the built site. Install
-`playwright` as a dev dep **temporarily** (it is deliberately not in
-`package.json`, to keep the Docker build lean), run `npm run build`, copy
-`public/data` into `dist/`, `npx vite preview --port 4173`, then point Chromium at
-`/opt/pw-browsers/chromium-1194/chrome-linux/chrome`. Doing this caught a
-`D is not defined` bug that `npm run build` passed cleanly.
+### Data sources, by leverage rather than size
+| Source | Rows | What it is good for |
+| --- | --- | --- |
+| `pdi_daily_agg` | 1.09B (420 GB) | SKU/store/week detail. **Convenience only, and a sample of it** (~8.6% of that channel). Each full scan costs ~$0.35–0.55 — dry-run first. |
+| `passport_*` | 436 total | All-channel brand share 2016–2025. Effectively free to query. Overturned a headline built on the billion-row table. |
+| `mintel_*` | 7–21 each | Market size/forecast, channels, segments, occasions, household spend. Free. |
+| `simmons_brand_profiles` | 603 | Measured audience demographics — 7 brands only. |
+
+### Scripts
+`classify_target_consumers.py` labels all 2,309 SKUs (audience/age/gender/notes/flavor_family).
+`add_audiences.py` · `add_insights.py` · `add_segments.py` · `add_bq_panels.py` embed reduced
+aggregates into `public/data/dashboard.json` (licensed CSVs stay untracked under `data/bq/`).
+`fetch_sec_edgar.py` is written but **cannot run here** — the egress proxy denies sec.gov (403).
+
+### Verification harness (no test runner is configured)
+Install `playwright` as a dev dep **temporarily** — deliberately not in `package.json`, to keep the
+Docker build lean — then `npm run build`, `cp -r public/data dist/`, `npx vite preview --port 4173`,
+and point Chromium at `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`. Five suites live in the
+session scratchpad: structure, interaction, responsive, facts, opportunity. This caught a
+`D is not defined` bug that `npm run build` passed cleanly, and a click-blocking SVG label.
 
 ### Open items
-1. **Deploy** (above) — only the user can run it.
+1. **Deploy** — only the user can run it.
 2. `claude/pensive-bell-9idinw` divergence — needs a decision.
-3. Gamers & creators and Health-conscious adults are **held at floors** in the
-   2030 split, not trended, because e-commerce and natural grocery are invisible
-   in both PDI and MULO. If a channel source for those ever lands, replace the floors.
-4. Old admin credential (`yamazato1234`) remains in git history. Fine while the
-   repo is private; scrub before making it public.
+3. Run `fetch_sec_edgar.py` from Cloud Shell; paste output to fold in channel commentary.
+4. Gamers & creators and Health-conscious adults are **held at floors** in the 2030 split and kept
+   at convenience scale in the White Space grid — Passport lists no brands for them. Replace if a
+   channel source ever lands.
+5. Old admin credential (`yamazato1234`) is still in git history. Fine while private; scrub before
+   making the repo public.
