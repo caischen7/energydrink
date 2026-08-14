@@ -162,6 +162,52 @@ function ecom() {
   $('#ecom-n').textContent = `${E.n_absent} of ${E.n_brands}`;
 }
 
+
+/* ------------------------------------------------------ price x size grid --- */
+/*
+ * The one chart on this site that changes a number in the launch spec.
+ *
+ * Pooled across formats the best-yielding price rung looks like $3.00-3.49, but
+ * that is 12oz economics leaking through the pool. Held at 16 oz — the can this
+ * brand actually sells — the ranking inverts. Colour is revenue per SKU, so a
+ * dense cell means each product there earns more, not that the cell is bigger.
+ */
+function priceGrid() {
+  const G = O.price_grid;
+  if (!G) return;
+  const cells = G.grid.flatMap((r) => r.rows.filter((c) => c.skus >= 5).map((c) => c.rps));
+  const max = Math.max(...cells, 1);
+  const ours = G.our_size;
+
+  $('#pg-table').innerHTML = `<table class="intel-table mono mx-table">
+    <thead><tr><th class="tl">CAN SIZE</th>
+      ${G.bands.map((b) => `<th class="mx-h"><span>${esc(b)}</span></th>`).join('')}
+      <th>TOTAL</th></tr></thead>
+    <tbody>${G.grid.map((r) => `<tr class="${r.size === ours ? 'pg-ours' : ''}">
+      <td class="tl mx-aud">${esc(r.size)}${r.size === ours ? ' <b class="pg-tag">our can</b>' : ''}</td>
+      ${r.rows.map((c) => {
+        if (!c.skus) return '<td class="mx-cell mx-empty">·</td>';
+        const a = c.skus >= 5 ? Math.min(1, c.rps / max) : 0.06;
+        return `<td class="mx-cell" style="--a:${a.toFixed(2)}"
+          title="${esc(r.size)} at ${esc(c.band)} — ${money(c.rev)} across ${c.skus} SKUs, ${money(c.rps)} per SKU">
+          <b>${money(c.rps)}</b><span class="mx-s">${c.skus} SKU · ${money(c.rev)}</span></td>`;
+      }).join('')}
+      <td class="mx-cell mx-tot">${money(r.tot)}</td></tr>`).join('')}</tbody></table>`;
+
+  const b = G.best;
+  $('#pg-compare').innerHTML = Object.entries(b).map(([size, x]) => `
+    <div class="pg-card ${size === ours ? 'on' : ''}">
+      <span class="pg-size mono">${esc(size)}${size === ours ? ' — OUR FORMAT' : ''}</span>
+      <p class="pg-best">Best rung: <b>${esc(x.band)}</b></p>
+      <p class="pg-rps">${money(x.rps)} <span>per SKU</span></p>
+      <p class="pg-vs mono">vs ${esc(x.next)} at ${money(x.next_rps)} — ${x.delta_pct >= 0 ? '+' : ''}${x.delta_pct}%</p>
+    </div>`).join('');
+
+  $('#pg-headline').textContent = G.headline;
+  $('#pg-note').textContent = G.note;
+  $('#pg-corridor').textContent = G.corridor_pct + '%';
+}
+
 function verdict() {
   const v = O.verdict;
   $('#verdict').innerHTML = `
@@ -186,6 +232,7 @@ function main(data) {
   matrix();
   ranked();
   ecom();
+  priceGrid();
   verdict();
   $('#gen-at').textContent =
     new Date(data.generated_at).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';

@@ -13,7 +13,7 @@ import '@fontsource-variable/inter';
 import './dashboard.css';
 import './audience.css';
 import './compare.css';
-import { slope, groupedBars, donut } from './charts.js';
+import { slope, groupedBars, donut, vBars } from './charts.js';
 import { requireAuth } from './auth.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -191,6 +191,20 @@ function cardsView() {
     </article>`).join('');
 }
 
+/* Annual gain, not level — the level rises every year and hides the slowdown. */
+function paceView() {
+  const P = D.women_pace;
+  if (!P) return;
+  const rows = P.gains.map((g) => ({
+    label: String(g.y), value: g.gain,
+    color: g.gain === Math.max(...P.gains.map((x) => x.gain)) ? '#34c759'
+         : g.y === P.gains[P.gains.length - 1].y ? '#c0392b' : '#86868b',
+  }));
+  rows.push({ label: '2026–30\nneeded', value: P.implied, color: '#0071e3' });
+  $('#pace').innerHTML = vBars(rows, { fmt: (v) => '+' + v.toFixed(1) + 'pp' });
+  $('#pace-note').textContent = P.note;
+}
+
 /* ------------------------------------------------------------------- boot --- */
 function main(data) {
   A = data.audiences;
@@ -206,6 +220,7 @@ function main(data) {
   slopeView();
   barsView();
   contribView();
+  paceView();
   tableView();
   cardsView();
 

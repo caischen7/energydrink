@@ -171,3 +171,20 @@
 .ec-bar { height: 9px; border-radius: 5px; background: var(--accent); }
 .ec-claims b { text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; }
 .ec-claims b.down { color: #c0392b; }
+
+/* price x size grid */
+.pg-ours td { background-image: linear-gradient(0deg, rgba(0,113,227,.06), rgba(0,113,227,.06)); }
+.pg-tag {
+  font-size: 8.5px; letter-spacing: .09em; color: var(--accent);
+  border: 1px solid var(--accent); border-radius: 999px; padding: 1px 6px; margin-left: 6px;
+}
+.mx-tot { font-variant-numeric: tabular-nums; font-weight: 600; background: none !important; }
+.pg-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; margin: 1.2rem 0; }
+.pg-card { border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem; }
+.pg-card.on { border-color: var(--accent); border-width: 2px; }
+.pg-size { font-size: 9.5px; letter-spacing: .11em; color: var(--dim); }
+.pg-card.on .pg-size { color: var(--accent); }
+.pg-best { margin: .5rem 0 .2rem; font-size: 13px; }
+.pg-rps { margin: 0; font-size: 1.5rem; font-weight: 640; letter-spacing: -.02em; }
+.pg-rps span { font-size: 11px; font-weight: 400; color: var(--dim); }
+.pg-vs { margin: .3rem 0 0; font-size: 11px; color: var(--dim); }
