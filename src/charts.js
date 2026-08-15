@@ -318,7 +318,7 @@ export function multiLine(months, series, opts = {}) {
   const ih = H - padB - padT;
   const n = months.length;
   const every = opts.labelEvery || 12;
-  const max = Math.max(...series.flatMap((s) => s.values), 1) * 1.12;
+  const max = opts.max || Math.max(...series.flatMap((s) => s.values), 1) * 1.12;
   const sx = (i) => padL + (n === 1 ? iw / 2 : (i / (n - 1)) * iw);
   const sy = (v) => padT + ih - (v / max) * ih;
   const yUnit = opts.yUnit || '%';
@@ -346,7 +346,7 @@ export function multiLine(months, series, opts = {}) {
       const len = pts.reduce((a, p, i) => (i ? a + Math.hypot(p[0] - pts[i - 1][0], p[1] - pts[i - 1][1]) : 0), 0);
       const end = pts[pts.length - 1];
       return `<path d="${path}" fill="none" stroke="${color}" stroke-width="2.25" class="c-mline" style="--len:${len.toFixed(0)}">
-          <title>${esc(s.brand)}</title></path>
+          <title>${esc(s.name || s.brand)}</title></path>
         <circle cx="${end[0]}" cy="${end[1]}" r="3" fill="${color}"/>`;
     })
     .join('');
@@ -358,7 +358,7 @@ export function multiLine(months, series, opts = {}) {
       const x = padL + si * (iw / perRow);
       return `<g transform="translate(${x.toFixed(0)} ${H - 20})">
         <rect width="16" height="3" y="-4" fill="${color}"/>
-        <text x="22" y="0" class="c-lbl" dominant-baseline="middle">${esc(s.brand)}</text></g>`;
+        <text x="22" y="0" class="c-lbl" dominant-baseline="middle">${esc(s.name || s.brand)}</text></g>`;
     })
     .join('');
 
@@ -596,3 +596,25 @@ export function groupedBars(rows, opts = {}) {
 }
 
 export { VOLT, ICE, DIM, LINE, SERIES_COLORS };
+
+
+/* Reveal panels as they scroll in. Lives here so every page that renders these
+   marks can opt in with one call instead of each re-implementing the observer -
+   the opportunity page had no observer at all, which is how its bars ended up
+   permanently at scaleX(0). Panels already on screen are revealed immediately,
+   and with no IntersectionObserver everything is simply shown. */
+export function revealCards(root = document) {
+  const cards = [...root.querySelectorAll('.panel-card')];
+  if (!('IntersectionObserver' in window)) {
+    cards.forEach((c) => c.classList.add('in'));
+    return;
+  }
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      e.target.classList.add('in');
+      io.unobserve(e.target);
+    });
+  }, { threshold: 0.12 });
+  cards.forEach((c) => io.observe(c));
+}

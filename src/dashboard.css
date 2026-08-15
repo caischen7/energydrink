@@ -141,16 +141,26 @@
 .c-dot:hover circle:first-child { fill-opacity: 0.4; }
 .c-area { fill: rgba(0, 113, 227, 0.08); }
 
-/* entrance animation, gated by .in on the panel */
-.c-bar-h { transform: scaleX(0); transform-origin: left center; transition: transform 1s var(--ease-out); }
-.c-bar-v { transform: scaleY(0); transition: transform 0.9s var(--ease-out); }
-.c-line, .c-mline { stroke-dasharray: var(--len); stroke-dashoffset: var(--len); transition: stroke-dashoffset 1.6s var(--ease-out); }
+/* Entrance animation, gated by .in on the panel.
+ *
+ * The hidden state is scoped to `.panel-card:not(.in)` rather than applied to
+ * the mark globally. Written the other way round, any chart that is not inside
+ * a .panel-card - or is inside one the observer never reaches - renders at
+ * scaleX(0) forever. That is exactly what happened to the opportunity page's
+ * concept and claim bars: correct widths in the DOM, permanently invisible on
+ * screen, and no error anywhere. An animation that fails should fail visible. */
+.c-bar-h { transform-origin: left center; transition: transform 1s var(--ease-out); }
+.c-bar-v { transition: transform 0.9s var(--ease-out); }
+.c-line, .c-mline { transition: stroke-dashoffset 1.6s var(--ease-out); }
 .c-mlbl { font-size: 11px; }
-.c-dot, .c-area { opacity: 0; transition: opacity 0.8s ease 0.4s; }
-.panel-card.in .c-bar-h { transform: scaleX(1); }
-.panel-card.in .c-bar-v { transform: scaleY(1); }
-.panel-card.in .c-line, .panel-card.in .c-mline { stroke-dashoffset: 0; }
-.panel-card.in .c-dot, .panel-card.in .c-area { opacity: 1; }
+.c-dot, .c-area { transition: opacity 0.8s ease 0.4s; }
+
+.panel-card:not(.in) .c-bar-h { transform: scaleX(0); }
+.panel-card:not(.in) .c-bar-v { transform: scaleY(0); }
+.panel-card:not(.in) .c-line,
+.panel-card:not(.in) .c-mline { stroke-dasharray: var(--len); stroke-dashoffset: var(--len); }
+.panel-card:not(.in) .c-dot,
+.panel-card:not(.in) .c-area { opacity: 0; }
 
 /* ---------- rising / cooling leaderboard ---------- */
 .rank-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; width: 100%; }
@@ -364,4 +374,7 @@ body.gated { overflow: hidden; }
 .subnav a:hover, .subnav a:focus-visible { color: var(--accent); }
 
 /* clear both sticky rows when jumping to an anchor */
-body.dash { scroll-padding-top: calc(var(--bar-h) + 40px); }
+body.dash { scroll-padding-top: calc(var(--bar-h) + 44px); }
+/* Anchored sections clear both sticky rows; without this, jumping to a
+   section parks its own heading underneath the subnav. */
+.dash-main section[id] { scroll-margin-top: calc(var(--bar-h) + 52px); }

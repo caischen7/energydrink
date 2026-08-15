@@ -18,7 +18,7 @@ import '@fontsource-variable/inter';
 import './dashboard.css';
 import './audience.css';
 import './opportunity.css';
-import { hBars } from './charts.js';
+import { hBars, multiLine, revealCards } from './charts.js';
 import { requireAuth } from './auth.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -337,6 +337,94 @@ function ecom() {
 }
 
 
+/* ------------------------------------------------------------ survival ----- */
+/*
+ * The number the rest of this page was missing. Everything above says where the
+ * gap is; this says what has historically happened to products that launched
+ * into one.
+ *
+ * Two figures are shown side by side on purpose. The naive curve — a SKU is
+ * alive if it registered any sale — puts three-year survival at 95%, which is
+ * not a believable CPG number and is an artifact of half these barcodes peaking
+ * under $22K a year. Requiring a live year to be at least 10% of the SKU's own
+ * peak drops it to 51%. The distance between the two is itself the finding, so
+ * both are drawn rather than one being quietly chosen.
+ */
+function survival() {
+  const S = O.survival;
+  if (!S) {
+    $('#sv-kpis').innerHTML =
+      '<p class="sec-note">No survival data — run data/scripts/add_survival.py.</p>';
+    return;
+  }
+  const Y = S.year_one;
+
+  $('#sv-n').textContent = S.n_launches.toLocaleString();
+  $('#sv-y3').textContent = S.y3 + '%';
+  $('#sv-scale').textContent = S.scale.pct + '%';
+
+  $('#sv-kpis').innerHTML = [
+    ['Still selling at year 3', S.y3 + '%', `${S.n_launches} launches since ${S.window.first_cohort}`],
+    ['Still selling at year 5', S.y5 + '%', 'roughly one launch in four'],
+    ['Ever cleared $1M a year', S.scale.pct + '%', `${S.scale.hit} of ${S.scale.n} judged`],
+    ['Of those, alive at year 3', S.scaled_y3 + '%', `${S.scaled_n} that reached scale`],
+  ].map(([k, v, n]) => `<div class="sv-k">
+      <b>${esc(v)}</b><span class="sv-kk">${esc(k)}</span>
+      <span class="sv-kn mono">${esc(n)}</span></div>`).join('');
+
+  /* Curve. Year 0 pinned at 100 so the first drop is visible as a drop. */
+  const yrs = ['0', ...S.curve.map((p) => String(p.yr))];
+  $('#sv-curve').innerHTML = multiLine(yrs, [
+    { name: 'Still commercially present', color: '#0071e3',
+      values: [100, ...S.curve.map((p) => p.surv)] },
+    { name: 'Any sale at all (too generous)', color: '#c7c7cc',
+      values: [100, ...S.naive.map((p) => p.surv)] },
+  ], { labelEvery: 1, yUnit: '%', max: 100 });
+  $('#sv-curve-note').textContent =
+    `Kaplan-Meier, censored at ${S.window.last_complete}. The grey line counts a barcode as ` +
+    `alive on any sale at all and reads ${S.naive_y3}% at year three; half of these SKUs peak under ` +
+    `$22K a year, so that line is measuring residual stock. The blue line requires a live ` +
+    `year to be at least ${S.material_pct}% of the SKU's own peak.`;
+
+  if (Y) {
+    $('#sv-y1').innerHTML = hBars(
+      Y.bands.map((b) => ({
+        label: b.band, value: b.pct,
+        color: b.pct === 0 ? '#c0392b' : '#0071e3',
+      })),
+      { fmt: (v) => v.toFixed(1) + '%', labelW: 130 }
+    );
+    $('#sv-y1-note').innerHTML =
+      `Share of launches reaching <b>${money(Y.bar)} of revenue in year three</b>, by how big their ` +
+      `first year was. ${Y.hits} of ${Y.n} launches cleared it. Nothing below a first year of ` +
+      `<b>${money(Y.floor)}</b> ever did — the two bottom quartiles are empty, not merely low. ` +
+      `Read it as a gate rather than a forecast: a strong first year does not make a product, ` +
+      `but a weak one has so far always ended it.`;
+  } else {
+    $('#sv-y1').innerHTML = '<p class="sec-note">Too few outcomes to rank first years.</p>';
+  }
+
+  const cutTable = (sel, C) => {
+    $(sel).innerHTML = `<table class="intel-table mono sv-tbl">
+      <thead><tr><th class="tl">${esc(C.label).toUpperCase()}</th><th>LAUNCHES</th>
+        <th>ALIVE Y3</th><th>HIT $1M</th></tr></thead>
+      <tbody>${C.rows.map((r) => `<tr class="${r.thin ? 'sv-thin' : ''}">
+        <td class="tl">${esc(r.name)}${r.thin ? ' <i class="sv-flag">thin</i>' : ''}</td>
+        <td>${r.n}</td><td>${r.y3}%</td>
+        <td>${r.scale_pct == null ? '—' : r.scale_pct + '%'}</td></tr>`).join('')}</tbody>
+    </table>
+    <p class="dt-note">Rows marked <i>thin</i> have fewer than 25 launches; treat them as
+      direction, not as a rate.</p>`;
+  };
+  cutTable('#sv-fam', S.by_fam);
+  cutTable('#sv-aud', S.by_aud);
+
+  $('#sv-method').innerHTML = '<b>How this is measured:</b> ' + esc(S.method) +
+    ' A launch is the ' + esc(S.launch_rule) + '.';
+  $('#sv-caveat').innerHTML = '<b>What it cannot see:</b> ' + esc(S.caveat);
+}
+
+
 /* ------------------------------------------------------ price x size grid --- */
 /*
  * The one chart on this site that changes a number in the launch spec.
@@ -435,8 +523,12 @@ function main(data) {
   matrix();
   ranked();
   ecom();
+  survival();
   priceGrid();
   verdict();
+  /* Nothing on this page was revealing its panels, so every animated mark sat
+     at scaleX(0). Called after all render functions, so it sees their nodes. */
+  revealCards();
   $('#gen-at').textContent =
     new Date(data.generated_at).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
 }

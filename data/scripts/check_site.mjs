@@ -164,6 +164,61 @@ if (run('charts')) {
   }
 }
 
+/* --------------------------------------------------------- 2b. visible --- */
+/*
+ * A mark can have perfect geometry and still never appear. The entrance
+ * animation starts bars at scaleX(0) and lines at a full stroke-dashoffset,
+ * released by an .in class on the panel; the opportunity page had no observer
+ * adding it, so its bars sat at zero width permanently. Correct in the DOM,
+ * invisible on screen, no console error, and every other suite green.
+ *
+ * Each mark is scrolled to individually and measured after the transition
+ * would have landed. Measuring after a single sweep instead produced false
+ * positives: revealAll() un-hides paginated panels outside the flow their
+ * observer expects, so they report as unpainted when a real reader would
+ * never see them that way.
+ */
+if (run('visible')) {
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  const page = await ctx.newPage();
+  for (const f of PAGES) {
+    await open(page, f);
+    await revealAll(page);
+    const n = await page.evaluate(() =>
+      document.querySelectorAll('.c-bar-h, .c-bar-v, .c-mline, .c-line').length);
+    const dead = [];
+    for (let i = 0; i < Math.min(n, 60); i++) {
+      const r = await page.evaluate(async (idx) => {
+        const el = document.querySelectorAll('.c-bar-h, .c-bar-v, .c-mline, .c-line')[idx];
+        if (!el) return null;
+        const w = parseFloat(el.getAttribute('width') || '1');
+        const h = parseFloat(el.getAttribute('height') || '1');
+        if (w <= 0.5 || h <= 0.5) return null;         /* legitimately zero */
+        el.scrollIntoView({ block: 'center' });
+        await new Promise((res) => setTimeout(res, 700));
+        const cs = getComputedStyle(el);
+        if (el.tagName.toLowerCase() === 'path') {
+          /* stroke-dashoffset only hides anything while a dasharray is set.
+             Once the panel is revealed the dasharray drops to none and the
+             offset merely transitions to 0 - the line is fully drawn the
+             whole time. Checking the offset alone flags every line caught
+             mid-transition. */
+          if (cs.strokeDasharray === 'none') return null;
+          const off = parseFloat(cs.strokeDashoffset) || 0;
+          const len = parseFloat(cs.strokeDasharray) || 0;
+          return len > 0 && off > len * 0.9 ? el.getAttribute('class') : null;
+        }
+        const box = el.getBoundingClientRect();
+        return (box.width < 0.5 || box.height < 0.5) ? el.getAttribute('class') : null;
+      }, i);
+      if (r) dead.push(r);
+    }
+    chk(`${f}: every chart mark actually paints${dead.length ? ` (${dead.length}) — ` + dead[0] : ''}`,
+        dead.length === 0);
+  }
+  await ctx.close();
+}
+
 /* ------------------------------------------------------------- 3. dom ---- */
 /*
  * Charts on this site are not all SVG. The white-space matrix, the price grid,
