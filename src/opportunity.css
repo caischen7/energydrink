@@ -50,6 +50,15 @@
 
 /* ---- white space matrix ---- */
 .mx-table { table-layout: fixed; }
+/* A floor width, so the wrapper scrolls instead of the table crushing.
+   table-layout:fixed divides the available width evenly, so the 15-column
+   matrix at 390px gives each column ~23px - and once headers are allowed to
+   wrap, every word breaks to one letter per line and the whole grid becomes
+   unreadable. Scrolling sideways is the correct behaviour for a wide matrix
+   on a narrow screen; squeezing is not. */
+#matrix .mx-table { min-width: 1140px; }
+#pg-table .mx-table { min-width: 720px; }
+
 /* Not sticky. The base .intel-table header sticks for the 2,000-row SKU table,
    which needs it; on an 8-row matrix it just parks a short white band over the
    middle of a tall row and reads as two rows drawn on top of each other. */
@@ -62,12 +71,37 @@
   /* .intel-table sets nowrap for the numeric columns; these are words, and
      without this "Peach & stone fruit" is clipped to "Peach & stone f". */
   white-space: normal;
+  text-align: center;
+  /* The base cell padding is 0.9rem a side - 29px out of a 65px column, which
+     is what forced "Original" to wrap to "Origin/al". */
+  padding-left: 4px;
+  padding-right: 4px;
 }
-.mx-table th.mx-h span { display: block; overflow-wrap: anywhere; }
-.mx-aud { font-size: 11.5px; white-space: nowrap; }
+.mx-table th.mx-h span { display: block; overflow-wrap: break-word; hyphens: auto; }
+/* Fixed layout gives every column an equal share unless told otherwise, which
+   left "Women (fitness & wellness)" overflowing into the first data cell.
+   Pinned to the left edge as well: on a matrix this wide the row label is the
+   one thing you cannot afford to scroll away from. */
+.mx-table th:first-child,
+.mx-table td:first-child { width: 168px; }
+.mx-aud {
+  font-size: 11.5px;
+  white-space: normal;
+  line-height: 1.25;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--bg);
+}
+.mx-table th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--bg);
+}
 .mx-cell {
   text-align: center;
-  padding: 7px 4px;
+  padding: 7px 3px;
   background: color-mix(in srgb, var(--accent) calc(var(--a) * 78%), transparent);
   border-radius: 4px;
 }

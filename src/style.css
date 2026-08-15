@@ -74,6 +74,11 @@ body {
 a { color: inherit; text-decoration: none; }
 button { font: inherit; cursor: pointer; }
 ul, ol { list-style: none; }
+/* The UA rule for [hidden] is `display: none` at zero specificity, so any class
+   that sets display beats it. .panel-card is display:flex, which silently broke
+   the dashboard pagination: el.hidden = true had no effect and all 19 panels
+   stayed on screen while the pager read "1 / 19". */
+[hidden] { display: none !important; }
 
 /* ============ FIXED LAYERS ============ */
 

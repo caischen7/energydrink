@@ -12,6 +12,8 @@ import './dashboard-pages.css';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = (s) =>
+  String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 function init() {
   const charts = $('#charts');
@@ -45,9 +47,11 @@ function init() {
   const nav = document.createElement('nav');
   nav.className = 'pg-nav';
   nav.setAttribute('aria-label', 'Dashboard panels');
+  /* The panel index is still read above to order the chips; it is not printed
+     on them. A number in front of a chip label reads as a step count, and the
+     chips are destinations, not steps. */
   nav.innerHTML = pages
-    .map((p) => `<button class="pg-chip mono" data-go="${p.id}">
-        ${p.num ? `<span class="pg-n">${p.num}</span>` : ''}${p.title}</button>`)
+    .map((p) => `<button class="pg-chip mono" data-go="${p.id}">${esc(p.title)}</button>`)
     .join('');
   charts.parentNode.insertBefore(nav, charts);
 

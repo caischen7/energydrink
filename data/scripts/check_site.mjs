@@ -233,7 +233,10 @@ if (run('visible')) {
  *               background, walking up ancestors until something is opaque
  */
 if (run('dom')) {
-  const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+ /* Both widths: contrast is width-independent, but the column crush only
+    appears on a phone. */
+ for (const width of [1440, 390]) {
+  const ctx = await browser.newContext({ viewport: { width, height: 1000 } });
   const page = await ctx.newPage();
   for (const f of PAGES) {
     await open(page, f);
@@ -277,7 +280,7 @@ if (run('dom')) {
         return (x + 0.05) / (y + 0.05);
       };
 
-      const clipped = [], low = [];
+      const clipped = [], low = [], crushed = [];
       for (const el of document.querySelectorAll('body *')) {
         const cs = getComputedStyle(el);
         if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity === 0) continue;
@@ -291,6 +294,16 @@ if (run('dom')) {
         /* Pure separators and icon glyphs carry no information - a dim middot
            between two readable strings is not a contrast defect. */
         if (!own || !/[\p{L}\p{N}]/u.test(own)) continue;
+
+        /* A column squeezed below a few characters wide wraps one letter per
+           line. table-layout:fixed splits the width evenly, so a 15-column
+           matrix on a phone gives each column ~23px and the grid becomes a
+           vertical alphabet. Fixed by a min-width that makes the wrapper
+           scroll; checked here so it cannot come back. */
+        if (/^(TD|TH)$/.test(el.tagName) && el.clientWidth > 0 && el.clientWidth < 34
+            && own.replace(/\s/g, '').length > 5) {
+          crushed.push(`${own.slice(0, 20)} @${Math.round(el.clientWidth)}px`);
+        }
 
         const hidesX = cs.overflowX === 'hidden' || cs.textOverflow === 'ellipsis';
         if (hidesX && el.scrollWidth > el.clientWidth + 1 && el.clientWidth > 0) {
@@ -309,14 +322,17 @@ if (run('dom')) {
           if (got < need) low.push(`${own.slice(0, 26)} (${got.toFixed(1)}:1, needs ${need})`);
         }
       }
-      return { clipped: [...new Set(clipped)], low: [...new Set(low)] };
+      return { clipped: [...new Set(clipped)], low: [...new Set(low)], crushed: [...new Set(crushed)] };
     });
-    chk(`${f}: no text clipped by its own box${r.clipped.length ? ` (${r.clipped.length}) — ${r.clipped[0]}` : ''}`,
+    chk(`[${width}] ${f}: no text clipped by its own box${r.clipped.length ? ` (${r.clipped.length}) — ${r.clipped[0]}` : ''}`,
         r.clipped.length === 0);
-    chk(`${f}: text meets WCAG AA on its real background${r.low.length ? ` (${r.low.length}) — ${r.low[0]}` : ''}`,
+    chk(`[${width}] ${f}: text meets WCAG AA on its real background${r.low.length ? ` (${r.low.length}) — ${r.low[0]}` : ''}`,
         r.low.length === 0);
+    chk(`[${width}] ${f}: no table column crushed below readable width${r.crushed.length ? ` (${r.crushed.length}) — ${r.crushed[0]}` : ''}`,
+        r.crushed.length === 0);
   }
   await ctx.close();
+ }
 }
 
 /* ------------------------------------------------------ 4. responsive ---- */

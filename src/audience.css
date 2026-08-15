@@ -397,6 +397,10 @@ body.drilled .aud-top { display: none; }
 .fl-legend b { font-variant-numeric: tabular-nums; font-size: 12px; }
 .fl-n { font-size: 10px; color: var(--dim); min-width: 52px; text-align: right; }
 
+/* Same floor as the white-space matrix - this cross-tab is just as wide, and
+   without it the columns collapse on a phone. */
+#flavor-matrix table { min-width: 860px; }
+
 /* heat cells in the flavor cross-tab */
 #flavor-matrix td.heat {
   position: relative;

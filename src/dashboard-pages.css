@@ -32,9 +32,7 @@
   color: #fff;
   font-weight: 600;
 }
-/* The panel index is still parsed (it orders the pager) but not shown — a
-   number in front of a chip label reads as a step count that isn't one. */
-.pg-chip .pg-n { display: none; }
+/* .pg-n is no longer rendered; the rule is kept out rather than left dangling. */
 .pg-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* A single panel now owns the viewport, so let it breathe. */
