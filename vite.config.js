@@ -17,8 +17,6 @@ export default defineConfig({
         audience: resolve(__dirname, 'audience.html'),
         compare: resolve(__dirname, 'compare.html'),
         opportunity: resolve(__dirname, 'opportunity.html'),
-        /* design preview — noindex, not linked from nav; drop once decided */
-        previewRb: resolve(__dirname, 'preview-redbull.html'),
       },
     },
   },
