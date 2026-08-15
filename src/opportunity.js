@@ -31,7 +31,7 @@ const money = (n) =>
   n >= 1e3 ? '$' + (n / 1e3).toFixed(0) + 'K' : '$' + Math.round(n);
 const pct = (v) => (v >= 0 ? '+' : '') + Math.round(v) + '%';
 
-let O, WHO;
+let O, WHO, AUD, SKU;
 
 /* ------------------------------------------------------------------ board --- */
 function board() {
@@ -70,15 +70,19 @@ function board() {
  */
 function matrix() {
   const med = O.medRPS || 1;
-  const cell = (c) => {
+  const cell = (c, _i, aud) => {
     if (!c.rev) return `<td class="mx-cell mx-empty" title="No measured sales">·</td>`;
     const head = c.rps / med;
     const a = Math.min(1, head / 4);
+    /* Past this fill the grey sub-label and the dark green/red growth tags
+       disappear into the blue. Flip the whole cell to light-on-dark. */
+    const dk = a >= 0.55 ? ' mx-dark' : '';
     const grow = c.cagr == null ? '' :
       `<i class="mx-g ${c.cagr >= 0 ? 'up' : 'down'}">${pct(c.cagr)}</i>`;
-    return `<td class="mx-cell" style="--a:${a.toFixed(2)}"
+    return `<td class="mx-cell mx-click${dk}" style="--a:${a.toFixed(2)}"
+      role="button" tabindex="0" data-aud="${esc(aud)}" data-fam="${esc(c.fam)}"
       title="${esc(c.fam)} — ${money(c.rev)} across ${c.skus} SKUs · ${money(c.rps)} per SKU (${head.toFixed(1)}x median)${
-        c.cagr == null ? '' : ` · ${pct(c.cagr)} a year`}">
+        c.cagr == null ? '' : ` · ${pct(c.cagr)} a year`} — click for the SKUs behind it">
       <b>${money(c.rev)}</b><span class="mx-s">${c.skus} SKU</span>${grow}</td>`;
   };
   const sc = O.scaled;
@@ -92,7 +96,166 @@ function matrix() {
       ${O.fams.map((f) => `<th class="mx-h"><span>${esc(f)}</span></th>`).join('')}</tr></thead>
     <tbody>${O.matrix.map((r) => `<tr>
       <td class="tl mx-aud">${esc(r.aud)}</td>
-      ${r.row.map(cell).join('')}</tr>`).join('')}</tbody></table>`;
+      ${r.row.map((c, i) => cell(c, i, r.aud)).join('')}</tr>`).join('')}</tbody></table>`;
+
+  /* Delegated so it survives a re-render, and keyboard-reachable — the cells
+     are real controls now, not decoration. */
+  const open = (el) => drill(el.dataset.aud, el.dataset.fam);
+  $('#matrix').addEventListener('click', (e) => {
+    const el = e.target.closest('.mx-click');
+    if (el) open(el);
+  });
+  $('#matrix').addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const el = e.target.closest('.mx-click');
+    if (el) { e.preventDefault(); open(el); }
+  });
+}
+
+/* ------------------------------------------------------ cell drill-down ----- */
+/*
+ * A coloured cell says "this pocket has headroom". That is a claim you have to
+ * act on, so it should be inspectable: which products are actually in there,
+ * who owns them, what sizes they ship in, and whether the money is spread or
+ * sitting in one incumbent. A cell reading 8x median because one SKU earns
+ * everything is not an opening — it is somebody's franchise.
+ *
+ * Per-SKU price is deliberately absent: the aggregate carries revenue and
+ * store counts, not shelf price. What the panel shows instead is the price
+ * band that earns most per SKU *at the sizes present in this cell*, taken from
+ * the price grid further down the page. That is a real number, correctly
+ * labelled as being about the format rather than the individual product.
+ */
+let drillKey = null;
+
+function priceContextFor(sizes) {
+  const G = O.price_grid;
+  if (!G) return '';
+  const want = sizes.map((z) => String(z).toLowerCase().trim());
+  const rows = G.grid.filter((r) => want.includes(r.size.toLowerCase().trim()));
+  if (!rows.length) return '';
+  return rows.map((r) => {
+    const best = r.rows.filter((c) => c.skus >= 5).sort((a, b) => b.rps - a.rps)[0];
+    if (!best) return `<li><b>${esc(r.size)}</b><span class="mono dim">too few SKUs priced to rank</span></li>`;
+    return `<li><b>${esc(r.size)}</b><span class="mono">best rung ${esc(best.band)}</span>
+      <span class="mono dim">${money(best.rps)} per SKU across ${best.skus}</span></li>`;
+  }).join('');
+}
+
+function drill(aud, fam) {
+  const host = $('#mx-drill');
+  const key = `${aud}|${fam}`;
+  if (drillKey === key) {                      /* click the same cell to close */
+    drillKey = null;
+    host.hidden = true;
+    $$('.mx-click.on').forEach((e) => e.classList.remove('on'));
+    return;
+  }
+  drillKey = key;
+  $$('.mx-click').forEach((e) =>
+    e.classList.toggle('on', e.dataset.aud === aud && e.dataset.fam === fam));
+
+  const row = O.matrix.find((r) => r.aud === aud);
+  const c = row && row.row.find((x) => x.fam === fam);
+  const rows = (SKU[key] || []).slice().sort((a, b) => b.r - a.r);
+  const med = O.medRPS || 1;
+  const head = c && c.rps ? c.rps / med : 0;
+
+  /* Concentration: what the single biggest SKU takes of the cell. */
+  const tot = rows.reduce((t, p) => t + p.r, 0) || 1;
+  const topShare = rows.length ? (rows[0].r / tot) * 100 : 0;
+
+  const byBrand = {};
+  const bySize = {};
+  for (const p of rows) {
+    byBrand[p.b] = (byBrand[p.b] || 0) + p.r;
+    bySize[p.sz || '—'] = (bySize[p.sz || '—'] || 0) + p.r;
+  }
+  const brands = Object.entries(byBrand).sort((a, b) => b[1] - a[1]);
+  const sizes = Object.entries(bySize).sort((a, b) => b[1] - a[1]);
+  const brandShare = brands.length ? (brands[0][1] / tot) * 100 : 0;
+
+  /* The read. Same rule the matrix colours by, stated in words. */
+  const verdictText =
+    !rows.length ? 'Nothing has ever shipped here that we can measure. Check the graveyard below before treating that as an opening — some cells are empty because the market rejected them.'
+    : brandShare > 70 ? `One brand — ${brands[0][0]} — holds ${brandShare.toFixed(0)}% of this cell. The headroom number is that brand's franchise, not an unclaimed pocket.`
+    : topShare > 60 ? `A single SKU carries ${topShare.toFixed(0)}% of the money here. The per-SKU average flatters the rest of the field.`
+    : head >= 4 ? `Money is spread across ${brands.length} brands and no SKU dominates, and each product still earns ${head.toFixed(1)}x the category median. This is the shape a real opening has.`
+    : `Revenue per SKU is ${head.toFixed(1)}x the median — at or below the point where the shelf is already competitive.`;
+
+  host.hidden = false;
+  host.innerHTML = `
+    <div class="dr-head">
+      <div>
+        <p class="dr-eyebrow mono">WHAT IS ACTUALLY IN THIS CELL</p>
+        <h3 class="dr-title">${esc(aud)} <span>&times;</span> ${esc(fam)}</h3>
+      </div>
+      <button class="dr-close mono" type="button" aria-label="Close">CLOSE &times;</button>
+    </div>
+
+    <div class="dr-kpis">
+      <div><b>${c ? money(c.rev) : '$0'}</b><span class="mono">all-channel (scaled)</span></div>
+      <div><b>${money(tot)}</b><span class="mono">measured (PDI)</span></div>
+      <div><b>${rows.length || (c ? c.skus : 0)}</b><span class="mono">SKUs</span></div>
+      <div><b>${c && c.rps ? money(c.rps) : '—'}</b><span class="mono">per SKU (scaled)</span></div>
+      <div><b>${head ? head.toFixed(1) + '\u00d7' : '—'}</b><span class="mono">vs median</span></div>
+      <div><b class="${c && c.cagr >= 0 ? 'up' : 'down'}">${c && c.cagr != null ? pct(c.cagr) : '—'}</b><span class="mono">a year</span></div>
+    </div>
+
+    <p class="dr-scale mono">TWO SCALES, DELIBERATELY SIDE BY SIDE — the matrix colours by
+      <b>all-channel</b> dollars, lifted from the convenience flavour mix using this audience's
+      Passport share. Everything below (brands, sizes, the SKU table) is <b>measured PDI</b>
+      revenue over the full window. They are different quantities and are not meant to add up;
+      shares below are computed within the measured figure.</p>
+
+    <p class="dr-read"><b class="mono">THE READ &rarr;</b> ${esc(verdictText)}</p>
+
+    <div class="dr-cols">
+      <section>
+        <h4 class="mono">WHO OWNS IT</h4>
+        <ul class="dr-list">${brands.slice(0, 8).map(([b, r]) => `
+          <li><b>${esc(b)}</b>
+            <span class="dr-track"><i style="width:${((r / tot) * 100).toFixed(1)}%"></i></span>
+            <span class="mono dim">${money(r)} · ${((r / tot) * 100).toFixed(0)}%</span></li>`).join('')
+          || '<li class="dim">No measured sales.</li>'}</ul>
+      </section>
+      <section>
+        <h4 class="mono">SIZES THAT SELL</h4>
+        <ul class="dr-list">${sizes.slice(0, 6).map(([z, r]) => `
+          <li><b>${esc(z)}</b>
+            <span class="dr-track"><i style="width:${((r / tot) * 100).toFixed(1)}%"></i></span>
+            <span class="mono dim">${money(r)} · ${((r / tot) * 100).toFixed(0)}%</span></li>`).join('')
+          || '<li class="dim">No measured sales.</li>'}</ul>
+      </section>
+      <section>
+        <h4 class="mono">PRICE, BY FORMAT</h4>
+        <ul class="dr-list dr-price">${priceContextFor(sizes.map(([z]) => z))
+          || '<li class="dim">No priced format overlaps this cell.</li>'}</ul>
+        <p class="dr-fine">Shelf price is not carried per SKU in this dataset. These are the
+          best-earning price rungs for the formats present here, from the grid below.</p>
+      </section>
+    </div>
+
+    <h4 class="mono dr-tbl-h">EVERY SKU IN THIS CELL <span class="dim">(${rows.length})</span></h4>
+    <div class="tbl-wrap"><table class="intel-table mono dr-tbl">
+      <thead><tr>
+        <th class="tl">PRODUCT</th><th class="tl">BRAND</th><th class="tl">FLAVOR</th>
+        <th class="tl">SIZE</th><th>STORES</th><th>REVENUE</th><th>SHARE</th><th class="tl">LAST SEEN</th>
+      </tr></thead>
+      <tbody>${rows.map((p) => `<tr>
+        <td class="tl dr-p" title="${esc(p.d)}">${esc(p.d)}</td>
+        <td class="tl">${esc(p.b)}</td>
+        <td class="tl">${esc(p.fl || '—')}</td>
+        <td class="tl">${esc(p.sz || '—')}</td>
+        <td>${(p.st || 0).toLocaleString()}</td>
+        <td>${money(p.r)}</td>
+        <td>${((p.r / tot) * 100).toFixed(1)}%</td>
+        <td class="tl">${esc(p.last || '—')}</td></tr>`).join('')
+        || '<tr><td colspan="8" class="tl dim">No SKUs recorded for this pairing.</td></tr>'}</tbody>
+    </table></div>`;
+
+  $('.dr-close', host).addEventListener('click', () => drill(aud, fam));
+  host.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function ranked() {
@@ -137,9 +300,11 @@ function ranked() {
         .replace(/^Customizable energy.*/, 'Customizable caffeine')
         .replace(/^(\w)/, (m) => m.toUpperCase()),
       value: c.pct,
-      color: i === 0 ? '#0071e3' : undefined,
+      /* The top concept keeps the full accent; the rest step back a shade.
+         They must NOT use the track's own grey, or the bar vanishes into it. */
+      color: i === 0 ? '#0071e3' : '#7fb4ee',
     })),
-    { fmt: (v) => v + '%', labelW: 230, accent: '#c7c7cc' }
+    { fmt: (v) => v + '%', labelW: 230 }
   );
 }
 
@@ -197,7 +362,8 @@ function priceGrid() {
       ${r.rows.map((c) => {
         if (!c.skus) return '<td class="mx-cell mx-empty">·</td>';
         const a = c.skus >= 5 ? Math.min(1, c.rps / max) : 0.06;
-        return `<td class="mx-cell" style="--a:${a.toFixed(2)}"
+        const dk = a >= 0.55 ? ' mx-dark' : '';
+        return `<td class="mx-cell${dk}" style="--a:${a.toFixed(2)}"
           title="${esc(r.size)} at ${esc(c.band)} — ${money(c.rev)} across ${c.skus} SKUs, ${money(c.rps)} per SKU">
           <b>${money(c.rps)}</b><span class="mx-s">${c.skus} SKU · ${money(c.rev)}</span></td>`;
       }).join('')}
@@ -243,6 +409,13 @@ function verdict() {
 
 function main(data) {
   O = data.audiences && data.audiences.opportunity;
+  AUD = (data.audiences && data.audiences.auds) || [];
+  /* Every SKU already carries its audience and flavour family, so the cell
+     drill-down is an index over data we ship, not another query. */
+  SKU = {};
+  for (const a of AUD) {
+    for (const p of a.prod || []) (SKU[`${a.name}|${p.ff || 'Unknown'}`] ||= []).push(p);
+  }
   if (!O) {
     $('#board').innerHTML =
       '<p class="sec-note">No opportunity data in this aggregate — run data/scripts/add_audiences.py.</p>';

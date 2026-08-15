@@ -50,13 +50,20 @@
 
 /* ---- white space matrix ---- */
 .mx-table { table-layout: fixed; }
+/* Not sticky. The base .intel-table header sticks for the 2,000-row SKU table,
+   which needs it; on an 8-row matrix it just parks a short white band over the
+   middle of a tall row and reads as two rows drawn on top of each other. */
+.mx-table th { position: static; }
 .mx-table th.mx-h {
   vertical-align: bottom;
   font-size: 10px;
   padding-bottom: 8px;
   line-height: 1.2;
+  /* .intel-table sets nowrap for the numeric columns; these are words, and
+     without this "Peach & stone fruit" is clipped to "Peach & stone f". */
+  white-space: normal;
 }
-.mx-table th.mx-h span { display: block; word-break: break-word; }
+.mx-table th.mx-h span { display: block; overflow-wrap: anywhere; }
 .mx-aud { font-size: 11.5px; white-space: nowrap; }
 .mx-cell {
   text-align: center;
@@ -69,6 +76,13 @@
 .mx-g { display: block; font-size: 9.5px; font-style: normal; font-weight: 600; }
 .mx-g.up { color: #1a8a3a; }
 .mx-g.down { color: #c0392b; }
+
+/* Cells past ~55% fill are dark enough to swallow grey and the darker
+   green/red growth tags. Flip the whole cell to light-on-dark. */
+.mx-cell.mx-dark b { color: #fff; }
+.mx-cell.mx-dark .mx-s { color: rgba(255, 255, 255, 0.82); }
+.mx-cell.mx-dark .mx-g.up { color: #9dfab8; }
+.mx-cell.mx-dark .mx-g.down { color: #ffc2bb; }
 .mx-empty { color: var(--dim); opacity: 0.45; }
 .mx-key {
   display: flex;
@@ -204,3 +218,108 @@
 .vd-tbl { margin-top: .8rem; }
 .vd-tbl tr.up td { color: #1a8a3a; font-weight: 600; }
 .vd-tbl tr.down td { color: #c0392b; }
+
+/* -------------------------------------------------- cell drill-down ------- */
+.mx-hint { color: var(--accent); }
+.mx-click { cursor: pointer; }
+.mx-click:hover { outline: 2px solid var(--accent); outline-offset: -2px; }
+.mx-click:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.mx-click.on { outline: 2.5px solid var(--ink); outline-offset: -2px; }
+
+.mx-drill {
+  /* Cleared past both sticky rows, or scrolling to it hides its own title. */
+  scroll-margin-top: calc(var(--bar-h) + 56px);
+  margin-top: 1.6rem;
+  padding: 1.5rem clamp(1rem, 2.4vw, 1.8rem);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-2, #fbfbfd);
+}
+.dr-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.dr-eyebrow { font-size: 10.5px; letter-spacing: 0.14em; color: var(--dim); margin: 0 0 0.4rem; }
+.dr-title { margin: 0; font-size: clamp(1.1rem, 2.2vw, 1.5rem); }
+.dr-title span { color: var(--dim); font-weight: 400; padding: 0 0.2em; }
+.dr-close {
+  border: 1px solid var(--line);
+  background: transparent;
+  border-radius: 999px;
+  padding: 0.35em 0.9em;
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--dim);
+}
+.dr-close:hover { border-color: var(--accent); color: var(--accent); }
+
+.dr-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 1px;
+  margin: 1.3rem 0 0;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.dr-kpis div { background: var(--bg); padding: 0.85rem 0.9rem; }
+.dr-kpis b { display: block; font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.dr-kpis b.up { color: #1a8a3a; }
+.dr-kpis b.down { color: #c0392b; }
+.dr-kpis span { display: block; margin-top: 0.25rem; font-size: 10.5px; color: var(--dim); }
+
+.dr-read {
+  margin: 1.2rem 0 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  padding: 0.85rem 1rem;
+  border-left: 3px solid var(--accent);
+  background: rgba(0, 113, 227, 0.05);
+  border-radius: 0 8px 8px 0;
+}
+.dr-read b { color: var(--accent); font-size: 10.5px; letter-spacing: 0.1em; margin-right: 0.5em; }
+
+.dr-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 1.6rem;
+  margin-top: 1.6rem;
+}
+.dr-cols h4 { margin: 0 0 0.7rem; font-size: 10.5px; letter-spacing: 0.12em; color: var(--dim); }
+.dr-list { list-style: none; margin: 0; padding: 0; }
+.dr-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 64px auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 5px 0;
+  font-size: 12px;
+}
+.dr-list b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dr-track { height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.dr-track i { display: block; height: 100%; background: var(--accent); }
+.dr-list .dim { font-size: 10.5px; white-space: nowrap; }
+.dr-price li { grid-template-columns: 52px auto minmax(0, 1fr); }
+.dr-price .dr-track { display: none; }
+.dr-fine { margin: 0.6rem 0 0; font-size: 10.5px; line-height: 1.5; color: var(--dim); }
+
+.dr-tbl-h { margin: 1.8rem 0 0.6rem; font-size: 10.5px; letter-spacing: 0.12em; color: var(--dim); }
+.dr-tbl { font-size: 11.5px; }
+.dr-tbl th { position: static; cursor: default; }
+.dr-tbl td { padding: 0.5rem 0.7rem; }
+.dr-p { white-space: normal; min-width: 22ch; line-height: 1.35; }
+
+/* The two-scale warning has to be impossible to skim past. */
+.dr-scale {
+  margin: 1rem 0 0;
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: var(--dim);
+  padding: 0.7rem 0.9rem;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+}
+.dr-scale b { color: var(--ink); }
+
+@media (max-width: 720px) {
+  .dr-list li { grid-template-columns: minmax(0, 1fr) auto; }
+  .dr-track { display: none; }
+}
