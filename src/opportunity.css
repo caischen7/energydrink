@@ -59,10 +59,13 @@
 #matrix .mx-table { min-width: 1140px; }
 #pg-table .mx-table { min-width: 720px; }
 
-/* Not sticky. The base .intel-table header sticks for the 2,000-row SKU table,
-   which needs it; on an 8-row matrix it just parks a short white band over the
-   middle of a tall row and reads as two rows drawn on top of each other. */
-.mx-table th { position: static; }
+/* Not vertically sticky. The base .intel-table header sticks for the 2,000-row
+   SKU table, which needs it; on an 8-row matrix it slides down over the first
+   row as you scroll and slices it in half.
+   `.mx-table th` ties with `.intel-table th` on specificity, so which one won
+   depended on CSS bundle order - it lost, and the header kept sticking.
+   `thead th` outranks both regardless of order. */
+.mx-table thead th { position: static; }
 .mx-table th.mx-h {
   vertical-align: bottom;
   font-size: 10px;
@@ -90,12 +93,19 @@
   line-height: 1.25;
   position: sticky;
   left: 0;
+  top: auto;                 /* horizontal pin only - see the note above */
   z-index: 1;
   background: var(--bg);
 }
-.mx-table th:first-child {
+/* The row-label column still pins horizontally - that is the axis this table
+   actually scrolls on. Specific enough to beat the rule above. */
+.mx-table thead th:first-child {
   position: sticky;
   left: 0;
+  /* MUST be reset: .intel-table th sets top: var(--bar-h), and re-declaring
+     position: sticky here brought that back, so the AUDIENCE cell stuck
+     vertically and slid down into the first data row. Pin one axis only. */
+  top: auto;
   z-index: 2;
   background: var(--bg);
 }
