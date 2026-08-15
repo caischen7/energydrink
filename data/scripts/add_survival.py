@@ -28,8 +28,9 @@ Three things this has to get right, and each one changes the answer
    at-risk pool for durations we cannot observe. That is Kaplan-Meier, and the
    naive alternative — dead/alive counted at face value — understates survival.
 
-3. GAPS. SKUs drop out for a year and return. Survival is measured to LAST year
-   seen, not to the first gap.
+3. GAPS. SKUs drop out for a year and return, so survival runs to the LAST
+   qualifying year rather than stopping at the first gap. (Which years qualify
+   is note 5.)
 
 4. WHAT COUNTS AS A LAUNCH. "First year with any revenue" is not a launch date.
    Checked against the data, every SKU that later cleared $1M shows a first year
@@ -67,7 +68,9 @@ year one and decays is marked dead early precisely for having had a big first
 year. Run that way it reports survivors earning *less* in year one than
 failures, which is an artifact of the definition and not a finding. The
 predictor here shares no term with its outcome: it asks whether year-one revenue
-predicts having at least $1M of revenue still on the books in year three.
+predicts still having Y1_BAR of revenue on the books in year three. That bar is
+$100K rather than the $1M used for "reached scale" — at $1M only 4 of 763
+launches qualify, too few to rank quartiles against.
 
 Output: `audiences.opportunity.survival` inside public/data/dashboard.json.
 
