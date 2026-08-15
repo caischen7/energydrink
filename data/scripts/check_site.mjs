@@ -27,8 +27,8 @@ import { fileURLToPath } from 'url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const BASE = process.env.SITE_URL || 'http://localhost:4173';
-const USER = process.env.SITE_USER || 'energydrinks';
-const PASS = process.env.SITE_PASS || 'energydrinks12345';
+const USER = process.env.SITE_USER || 'energydrink';
+const PASS = process.env.SITE_PASS || 'energydrink';
 const PAGES = ['index.html', 'dashboard.html', 'insights.html', 'segments.html',
                'audience.html', 'compare.html', 'opportunity.html'];
 

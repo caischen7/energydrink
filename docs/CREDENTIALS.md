@@ -9,8 +9,8 @@
 | Field | Value |
 | --- | --- |
 | Page | `/dashboard.html` — reachable via the **MARKET INTEL ↗** link in the top bar |
-| Username | `energydrinks` |
-| Password | `energydrinks12345` |
+| Username | `energydrink` |
+| Password | `energydrink` |
 
 ## Admin — Site Scout login
 
@@ -43,8 +43,8 @@ the server side is nginx Basic Auth on everything under `/admin/`
 
 ```bash
 # 1) server gate (.htpasswd):
-htpasswd -bc .htpasswd energydrinks 'NEW_PASSWORD'
-#   (no htpasswd? use:  printf 'energydrinks:%s\n' "$(openssl passwd -apr1 'NEW_PASSWORD')" > .htpasswd )
+htpasswd -bc .htpasswd energydrink 'NEW_PASSWORD'
+#   (no htpasswd? use:  printf 'energydrink:%s\n' "$(openssl passwd -apr1 'NEW_PASSWORD')" > .htpasswd )
 
 # 2) client check (PASS_HASH in src/auth.js):
 printf '%s' 'NEW_PASSWORD' | sha256sum     # paste the hex into PASS_HASH
@@ -57,7 +57,13 @@ printf '%s' 'NEW_PASSWORD' | sha256sum     # paste the hex into PASS_HASH
 - `.htpasswd` / `.htpasswd-admin` (hashed) ship inside the deployed image —
   that's how Basic Auth works. The hashes are apr1/MD5-based and the passwords
   are short, so treat both credentials as **low-strength**; don't reuse them
-  anywhere that matters.
+  anywhere that matters. The dashboard login is now `energydrink`/`energydrink` —
+  username and password identical, which is the most guessable form there is.
+  That is a deliberate trade for ease of sharing with reviewers; it is only
+  defensible because the audience is small and the repo is private. **If the
+  licensed Mintel / Euromonitor / PDI figures behind this gate ever need real
+  protection, this is the first thing to change**, and the fix is to generate a
+  passphrase and inject it at deploy time from an env var instead of committing it.
 - The server gate protects the **data**, which is the licensed/sensitive part.
   The dashboard's HTML/JS shell is public (it contains no figures).
 - This repo is private today. **If you ever make it public** (e.g. the GitHub

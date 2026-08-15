@@ -19,8 +19,8 @@
 /* per-surface defaults — the dashboard config, kept as requireAuth()'s default */
 const DASHBOARD = {
   storageKey: 'ion_dash_auth', // sessionStorage: base64(user:pass) for the session
-  user: 'energydrinks',
-  passHash: '51399badaf99cab1e1921de22874aa456d30399d2bf8d9757be42bcaf7a83763',
+  user: 'energydrink',
+  passHash: '87a8339edc6403b43c23640d4c7eba4a7ba0a951ae71e616f70130c4cfd601f5',
   dataUrl: 'data/dashboard.json', // relative → /data/dashboard.json (nginx-guarded)
   title: 'RESTRICTED — MARKET INTEL',
 };
@@ -47,11 +47,11 @@ function overlay(cfg) {
     <form class="gate-card mono" autocomplete="off" novalidate>
       <div class="gate-brand"><img class="gate-mark" src="/mascot.svg" alt="" /><span>Bogus Banana</span></div>
       <div class="gate-head"><span class="volt">·</span> ${cfg.title}</div>
-      <label class="gate-label" for="gate-user"><span class="volt">&gt;</span> OPERATOR_ID</label>
+      <label class="gate-label" for="gate-user"><span class="volt">&gt;</span> USERNAME</label>
       <input id="gate-user" type="text" spellcheck="false" autocapitalize="off" placeholder="username" />
-      <label class="gate-label" for="gate-pass"><span class="volt">&gt;</span> ACCESS_KEY</label>
+      <label class="gate-label" for="gate-pass"><span class="volt">&gt;</span> PASSWORD</label>
       <input id="gate-pass" type="password" placeholder="password" />
-      <button type="submit">AUTHENTICATE ↵</button>
+      <button type="submit">SIGN IN ↵</button>
       <p class="gate-out" role="status"></p>
     </form>`;
   return el;
