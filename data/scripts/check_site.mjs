@@ -14,6 +14,7 @@
  *   npm run build && cp -r public/data dist/
  *   npx vite preview --port 4173 &
  *   node data/scripts/check_site.mjs                 # all suites
+ *   node data/scripts/check_site.mjs dom             # HTML visuals only
  *   node data/scripts/check_site.mjs charts facts    # named suites
  *
  * Playwright is deliberately NOT in package.json — it would triple the Docker
@@ -163,7 +164,107 @@ if (run('charts')) {
   }
 }
 
-/* ------------------------------------------------------ 3. responsive ---- */
+/* ------------------------------------------------------------- 3. dom ---- */
+/*
+ * Charts on this site are not all SVG. The white-space matrix, the price grid,
+ * the brand/size bar lists and the e-commerce claim rails are HTML, and the
+ * chart suite above cannot see any of them — it passed 359/359 while the
+ * opportunity page shipped grey-on-grey bars, grey labels on solid-blue cells
+ * and column headers clipped to "Peach & stone f".
+ *
+ * Two things get checked here, on rendered geometry rather than on source:
+ *   clipping  — text wider than the box that is set to hide the overflow
+ *   contrast  — WCAG AA on every visible text run, against the real painted
+ *               background, walking up ancestors until something is opaque
+ */
+if (run('dom')) {
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  const page = await ctx.newPage();
+  for (const f of PAGES) {
+    await open(page, f);
+    await revealAll(page);
+    const r = await page.evaluate(() => {
+      const srgb = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+      const lum = ([r, g, b]) => 0.2126 * srgb(r) + 0.7152 * srgb(g) + 0.0722 * srgb(b);
+      /* Chrome resolves color-mix() to `color(srgb r g b / a)` with 0-1
+         channels, not rgba(). The matrix cells are painted that way, so a
+         regex that only knows rgba() reads them as transparent - and every
+         white-on-blue label then measures against white. */
+      const parse = (s) => {
+        const t = String(s);
+        let m = t.match(/rgba?\(([^)]+)\)/);
+        if (m) {
+          const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number);
+          return { rgb: p.slice(0, 3), a: p.length > 3 ? p[3] : 1 };
+        }
+        m = t.match(/color\(srgb\s+([^)]+)\)/);
+        if (m) {
+          const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number);
+          return { rgb: p.slice(0, 3).map((c) => c * 255), a: p.length > 3 ? p[3] : 1 };
+        }
+        return null;
+      };
+      const mix = (fg, bg, a) => fg.map((c, i) => c * a + bg[i] * (1 - a));
+      /* Walk up until the accumulated background is opaque. Cells here are
+         painted with color-mix over the page, so the parent matters. */
+      const bgOf = (el) => {
+        let acc = null;                       /* nearest translucent layer, if any */
+        for (let n = el; n; n = n.parentElement) {
+          const p = parse(getComputedStyle(n).backgroundColor);
+          if (!p || p.a === 0) continue;
+          if (p.a === 1) return acc ? mix(acc.rgb, p.rgb, acc.a) : p.rgb;
+          if (!acc) acc = { rgb: p.rgb, a: p.a };
+        }
+        return acc ? mix(acc.rgb, [255, 255, 255], acc.a) : [255, 255, 255];
+      };
+      const ratio = (a, b) => {
+        const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m);
+        return (x + 0.05) / (y + 0.05);
+      };
+
+      const clipped = [], low = [];
+      for (const el of document.querySelectorAll('body *')) {
+        const cs = getComputedStyle(el);
+        if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity === 0) continue;
+        const box = el.getBoundingClientRect();
+        if (box.width < 4 || box.height < 4) continue;
+
+        /* Only leaf text nodes — a wrapper's text is its children's. */
+        const own = [...el.childNodes]
+          .filter((n) => n.nodeType === 3 && n.textContent.trim())
+          .map((n) => n.textContent.trim()).join(' ');
+        /* Pure separators and icon glyphs carry no information - a dim middot
+           between two readable strings is not a contrast defect. */
+        if (!own || !/[\p{L}\p{N}]/u.test(own)) continue;
+
+        const hidesX = cs.overflowX === 'hidden' || cs.textOverflow === 'ellipsis';
+        if (hidesX && el.scrollWidth > el.clientWidth + 1 && el.clientWidth > 0) {
+          clipped.push(own.slice(0, 34));
+        }
+
+        const fg = parse(cs.color);
+        if (fg && fg.a > 0.15) {
+          const bg = bgOf(el);
+          const eff = fg.a === 1 ? fg.rgb : mix(fg.rgb, bg, fg.a);
+          const size = parseFloat(cs.fontSize);
+          const bold = +cs.fontWeight >= 600;
+          const large = size >= 24 || (size >= 18.66 && bold);
+          const need = large ? 3 : 4.5;
+          const got = ratio(eff, bg);
+          if (got < need) low.push(`${own.slice(0, 26)} (${got.toFixed(1)}:1, needs ${need})`);
+        }
+      }
+      return { clipped: [...new Set(clipped)], low: [...new Set(low)] };
+    });
+    chk(`${f}: no text clipped by its own box${r.clipped.length ? ` (${r.clipped.length}) — ${r.clipped[0]}` : ''}`,
+        r.clipped.length === 0);
+    chk(`${f}: text meets WCAG AA on its real background${r.low.length ? ` (${r.low.length}) — ${r.low[0]}` : ''}`,
+        r.low.length === 0);
+  }
+  await ctx.close();
+}
+
+/* ------------------------------------------------------ 4. responsive ---- */
 if (run('responsive')) {
   for (const v of [{ n: 'mobile', w: 390 }, { n: 'tablet', w: 820 }, { n: 'desktop', w: 1440 }]) {
     const ctx = await browser.newContext({ viewport: { width: v.w, height: 900 } });
@@ -182,7 +283,7 @@ if (run('responsive')) {
   }
 }
 
-/* ----------------------------------------------------------- 4. facts ---- */
+/* ----------------------------------------------------------- 5. facts ---- */
 /* Numbers written into page copy must still match the aggregate they came from. */
 if (run('facts')) {
   const J = JSON.parse(fs.readFileSync(path.join(ROOT, 'public/data/dashboard.json'), 'utf8'));

@@ -9,12 +9,19 @@
   --bg-2: #fbfbfd;          /* alt sections / cards */
   --bg-3: #f5f5f7;          /* subtle fills */
   --ink: #1d1d1f;           /* primary text */
-  --dim: #86868b;           /* secondary text */
+  /* #86868b is Apple's secondary grey and measures 3.6:1 on white - below the
+     4.5:1 WCAG AA floor for text this size. It carries real content here (SKU
+     counts, axis labels, source notes), so it is darkened to 5.1:1. */
+  --dim: #6e6e73;           /* secondary text */
   --line: #d2d2d7;          /* hairlines */
   --accent: #0071e3;        /* Apple blue — CTAs + links only */
+  /* The accent clears AA on white (4.7:1) but not on the grey fills
+     (4.3:1). Text sitting on --bg-3 uses this darker step. */
+  --accent-ink: #0062c4;    /* accent, dark enough for text on grey fills */
   --accent-2: #0077ed;      /* hover */
   --volt: #0071e3;          /* legacy hook → accent */
-  --ice: #5e9ed6;
+  --ice: #5e9ed6;           /* fill only */
+  --ice-ink: #36719c;       /* the same hue, dark enough to be read as text */
 
   --f-sans: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Segoe UI', Roboto, sans-serif;
   --f-display: var(--f-sans);
@@ -284,7 +291,7 @@ body.booted .hero-sub { animation-play-state: running; }
 .hud-cell { display: flex; flex-direction: column; gap: 0.3em; }
 .hud-cell--mid { align-items: center; justify-content: center; }
 .hud-cell--right { align-items: flex-end; }
-.hud-k { color: #aeaeb2; }
+.hud-k { color: var(--dim); }
 .hud-v { color: var(--ink); }
 .scroll-hint { color: var(--accent); display: flex; gap: 0.6em; align-items: center; font-weight: 500; }
 .scroll-tick { font-style: normal; animation: tick 1.5s ease-in-out infinite; }
@@ -421,7 +428,7 @@ body.booted .hero-sub { animation-play-state: running; }
   box-shadow: inset 3px 0 0 var(--accent);
 }
 .ed-id { color: var(--dim); transition: color 0.3s; }
-.edition.active .ed-id, .edition:hover .ed-id { color: var(--accent); }
+.edition.active .ed-id, .edition:hover .ed-id { color: var(--accent-ink); }
 .ed-name {
   font-family: var(--f-display);
   font-weight: 700;
@@ -446,7 +453,7 @@ body.booted .hero-sub { animation-play-state: running; }
   white-space: nowrap;
 }
 .tag--volt { background: var(--accent); color: #fff; border-color: var(--accent); }
-.tag--ice { color: var(--ice); border-color: var(--ice); }
+.tag--ice { color: var(--ice-ink); border-color: var(--ice); }
 
 /* ============ PROTOCOL ============ */
 

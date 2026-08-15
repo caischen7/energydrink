@@ -15,11 +15,14 @@ const esc = (s) =>
   String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 /* colour per source so a finding and its table read as the same family */
+/* Each hue is used BOTH as text on white and as a tag background under white
+   text, so it has to clear 4.5:1 in both directions. The pastel iOS greens,
+   ambers and teals cleared neither - #34c759 measured 2.2:1. */
 const HUE = {
-  pdi: '#0071e3', mintel_survey: '#34c759', gnpd: '#ff9f0a', passport: '#5e5ce6',
-  simmons: '#ff375f', usda: '#00a5a5', mulo: '#8e5cd9', combined: '#1d1d1f',
+  pdi: '#0071e3', mintel_survey: '#178037', gnpd: '#a35c00', passport: '#5e5ce6',
+  simmons: '#c9184a', usda: '#00807f', mulo: '#7a4bc4', combined: '#1d1d1f',
 };
-const hue = (s) => HUE[s] || '#86868b';
+const hue = (s) => HUE[s] || '#6e6e73';
 
 function card(i, srcName) {
   return `

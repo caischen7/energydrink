@@ -184,6 +184,12 @@ body.drilled .aud-top { display: none; }
 .br-bar { height: 9px; border-radius: 5px; min-width: 2px; }
 .br-v { font-size: 12px; text-align: right; color: var(--dim); font-variant-numeric: tabular-nums; }
 .dt-note { font-size: 11.5px; color: var(--dim); margin-top: 0.9rem; }
+/* Inline links in notes sit on the grey card fill, where the plain accent is
+   4.3:1. Underlined as well, so the link is not signalled by colour alone. */
+/* Inline links in these notes sit on the grey card fill, where the plain
+   accent is 4.3:1. Underlined too, so the link is not signalled by colour
+   alone. */
+.dt-note a, .scope-note a { color: var(--accent-ink); text-decoration: underline; }
 .tbl-wrap { overflow-x: auto; }
 .pd { max-width: 320px; }
 
@@ -240,7 +246,7 @@ body.drilled .aud-top { display: none; }
   padding-top: 9px;
   margin-bottom: 8px;
 }
-.tip-grid dd.up { color: #1a8a3a; }
+.tip-grid dd.up { color: #178037; }
 .tip-grid dd.down { color: #c0392b; }
 
 .th-s {
@@ -250,7 +256,7 @@ body.drilled .aud-top { display: none; }
   opacity: 0.6;
   letter-spacing: 0.05em;
 }
-#channel-table td.up { color: #1a8a3a; }
+#channel-table td.up { color: #178037; }
 #channel-table td.down { color: #c0392b; }
 
 /* reasoning cards */
@@ -281,7 +287,10 @@ body.drilled .aud-top { display: none; }
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
-.why-move b { color: var(--c); }
+/* --c is a chart FILL from the CVD-validated palette. Fills carry no contrast
+   floor; text does, and several of these measured under 3:1. Identity stays on
+   the swatch and the left border. */
+.why-move b { color: var(--ink); }
 .why-card p { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--dim); }
 
 /* forecast caveat block */
@@ -346,7 +355,7 @@ body.drilled .aud-top { display: none; }
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
-.dl-d.up { color: #1a8a3a; }
+.dl-d.up { color: #178037; }
 .dl-d.down { color: #c0392b; }
 .dl-why {
   grid-column: 2 / -1;
@@ -392,7 +401,9 @@ body.drilled .aud-top { display: none; }
 #flavor-matrix td.heat {
   position: relative;
   font-variant-numeric: tabular-nums;
-  background: color-mix(in srgb, var(--accent) calc(var(--a) * 100%), transparent);
+  /* Capped at 78% for the same reason as the white-space matrix: at full
+     strength even near-black text only reaches 3.6:1 on the cell. */
+  background: color-mix(in srgb, var(--accent) calc(var(--a) * 78%), transparent);
 }
 #flavor-matrix td.heat:empty::after { content: '·'; }
 
@@ -507,7 +518,7 @@ body.drilled .aud-top { display: none; }
   line-height: 1.6;
   max-width: 78ch;
 }
-.scope-note a { color: var(--accent); }
+.scope-note a { color: var(--accent-ink); text-decoration: underline; }
 
 /* Channel makeup */
 .chan-notes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.8rem; }
@@ -520,7 +531,7 @@ body.drilled .aud-top { display: none; }
 }
 .chan-notes li b { color: var(--ink); font-weight: 600; }
 #chan-table .tot-row td { border-top: 2px solid var(--line); font-weight: 600; }
-#chan-table .up { color: #1a8a3a; }
+#chan-table .up { color: #178037; }
 #chan-table .down { color: #c0392b; }
 #chan-table .dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 8px; }
 
@@ -533,7 +544,7 @@ body.drilled .aud-top { display: none; }
   padding: 10px 0; border-top: 1px solid var(--line);
 }
 .dq-i { font-weight: 700; text-align: center; }
-.dq-pass .dq-i { color: #1a8a3a; }
+.dq-pass .dq-i { color: #178037; }
 .dq-fail .dq-i { color: #c0392b; }
 .dq-partial .dq-i { color: #b38600; }
 .dq-n { font-size: 13px; font-weight: 550; }

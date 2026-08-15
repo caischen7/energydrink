@@ -74,9 +74,9 @@ function matrix() {
     if (!c.rev) return `<td class="mx-cell mx-empty" title="No measured sales">·</td>`;
     const head = c.rps / med;
     const a = Math.min(1, head / 4);
-    /* Past this fill the grey sub-label and the dark green/red growth tags
-       disappear into the blue. Flip the whole cell to light-on-dark. */
-    const dk = a >= 0.55 ? ' mx-dark' : '';
+    /* 0.5 is measured, not chosen: it is the fill at which the deep green
+       still clears 4.5:1. Past it the cell goes near-black. */
+    const dk = a >= 0.5 ? ' mx-dark' : '';
     const grow = c.cagr == null ? '' :
       `<i class="mx-g ${c.cagr >= 0 ? 'up' : 'down'}">${pct(c.cagr)}</i>`;
     return `<td class="mx-cell mx-click${dk}" style="--a:${a.toFixed(2)}"
@@ -362,7 +362,7 @@ function priceGrid() {
       ${r.rows.map((c) => {
         if (!c.skus) return '<td class="mx-cell mx-empty">·</td>';
         const a = c.skus >= 5 ? Math.min(1, c.rps / max) : 0.06;
-        const dk = a >= 0.55 ? ' mx-dark' : '';
+        const dk = a >= 0.5 ? ' mx-dark' : '';
         return `<td class="mx-cell${dk}" style="--a:${a.toFixed(2)}"
           title="${esc(r.size)} at ${esc(c.band)} — ${money(c.rev)} across ${c.skus} SKUs, ${money(c.rps)} per SKU">
           <b>${money(c.rps)}</b><span class="mx-s">${c.skus} SKU · ${money(c.rev)}</span></td>`;
@@ -421,6 +421,15 @@ function main(data) {
       '<p class="sec-note">No opportunity data in this aggregate — run data/scripts/add_audiences.py.</p>';
     return;
   }
+  /* Board hues arrive from the aggregate and are painted as names on white.
+     The pastel iOS set measured ~2:1, so they are mapped to AA-safe siblings
+     of the same hue rather than being re-picked. */
+  const SAFE = {
+    '#34c759': '#178037', '#ff9f0a': '#a35c00', '#00a5a5': '#00807f',
+    '#ff375f': '#c9184a', '#5e5ce6': '#4b49c4', '#8e5cd9': '#7a4bc4',
+    '#ff3b30': '#c0392b',
+  };
+  for (const b of O.board) b.color = SAFE[String(b.color).toLowerCase()] || b.color;
   WHO = Object.fromEntries(O.board.map((b) => [b.id, b]));
   board();
   matrix();

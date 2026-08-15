@@ -72,17 +72,28 @@
   border-radius: 4px;
 }
 .mx-cell b { display: block; font-size: 11.5px; font-variant-numeric: tabular-nums; }
-.mx-s { display: block; font-size: 9.5px; color: var(--dim); }
+/* Not --dim: even a half-strength cell drops the secondary grey to 3.3:1.
+   Size and weight carry the hierarchy instead of lightness. */
+.mx-s { display: block; font-size: 9.5px; color: #2c2c2e; }
 .mx-g { display: block; font-size: 9.5px; font-style: normal; font-weight: 600; }
-.mx-g.up { color: #1a8a3a; }
-.mx-g.down { color: #c0392b; }
+/* Deeper than the site's standard pair: these sit on a tinted cell, not on
+   white. Measured against the fill, they hold AA up to --a 0.5. */
+.mx-g.up { color: #0a5c28; }
+.mx-g.down { color: #8f1a10; }
+/* Direction is also a glyph, so the cell survives both a colourblind reader
+   and the near-black treatment on dark fills below. */
+.mx-g.up::before { content: '\25b2 '; font-size: 7px; }
+.mx-g.down::before { content: '\25bc '; font-size: 7px; }
 
-/* Cells past ~55% fill are dark enough to swallow grey and the darker
-   green/red growth tags. Flip the whole cell to light-on-dark. */
-.mx-cell.mx-dark b { color: #fff; }
-.mx-cell.mx-dark .mx-s { color: rgba(255, 255, 255, 0.82); }
-.mx-cell.mx-dark .mx-g.up { color: #9dfab8; }
-.mx-cell.mx-dark .mx-g.down { color: #ffc2bb; }
+/* Past --a 0.5 the fill is too saturated for grey OR for the green/red pair -
+   measured, white tops out at 3.3:1 on the strongest cell and every coloured
+   variant is worse. Near-black is the only text that holds (5.1:1 at full
+   fill), so filled cells go dark and lean on the arrow glyph for direction. */
+.mx-cell.mx-dark b,
+.mx-cell.mx-dark .mx-s,
+.mx-cell.mx-dark .mx-g.up,
+.mx-cell.mx-dark .mx-g.down { color: var(--ink); }
+.mx-cell.mx-dark .mx-s { font-weight: 500; }
 .mx-empty { color: var(--dim); opacity: 0.45; }
 .mx-key {
   display: flex;
@@ -116,7 +127,7 @@
 .op-nums { font-size: 11px; color: var(--dim); text-align: right; font-variant-numeric: tabular-nums; }
 .op-nums i { font-style: normal; font-weight: 600; color: var(--ink); }
 .op-head { color: var(--accent); }
-.op-nums .up { color: #1a8a3a; }
+.op-nums .up { color: #178037; }
 .op-nums .down { color: #c0392b; }
 
 .gap-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.4rem; margin-top: 1rem; }
@@ -216,7 +227,7 @@
 .vd-fix p { margin: 0 0 .7rem; font-size: 12.5px; line-height: 1.6; }
 .vd-was { color: var(--dim); font-style: italic; }
 .vd-tbl { margin-top: .8rem; }
-.vd-tbl tr.up td { color: #1a8a3a; font-weight: 600; }
+.vd-tbl tr.up td { color: #178037; font-weight: 600; }
 .vd-tbl tr.down td { color: #c0392b; }
 
 /* -------------------------------------------------- cell drill-down ------- */
@@ -262,7 +273,7 @@
 }
 .dr-kpis div { background: var(--bg); padding: 0.85rem 0.9rem; }
 .dr-kpis b { display: block; font-size: 1.25rem; font-variant-numeric: tabular-nums; }
-.dr-kpis b.up { color: #1a8a3a; }
+.dr-kpis b.up { color: #178037; }
 .dr-kpis b.down { color: #c0392b; }
 .dr-kpis span { display: block; margin-top: 0.25rem; font-size: 10.5px; color: var(--dim); }
 

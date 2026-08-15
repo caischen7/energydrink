@@ -133,7 +133,7 @@
 .chart text { font-family: var(--f-sans); }
 .c-lbl { font-size: 12px; fill: var(--dim); }
 .c-val { font-size: 12px; fill: var(--ink); font-weight: 600; }
-.c-axis { font-size: 11px; fill: #aeaeb2; letter-spacing: 0; }
+.c-axis { font-size: 11px; fill: #6e6e73; letter-spacing: 0; }
 .c-pt-lbl { font-size: 11px; fill: #86868b; }
 .c-track { fill: #f0f0f2; }
 .c-grid { stroke: var(--line); stroke-width: 1; }
@@ -166,8 +166,8 @@
 }
 .rk-b { font-family: var(--f-body); font-weight: 600; font-size: 14px; letter-spacing: -0.01em; color: var(--ink); }
 .rk-d { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.rk-d.up { color: #34c759; }
-.rk-d.down { color: #ff3b30; }
+.rk-d.up { color: #178037; }
+.rk-d.down { color: #c0392b; }
 .rk-n { font-size: 11px; }
 
 /* ---------- table ---------- */
@@ -285,7 +285,7 @@ body.gated { overflow: hidden; }
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 .gate-card input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15); }
-.gate-card input::placeholder { color: #aeaeb2; }
+.gate-card input::placeholder { color: #6e6e73; }
 .gate-card button {
   background: var(--accent);
   color: #fff;
@@ -300,7 +300,7 @@ body.gated { overflow: hidden; }
   transition: background 0.2s;
 }
 .gate-card button:hover { background: var(--accent-2); }
-.gate-out { min-height: 1.4em; margin-top: 1rem; font-size: 13px; letter-spacing: 0; color: #ff3b30; }
+.gate-out { min-height: 1.4em; margin-top: 1rem; font-size: 13px; letter-spacing: 0; color: #c0392b; }
 .gate-out:empty { margin: 0; }
 
 /* ---------- methodology ---------- */
