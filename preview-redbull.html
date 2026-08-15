@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <meta name="description" content="Design preview — dark, full-bleed treatment of the Bogus Banana landing page." />
+  <title>Design preview — Bogus Banana</title>
+  <link rel="icon" type="image/svg+xml" href="/mascot.svg" />
+  <script type="module" src="/src/preview-rb.js"></script>
+</head>
+<body>
+
+  <!-- The real procedural can, same scene.js the live page uses. -->
+  <canvas id="webgl" aria-hidden="true"
+          style="position:fixed;inset:0;width:100%;height:100%;z-index:1;pointer-events:none"></canvas>
+
+  <header class="rb-bar">
+    <a class="rb-logo" href="./index.html">
+      <img src="/mascot.svg" alt="" />
+      Bogus&nbsp;Banana
+    </a>
+    <nav class="rb-nav" aria-label="Sections">
+      <a href="#manifesto">Story</a>
+      <a href="#specs">Specs</a>
+      <a href="#drop">Flavors</a>
+      <a href="#protocol">Inside</a>
+      <a href="./dashboard.html">Market&nbsp;Intel</a>
+    </nav>
+    <a class="rb-cta" href="#join">Get a can</a>
+  </header>
+
+  <main>
+    <!-- ============ HERO ============ -->
+    <section id="hero" class="rb-hero">
+      <div class="rb-hero-inner">
+        <p class="rb-kicker">No. 01 — Ridiculously good energy</p>
+        <h1 class="disp">Bogus<br /><em>Banana</em></h1>
+        <p class="rb-sub">
+          200&nbsp;mg of caffeine, zero sugar, and a flavour nobody else had the nerve
+          to can. Built for the hours that actually count.
+        </p>
+        <div class="rb-hero-actions">
+          <a class="rb-cta" href="#join">Get a can</a>
+          <a class="rb-btn-ghost" href="#drop">See the lineup</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TICKER ============ -->
+    <div class="rb-ticker" aria-hidden="true">
+      <div id="rb-ticker-track">
+        <span>200 MG CAFFEINE</span><span>·</span><span>ZERO SUGAR</span><span>·</span>
+        <span>16 FL OZ</span><span>·</span><span>NO BULL</span><span>·</span>
+        <span>THREE FLAVOURS</span><span>·</span><span>SHIPS COLD</span><span>·</span>
+      </div>
+    </div>
+
+    <!-- ============ STORY ============ -->
+    <section id="manifesto" class="rb-strip rb-strip--alt">
+      <div class="rb-wrap">
+        <p class="rb-eyebrow">The story</p>
+        <h2 class="disp">Energy that<br />doesn't taste<br />like a dare.</h2>
+        <p class="rb-lead">
+          The category has spent thirty years selling adrenaline in a can and hoping
+          nobody noticed the flavour. We started from the other end — get the drink
+          right first, then earn the noise.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ SPECS ============ -->
+    <section id="specs" class="rb-strip rb-strip--accent">
+      <div class="rb-wrap">
+        <p class="rb-eyebrow">The numbers</p>
+        <h2 class="disp">What's<br />actually in it.</h2>
+        <div class="rb-stats">
+          <div class="rb-stat"><b>200</b><span>mg caffeine</span></div>
+          <div class="rb-stat"><b>0</b><span>g sugar</span></div>
+          <div class="rb-stat"><b>16</b><span>fl oz</span></div>
+          <div class="rb-stat"><b>15</b><span>calories</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FLAVORS ============ -->
+    <section id="drop" class="rb-strip">
+      <div class="rb-wrap">
+        <p class="rb-eyebrow">The lineup</p>
+        <h2 class="disp">Three flavours.</h2>
+        <p class="rb-lead">Hover a card to spin the can.</p>
+
+        <div class="rb-grid">
+          <article class="rb-card rb-card--dark" data-colorway="volt"
+                   style="--c:linear-gradient(155deg,#c9a200,#6b5400)" tabindex="0">
+            <span class="rb-tag">BB-01 · Original</span>
+            <h3 class="disp">Original<br />Blast</h3>
+            <p>The classic. Banana, citrus edge, long finish. In stock.</p>
+          </article>
+
+          <article class="rb-card rb-card--dark" data-colorway="void"
+                   style="--c:linear-gradient(155deg,#241a4d,#0b0817)" tabindex="0">
+            <span class="rb-tag">BB-02 · New</span>
+            <h3 class="disp">Midnight<br />Berry</h3>
+            <p>Dark berry over the banana base. Limited run. In stock.</p>
+          </article>
+
+          <article class="rb-card rb-card--light" data-colorway="glacier"
+                   style="--c:linear-gradient(155deg,#cfe9f5,#8fbdd4)" tabindex="0">
+            <span class="rb-tag">BB-03 · Seasonal</span>
+            <h3 class="disp">Frozen<br />Banana</h3>
+            <p>Cold-pressed and mint-cut. Summer only. Coming soon.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ INSIDE ============ -->
+    <section id="protocol" class="rb-strip rb-strip--alt">
+      <div class="rb-wrap">
+        <p class="rb-eyebrow">Inside</p>
+        <h2 class="disp">No proprietary<br />blends.</h2>
+        <p class="rb-lead">
+          Every milligram is on the label, in the order it goes in. If a competitor
+          hides theirs behind the phrase "energy blend", that is a choice, not a rule.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ JOIN ============ -->
+    <section id="join" class="rb-strip rb-strip--accent">
+      <div class="rb-wrap">
+        <p class="rb-eyebrow">Get one</p>
+        <h2 class="disp">Ships cold.<br />Drinks colder.</h2>
+        <p class="rb-lead">A twelve-pack, one flavour or mixed. No subscription trap.</p>
+        <p style="margin-top:2.4rem">
+          <a class="rb-cta" href="#join" style="background:#000;color:#ffd400">Get a can</a>
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="rb-foot">
+    <span>© 2086 Bogus Banana. Design preview — not the live page.</span>
+    <nav aria-label="Footer">
+      <a href="./index.html">Current design</a>
+      <a href="./dashboard.html">Market Intel</a>
+    </nav>
+  </footer>
+
+</body>
+</html>
