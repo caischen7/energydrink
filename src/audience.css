@@ -191,7 +191,10 @@ body.drilled .aud-top { display: none; }
    alone. */
 .dt-note a, .scope-note a { color: var(--accent-ink); text-decoration: underline; }
 .tbl-wrap { overflow-x: auto; }
-.pd { max-width: 320px; }
+/* .intel-table sets nowrap for its numeric columns; a product description is
+   not one. With nowrap the long names ran straight over the Brand column
+   instead of respecting this max-width. */
+.intel-table td.pd { max-width: 320px; white-space: normal; line-height: 1.35; }
 
 @media (max-width: 900px) {
   .aud-layout { grid-template-columns: 1fr; gap: 1.4rem; }
@@ -465,7 +468,8 @@ body.drilled .aud-top { display: none; }
   border-radius: 12px;
   background: var(--card, #f5f5f7);
   position: sticky;
-  top: 0;
+  top: calc(var(--bar-h) + 36px);   /* clears the site bar + subnav; at 0 it
+                                          pinned underneath them and vanished */
   z-index: 20;
 }
 .sw-chart { width: 200px; }

@@ -575,7 +575,7 @@ function openAud(name) {
              aria-label="Filter products" />
       <button class="sku-toggle mono" id="sku-all">Show all ${int(a.skus)} SKUs</button>
     </div>
-    <div class="tbl-wrap"><table class="intel-table mono" id="sku-table"></table></div>
+    <div class="tbl-wrap tbl-tall"><table class="intel-table mono" id="sku-table"></table></div>
     <p class="dt-note" id="sku-note"></p>`;
 
   document.body.classList.add('drilled');

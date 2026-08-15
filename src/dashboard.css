@@ -197,10 +197,44 @@
   letter-spacing: 0;
   cursor: pointer;
   user-select: none;
-  position: sticky;
-  top: var(--bar-h);
   background: var(--bg);
   transition: color 0.2s;
+}
+/*
+ * These headers used to declare `position: sticky; top: var(--bar-h)`. It never
+ * worked anywhere on the site, and it did damage.
+ *
+ * Every one of these tables sits in a wrapper with `overflow-x: auto`, and the
+ * spec computes the other axis to `auto` as well - so the wrapper, not the
+ * page, is the scroll container. The wrapper never scrolls vertically, so the
+ * header had no range to stick over and simply scrolled away with the rows.
+ * Audited across all six intel pages: fourteen sticky headers, fourteen dead.
+ *
+ * It was not merely inert. On the white-space matrix it engaged just enough to
+ * park across the first data row, which is the bug that surfaced it.
+ *
+ * Sticky here needs the wrapper to be the vertical scroller too - see .tbl-tall
+ * below, applied to the one table long enough to want it.
+ */
+.tbl-tall {
+  /* Sized to what is left once the sticky bars and any pinned panel above are
+     accounted for, so the table's own header is not pinned underneath them. */
+  max-height: min(70vh, calc(100vh - 360px));
+  min-height: 300px;
+  overflow: auto;
+}
+.tbl-tall .intel-table {
+  /* Chromium does not honour position:sticky on a th while the table is
+     border-collapse: collapse. The cells carry their own border-bottom, so
+     separate borders render identically here. */
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.tbl-tall .intel-table th {
+  position: sticky;
+  top: 0;                    /* the wrapper is the scrollport, not the page */
+  z-index: 3;
+  box-shadow: 0 1px 0 var(--line);
 }
 .intel-table th:hover { color: var(--accent); }
 .intel-table th.sorted { color: var(--accent); }
