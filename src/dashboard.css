@@ -333,3 +333,35 @@ body.gated { overflow: hidden; }
   .c-bar-h, .c-bar-v, .c-line, .c-dot, .c-area { transition-duration: 0.01s; }
   .live-dot { animation: none; }
 }
+
+/* ---------------------------------------------------------------- subnav --
+   The top bar answers "what other pages are there"; this row answers "what's
+   on this one". Mixing the two in a single strip — and prefixing half of it
+   with internal panel numbers — was what made the site hard to move around. */
+.subnav {
+  position: sticky;
+  top: var(--bar-h, 56px);
+  z-index: 40;
+  display: flex;
+  gap: 1.6rem;
+  align-items: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0.55rem clamp(1rem, 4vw, 3rem);
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: saturate(1.6) blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+.subnav::-webkit-scrollbar { display: none; }
+.subnav a {
+  color: var(--dim);
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+.subnav a:hover, .subnav a:focus-visible { color: var(--accent); }
+
+/* clear both sticky rows when jumping to an anchor */
+body.dash { scroll-padding-top: calc(var(--bar-h) + 40px); }
