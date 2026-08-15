@@ -202,18 +202,72 @@ function cardsView() {
     </article>`).join('');
 }
 
-/* Annual gain, not level — the level rises every year and hides the slowdown. */
+/*
+ * Annual gain, not level — the level rises every year and hides the slowdown.
+ *
+ * Redrawn as a hurdle chart. The old version put "2026-30 needed" in the series
+ * as a fifth bar, which reads as a sixth measurement when it is nothing of the
+ * kind: it is the pace the site's own 2030 projection requires. Drawn as a
+ * threshold instead, the chart answers the question that actually matters —
+ * which years cleared the bar the forecast is counting on. Two of four did, and
+ * the most recent missed it by almost half.
+ *
+ * The consequence is spelled out rather than left to the reader: carry 2025's
+ * pace forward and 2030 lands well short of the projection the rest of the site
+ * is built on. That gap is the finding; the bars are just how you see it.
+ */
 function paceView() {
   const P = D.women_pace;
   if (!P) return;
+  const need = P.implied;
+  const last = P.gains[P.gains.length - 1];
+
   const rows = P.gains.map((g) => ({
-    label: String(g.y), value: g.gain,
-    color: g.gain === Math.max(...P.gains.map((x) => x.gain)) ? '#34c759'
-         : g.y === P.gains[P.gains.length - 1].y ? '#c0392b' : '#86868b',
+    label: String(g.y),
+    value: g.gain,
+    /* Cleared the required pace, or did not. Colour carries the verdict. */
+    color: g.gain >= need ? '#0071e3' : '#c0392b',
   }));
-  rows.push({ label: '2026–30\nneeded', value: P.implied, color: '#0071e3' });
-  $('#pace').innerHTML = vBars(rows, { fmt: (v) => '+' + v.toFixed(1) + 'pp' });
-  $('#pace-note').textContent = P.note;
+
+  $('#pace').innerHTML = vBars(rows, {
+    fmt: (v) => '+' + v.toFixed(1) + 'pp',
+    refLine: {
+      value: need,
+      /* Short enough to clear the tallest bar that crosses the line. The
+         sentence version lives in the note directly below the chart. */
+      label: `${need.toFixed(2)}pp/yr needed`,
+    },
+  });
+
+  /* Carry the latest measured pace forward to 2030 and compare. */
+  const years = 2030 - 2025;
+  const atLast = P.now + last.gain * years;
+  const shortfall = P.fut - atLast;
+
+  $('#pace-note').innerHTML =
+    `<b>Two of the four measured years cleared that line; 2025 missed it by ` +
+    `${(need - last.gain).toFixed(1)}pp.</b> ` + esc(P.note);
+
+  const box = $('#pace-implication');
+  if (box) {
+    box.innerHTML = `
+      <div class="pc-scen">
+        <span class="pc-k mono">IF THE 2025 PACE HOLDS</span>
+        <b>${atLast.toFixed(1)}%</b>
+        <span class="pc-s mono">women's share of demand in 2030</span>
+      </div>
+      <div class="pc-scen pc-scen--proj">
+        <span class="pc-k mono">WHAT THIS SITE PROJECTS</span>
+        <b>${P.fut.toFixed(1)}%</b>
+        <span class="pc-s mono">requires re-accelerating to ${need.toFixed(2)}pp a year</span>
+      </div>
+      <div class="pc-scen pc-scen--gap">
+        <span class="pc-k mono">THE GAP</span>
+        <b>${shortfall.toFixed(1)}pp</b>
+        <span class="pc-s mono">≈ ${money(shortfall / 100 * D.future.market)} of 2030 demand
+          riding on the trend re-accelerating</span>
+      </div>`;
+  }
 }
 
 /*

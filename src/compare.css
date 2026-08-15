@@ -113,3 +113,28 @@
   .cc-arrow { display: none; }
   .cc-delta { text-align: left; grid-column: 1 / -1; }
 }
+
+/* ---------------------------------------------- pace implication ---------- */
+/* The bars show the deceleration; these three cards say what it costs. */
+.pc-scens {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 1px;
+  margin-top: 1.4rem;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.pc-scen { background: var(--bg); padding: 1rem 1.1rem; }
+.pc-scen b {
+  display: block;
+  margin: 0.3rem 0 0.35rem;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-variant-numeric: tabular-nums;
+}
+.pc-k { display: block; font-size: 10px; letter-spacing: 0.12em; color: var(--dim); }
+.pc-s { display: block; font-size: 11px; line-height: 1.5; color: var(--dim); }
+.pc-scen--proj b { color: var(--accent); }
+.pc-scen--gap { background: #fdf3f2; }
+.pc-scen--gap b { color: #c0392b; }

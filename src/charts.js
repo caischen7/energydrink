@@ -59,7 +59,7 @@ export function hBars(rows, opts = {}) {
   const barX = labelW + 8;
   const barMax = W - barX - valW;
   const H = rows.length * (rowH + gap);
-  const max = Math.max(...rows.map((r) => r.value), 1);
+  const max = Math.max(...rows.map((r) => r.value), opts.refLine?.value || 0, 1) * 1.06;
 
   const bars = rows
     .map((r, i) => {
@@ -91,7 +91,7 @@ export function vBars(rows, opts = {}) {
   const innerH = H - padB - padT;
   const slot = W / rows.length;
   const bw = Math.min(110, slot * 0.6);
-  const max = Math.max(...rows.map((r) => r.value), 1);
+  const max = Math.max(...rows.map((r) => r.value), opts.refLine?.value || 0, 1) * 1.06;
 
   const bars = rows
     .map((r, i) => {
@@ -110,7 +110,30 @@ export function vBars(rows, opts = {}) {
     })
     .join('');
 
-  return `<svg viewBox="0 0 ${W} ${H}" class="chart" preserveAspectRatio="xMidYMid meet" role="img">${bars}</svg>`;
+  /*
+   * An optional threshold drawn across the whole plot. A bar chart answers
+   * "how big was each one"; a bar chart with a hurdle answers "which ones
+   * cleared it", which is a different and usually more useful question.
+   * opts.refLine = {value, label, color}
+   *
+   * The label sits just BELOW the line and carries a white halo. Above it, it
+   * lands on whichever bar happens to cross the threshold; below it, it sits in
+   * the gap the short bars leave, and the halo covers the rest.
+   */
+  let ref = '';
+  if (opts.refLine && opts.refLine.value > 0) {
+    const rv = opts.refLine.value;
+    const ry = padT + innerH - (rv / max) * innerH;
+    const rc = opts.refLine.color || '#1d1d1f';
+    ref = `
+      <line x1="0" y1="${ry.toFixed(1)}" x2="${W}" y2="${ry.toFixed(1)}"
+            stroke="${rc}" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.75"/>
+      <text x="${W - 6}" y="${(ry + 16).toFixed(1)}" class="c-lbl" text-anchor="end"
+            fill="${rc}" stroke="#fff" stroke-width="3.5" paint-order="stroke"
+            stroke-linejoin="round">${esc(opts.refLine.label || '')}</text>`;
+  }
+
+  return `<svg viewBox="0 0 ${W} ${H}" class="chart" preserveAspectRatio="xMidYMid meet" role="img">${bars}${ref}</svg>`;
 }
 
 /*
