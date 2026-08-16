@@ -18,8 +18,9 @@ import '@fontsource-variable/inter';
 import './dashboard.css';
 import './audience.css';
 import './opportunity.css';
-import { hBars, multiLine, revealCards } from './charts.js';
+import { hBars, multiLine, scatter, revealCards } from './charts.js';
 import { requireAuth } from './auth.js';
+import { initSimulator } from './simulate.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -337,6 +338,92 @@ function ecom() {
 }
 
 
+/* -------------------------------------------------- chatter vs sales ------- */
+/*
+ * A null result, published because it changes how the rest of the site should
+ * be read. The dashboard's flavor board was titled "FLAVOR DEMAND" and claimed
+ * its top terms "lead demand". Tested directly, they do not: chatter share and
+ * revenue share across 13 flavor families correlate at r = -0.15 (p = 0.63),
+ * and year-on-year changes correlate at ~0 at every lag out to two years.
+ *
+ * The interesting part is not the absence but the direction. Chatter
+ * over-weights novelty by an order of magnitude and under-weights the
+ * bestseller by five times, which is a systematic bias rather than noise - so
+ * social listening on this category measures curiosity, and reading it as
+ * demand inverts the answer.
+ */
+function chatterTest() {
+  const T = O.flavor_trends;
+  if (!T) {
+    $('#ch-bias').innerHTML =
+      '<p class="sec-note">No trend test — run data/scripts/flavor_trends.py --write.</p>';
+    return;
+  }
+  const yr = String(T.cross_section.year);
+  const ch = T.chatter[yr] || {};
+  const sl = T.sales[yr] || {};
+  const fams = T.flavors.filter((f) => (ch[f] || sl[f]));
+
+  $('#ch-scatter').innerHTML = scatter(
+    fams.map((f) => ({ x: ch[f] || 0, y: sl[f] || 0, r: 1, label: f })),
+    { xLabel: 'Share of chatter (%)', yLabel: 'Share of revenue (%)' }
+  );
+  const cs = T.cross_section;
+  $('#ch-scatter-note').innerHTML =
+    `If chatter tracked sales these would sit on a rising line. Across ${cs.n} flavor `
+    + `families they correlate at <b>r = ${cs.r}</b> (p = ${cs.p}) — no relationship, `
+    + `leaning slightly negative.`;
+
+  $('#ch-lags').innerHTML = T.lags.map((l) => `
+    <div class="ch-lag">
+      <b class="mono">${l.lag === 0 ? 'Same year' : `+${l.lag} year${l.lag > 1 ? 's' : ''}`}</b>
+      <span class="ch-w">${esc(l.reading)}<br>n = ${l.n} flavor-years</span>
+      <span class="ch-r ${l.p > 0.1 ? 'ch-null' : ''}">r ${l.r >= 0 ? '+' : ''}${l.r}</span>
+    </div>`).join('');
+  $('#ch-lag-note').innerHTML =
+    `Year-on-year <b>change</b> in chatter share against change in revenue share, pooled `
+    + `across flavors. Levels would correlate simply because big flavors are big on both `
+    + `sides; changes are what "does it move first" actually asks. All three lags are shown `
+    + `— reporting only the best of several would manufacture a finding out of a null.`;
+
+  /* The bias is the finding. Ranked by how far chatter misreads each flavor. */
+  const rows = fams
+    .map((f) => ({ f, c: ch[f] || 0, s: sl[f] || 0, ratio: (ch[f] || 0) / Math.max(sl[f] || 0, 0.05) }))
+    .sort((a, b) => b.ratio - a.ratio);
+  $('#ch-bias').innerHTML = `
+    <div class="ch-bias">
+      <h4 class="mono">WHERE CHATTER MISREADS THE SHELF — ${esc(yr)}</h4>
+      <div class="ch-row ch-head">
+        <span>FLAVOR FAMILY</span><span>CHATTER</span><span>REVENUE</span><span>OVER / UNDER</span>
+      </div>
+      ${rows.map((r) => `<div class="ch-row">
+        <span>${esc(r.f)}</span>
+        <span>${r.c.toFixed(1)}%</span>
+        <span>${r.s.toFixed(1)}%</span>
+        <span class="${r.s < 0.05 ? 'ch-over'
+          : r.ratio > 1.25 ? 'ch-over' : r.ratio < 0.8 ? 'ch-under' : ''}">${
+          r.s < 0.05 ? 'no measured sales'
+          /* A ratio of 1.01 is parity, not a 1.0x bias. Only call it either way
+             once the gap is bigger than the measurement deserves. */
+          : r.ratio > 1.25 ? `${r.ratio.toFixed(1)}× over-talked`
+          : r.ratio < 0.8 ? `${(1 / r.ratio).toFixed(1)}× under-talked`
+          : 'roughly matched'}</span>
+      </div>`).join('')}
+    </div>`;
+
+  $('#ch-method').innerHTML =
+    `<b>How this is tested:</b> both series are each flavor's <b>share of its own year</b>, `
+    + `so the growth of the YouTube corpus (${(T.items_per_year[String(T.years[0])] || 0).toLocaleString()} `
+    + `items in ${T.years[0]} to ${(T.items_per_year[yr] || 0).toLocaleString()} in ${yr}) cannot `
+    + `drive the result. Flavor terms use the same taxonomy as the SKU classifier, so a flavor `
+    + `means the same thing on both sides, and phrases like "Apple Music" are stripped first. `
+    + `PDI coverage before 2019 is too thin to compare, so the panel starts there. `
+    + `<b>What it cannot rule out:</b> this corpus was gathered by searching brand terms, so it `
+    + `is chatter among people already discussing energy drinks — not a general search index. `
+    + `A true search-volume series (Google Trends) would be a better test and is blocked here.`;
+}
+
+
 /* ------------------------------------------------------------ survival ----- */
 /*
  * The number the rest of this page was missing. Everything above says where the
@@ -524,6 +611,8 @@ function main(data) {
   ranked();
   ecom();
   survival();
+  chatterTest();
+  initSimulator(O);
   priceGrid();
   verdict();
   /* Nothing on this page was revealing its panels, so every animated mark sat

@@ -221,21 +221,40 @@ function priceVsRating() {
   );
 }
 
-/* flavor/descriptor demand ranked by mentions across the corpus */
+/*
+ * Flavor mentions across the corpus.
+ *
+ * This panel used to be titled "FLAVOR DEMAND BOARD", subtitled "BARS =
+ * DEMAND", and it said the top terms "lead demand". That claim has since been
+ * tested directly against sales and it does not hold - see
+ * data/scripts/flavor_trends.py. Chatter share and PDI revenue share across 13
+ * flavor families correlate at r = -0.15 (p = 0.63), and year-on-year changes
+ * correlate at essentially zero at every lag from 0 to 2 years.
+ *
+ * The relationship is not merely absent, it leans negative: Coffee & cream is
+ * 18.5% of chatter and 1.4% of revenue; Tea & botanical 17.1% against 0.5%;
+ * Original 6.2% against 30.6%. People post about what is novel, not about what
+ * they buy every week. So this measures curiosity, and is now labelled that way.
+ */
 function flavorBoard() {
   const fd = data.flavor_demand;
-  const rows = fd.map((d, i) => ({ label: d.flavor, value: d.mentions, color: i === 0 ? VOLT : undefined }));
+  const rows = fd.map((d, i) => ({
+    label: d.flavor,
+    value: d.mentions,
+    /* Not '#c7c7cc' - that is the track colour, which rendered every bar but
+       the first invisible against its own rail. */
+    color: i === 0 ? VOLT : '#7fb4ee',
+  }));
   const top = fd[0];
   const two = fd[1];
   const gem = fd.find((f) => f.flavor === 'Sour / Candy');
-  const mint = fd.find((f) => f.flavor === 'Mint / Menthol');
   return panel(
     'flavor',
     9,
-    'FLAVOR DEMAND BOARD',
-    'MENTIONS ACROSS 125K COMMENTS + REVIEWS · BARS = DEMAND',
-    hBars(rows, { fmt: fmtInt, unit: 'mentions', labelW: 150, accent: '#c7c7cc' }),
-    `${top.flavor} (${fmtInt(top.mentions)} mentions, ${top.avg_rating}★) and ${two.flavor} (${fmtInt(two.mentions)}, ${two.avg_rating}★) lead demand — validating Bogus Banana's Original Blast & Midnight Berry.${gem ? ` "${gem.flavor}" is the sleeper: best-rated at ${gem.avg_rating}★ on only ${gem.products} SKUs — high satisfaction, low supply.` : ''}${mint ? ` Mint/menthol is weakest (${mint.avg_rating}★) — a flag if "Frozen Banana" leans cooling.` : ''}`
+    'FLAVOR CHATTER BOARD',
+    'MENTIONS ACROSS 125K COMMENTS + REVIEWS · BARS = HOW OFTEN A FLAVOR IS TALKED ABOUT',
+    hBars(rows, { fmt: fmtInt, unit: 'mentions', labelW: 150 }),
+    `${top.flavor} (${fmtInt(top.mentions)} mentions, ${top.avg_rating}★) and ${two.flavor} (${fmtInt(two.mentions)}, ${two.avg_rating}★) are talked about most.${gem ? ` "${gem.flavor}" is the best-rated at ${gem.avg_rating}★ on only ${gem.products} SKUs.` : ''} <b>Read this as curiosity, not demand.</b> Tested against PDI sales, chatter share and revenue share across 13 flavor families correlate at r&nbsp;=&nbsp;−0.15 — the flavors people post about most are close to the ones that sell least. The Opportunity page shows that test.`
   );
 }
 

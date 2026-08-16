@@ -25,6 +25,8 @@
   <nav class="subnav mono" aria-label="Sections on this page">
     <a href="#whitespace" data-hover>White space</a>
     <a href="#survival" data-hover>Base rate</a>
+    <a href="#chatter" data-hover>Chatter test</a>
+    <a href="#simulate" data-hover>Simulator</a>
     <a href="#price" data-hover>Price</a>
     <a href="#verdict-sec" data-hover>Verdict</a>
   </nav>
@@ -184,6 +186,58 @@
 
       <p class="dt-note" id="sv-method">—</p>
       <p class="dt-note" id="sv-caveat">—</p>
+    </section>
+
+    <!-- ============ CHATTER vs SALES ============ -->
+    <section id="chatter" class="aud-top">
+      <h2 class="sec-h mono">DOES FLAVOR CHATTER PREDICT FLAVOR SALES?</h2>
+      <p class="sec-note">
+        The category assumes it does. Tested against 68,930 YouTube titles and 150,514
+        comments on one side and PDI revenue on the other, using the same flavor taxonomy
+        for both — <b>it does not</b>. Reported here because a null result on this
+        question changes how every other social signal on this site should be read.
+      </p>
+
+      <div class="ch-two">
+        <figure class="panel-card">
+          <figcaption class="pc-h mono">CHATTER SHARE vs REVENUE SHARE, 2025</figcaption>
+          <div id="ch-scatter"></div>
+          <p class="dt-note" id="ch-scatter-note">—</p>
+        </figure>
+        <div>
+          <h4 class="mono ch-h">DOES IT LEAD?</h4>
+          <div id="ch-lags"></div>
+          <p class="dt-note" id="ch-lag-note">—</p>
+        </div>
+      </div>
+
+      <div id="ch-bias"></div>
+      <p class="dt-note" id="ch-method">—</p>
+    </section>
+
+    <!-- ============ SIMULATOR ============ -->
+    <section id="simulate" class="aud-top">
+      <h2 class="sec-h mono">LAUNCH SIMULATOR — WHAT RANGE OF OUTCOMES TO EXPECT</h2>
+      <p class="sec-note">
+        Everything above describes what already happened. This runs the forward question
+        10,000 times: pick a pocket, and the simulator resamples the complete revenue
+        history of real launches into it. It is a <b>bootstrap, not a model</b> — nothing is
+        fitted, so the skew and the failure rate come from the data rather than from an
+        assumption about its shape.
+      </p>
+
+      <div class="sim-controls" id="sim-controls"></div>
+      <div id="sim" class="sim-wrap">
+        <div class="sim-cards" id="sim-cards"></div>
+        <figure class="panel-card sim-fig">
+          <figcaption class="pc-h mono">CUMULATIVE REVENUE, BY PERCENTILE OF OUTCOME</figcaption>
+          <div id="sim-chart"></div>
+        </figure>
+        <p class="dt-note" id="sim-note">—</p>
+        <p class="dt-note" id="sim-scale">—</p>
+      </div>
+      <p class="dt-note" id="sim-method">—</p>
+      <p class="dt-note" id="sim-caveat">—</p>
     </section>
 
     <section id="price" class="aud-top">

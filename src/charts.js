@@ -199,7 +199,16 @@ export function scatter(points, opts = {}) {
           <title>${esc(opts.tip ? opts.tip(p) : `${p.label} — $${p.x} avg · ${p.y}★ · ${fmtInt(p.r)} ratings`)}</title>
         </circle>
         <circle cx="${sx(p.x)}" cy="${sy(p.y)}" r="2.5" fill="${p.color || VOLT}"/>
-        ${labelFits(p) ? `<text x="${sx(p.x)}" y="${sy(p.y) - sr(p.r) - 6}" class="c-pt-lbl" text-anchor="middle">${esc(p.label)}</text>` : ''}
+        ${labelFits(p) ? (() => {
+          /* Labels sit above their bubble, which puts the topmost one outside
+             the frame. Flip it underneath when there is no room above, and
+             pull it inside horizontally at the edges. */
+          const above = sy(p.y) - sr(p.r) - 6;
+          const ly = above < padT + 10 ? sy(p.y) + sr(p.r) + 13 : above;
+          const halfW = Math.max(18, String(p.label).length * 3.4);
+          const lx = Math.min(W - padR - halfW, Math.max(padL + halfW, sx(p.x)));
+          return `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" class="c-pt-lbl" text-anchor="middle">${esc(p.label)}</text>`;
+        })() : ''}
       </g>`
     )
     .join('');
@@ -328,12 +337,12 @@ const SERIES_COLORS = ['#0071e3', '#34c759', '#5e5ce6', '#ff9f0a', '#ff375f', '#
 
 /*
  * Multi-series line chart. months: ['YYYY-MM', ...]; series: [{brand, values:[…]}]
- * opts: { labelEvery, yFmt, yUnit }
+ * opts: { labelEvery, yFmt, yUnit, max, log }
  */
 export function multiLine(months, series, opts = {}) {
   const W = 800;
   const H = 380;
-  const padL = 46;
+  const padL = opts.padL || 46;
   const padR = 16;
   const padB = 70;
   const padT = 18;
@@ -343,15 +352,31 @@ export function multiLine(months, series, opts = {}) {
   const every = opts.labelEvery || 12;
   const max = opts.max || Math.max(...series.flatMap((s) => s.values), 1) * 1.12;
   const sx = (i) => padL + (n === 1 ? iw / 2 : (i / (n - 1)) * iw);
-  const sy = (v) => padT + ih - (v / max) * ih;
-  const yUnit = opts.yUnit || '%';
+  /*
+   * Optional log scale. On a percentile fan the top decile can be thirty times
+   * the median, which on a linear axis flattens the median and both lower
+   * bands onto the floor - the reader sees one line and a lot of white space.
+   * Log makes every band legible; the axis labels say which scale is in use.
+   */
+  const logY = !!opts.log;
+  const lo = logY
+    ? Math.max(1, Math.min(...series.flatMap((s) => s.values.filter((v) => v > 0))) * 0.8)
+    : 0;
+  const sy = logY
+    ? (v) => padT + ih - (Math.log10(Math.max(v, lo) / lo) / Math.log10(max / lo)) * ih
+    : (v) => padT + ih - (v / max) * ih;
+
+  /* `opts.yUnit || '%'` made an explicit '' fall back to a percent sign, which
+     labelled a dollar axis as percentages. Default only when truly absent. */
+  const yUnit = opts.yUnit ?? '%';
+  const yFmt = opts.yFmt || ((v) => v.toFixed(0) + yUnit);
 
   let grid = '';
   for (let i = 0; i <= 4; i++) {
-    const v = (max * i) / 4;
+    const v = logY ? lo * (max / lo) ** (i / 4) : (max * i) / 4;
     const y = sy(v);
     grid += `<line x1="${padL}" y1="${y}" x2="${padL + iw}" y2="${y}" class="c-grid"/>
-      <text x="${padL - 8}" y="${y}" class="c-lbl" text-anchor="end" dominant-baseline="middle">${v.toFixed(0)}${yUnit}</text>`;
+      <text x="${padL - 8}" y="${y}" class="c-lbl" text-anchor="end" dominant-baseline="middle">${esc(yFmt(v))}</text>`;
   }
   let xl = '';
   months.forEach((m, i) => {
@@ -374,18 +399,29 @@ export function multiLine(months, series, opts = {}) {
     })
     .join('');
 
+  /* Wrap the legend instead of forcing every series onto one row. Five keys
+     across an 800-unit viewBox overlap once the labels are more than a word,
+     and at phone width they overlap badly. */
+  const legendCols = Math.max(1, Math.min(series.length,
+    Math.floor(iw / Math.max(120, ...series.map((s) => (s.name || s.brand || '').length * 6.4 + 30)))));
   const legend = series
     .map((s, si) => {
       const color = s.color || SERIES_COLORS[si % SERIES_COLORS.length];
-      const perRow = Math.ceil(series.length / 1);
-      const x = padL + si * (iw / perRow);
-      return `<g transform="translate(${x.toFixed(0)} ${H - 20})">
+      const col = si % legendCols;
+      const row = Math.floor(si / legendCols);
+      const x = padL + col * (iw / legendCols);
+      return `<g transform="translate(${x.toFixed(0)} ${H - 20 + row * 16})">
         <rect width="16" height="3" y="-4" fill="${color}"/>
         <text x="22" y="0" class="c-lbl" dominant-baseline="middle">${esc(s.name || s.brand)}</text></g>`;
     })
     .join('');
 
-  return `<svg viewBox="0 0 ${W} ${H}" class="chart" preserveAspectRatio="xMidYMid meet" role="img">${grid}${xl}${lines}${legend}</svg>`;
+  /* A wrapped legend needs the frame to grow with it, or its second row sits
+     a few pixels outside the viewBox and gets clipped. */
+  const legendRows = Math.ceil(series.length / legendCols);
+  const svgH = H + Math.max(0, legendRows - 1) * 16 + 6;
+
+  return `<svg viewBox="0 0 ${W} ${svgH}" class="chart" preserveAspectRatio="xMidYMid meet" role="img">${grid}${xl}${lines}${legend}</svg>`;
 }
 
 /*
