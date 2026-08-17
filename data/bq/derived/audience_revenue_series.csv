@@ -1,0 +1,27 @@
+year,audience,passport_share_pct,market_usd_m,audience_usd_m
+2019,Gym & fitness,9.1,14469.8,1316.8
+2020,Gym & fitness,8.7,15634.6,1360.2
+2021,Gym & fitness,9.3,18378.7,1709.2
+2022,Gym & fitness,8.0,20302.2,1624.2
+2023,Gym & fitness,8.1,22396.6,1814.1
+2024,Gym & fitness,7.4,23812.6,1762.1
+2025,Gym & fitness,7.3,26947.3,1967.2
+2019,Shift workers & military,3.1,14469.8,448.6
+2020,Shift workers & military,2.2,15634.6,344.0
+2021,Shift workers & military,1.8,18378.7,330.8
+2022,Shift workers & military,1.7,20302.2,345.1
+2023,Shift workers & military,1.4,22396.6,313.6
+2024,Shift workers & military,1.4,23812.6,333.4
+2025,Shift workers & military,1.2,26947.3,323.4
+2021,Women (fitness & wellness),1.7,18378.7,312.4
+2022,Women (fitness & wellness),4.1,20302.2,832.4
+2023,Women (fitness & wellness),8.2,22396.6,1836.5
+2024,Women (fitness & wellness),11.1,23812.6,2643.2
+2025,Women (fitness & wellness),12.1,26947.3,3260.6
+2019,Young adults,80.7,14469.8,11677.1
+2020,Young adults,77.8,15634.6,12163.7
+2021,Young adults,78.6,18378.7,14445.7
+2022,Young adults,71.1,20302.2,14434.8
+2023,Young adults,71.1,22396.6,15924.0
+2024,Young adults,69.8,23812.6,16621.2
+2025,Young adults,70.1,26947.3,18890.0
