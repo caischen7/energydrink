@@ -503,3 +503,42 @@
 .ch-head { font-size: 10px; letter-spacing: 0.1em; color: var(--dim); }
 .ch-over { color: #8f1a10; font-weight: 600; }
 .ch-under { color: #0a5c28; font-weight: 600; }
+
+/* ------------------------------------------------------ predictive model -- */
+.pm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 1.2rem;
+  margin-top: 1.6rem;
+}
+.pm-card { border: 1px solid var(--line); border-radius: 12px; padding: 1.2rem 1.3rem; }
+.pm-t { margin: 0 0 0.15rem; font-size: 11px; letter-spacing: 0.1em; color: var(--dim); }
+.pm-auc { font-size: clamp(1.8rem, 3.4vw, 2.4rem); font-variant-numeric: tabular-nums; }
+.pm-ci { font-size: 11.5px; color: var(--dim); margin-left: 0.4em; }
+.pm-vs { margin: 0.7rem 0 0; font-size: 12px; line-height: 1.55; }
+.pm-verdict {
+  margin: 0.9rem 0 0;
+  padding: 0.7rem 0.85rem;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.pm-good { background: rgba(0, 113, 227, 0.06); border-left: 3px solid var(--accent); }
+.pm-weak { background: #fdf3f2; border-left: 3px solid #c0392b; }
+.pm-feat { list-style: none; margin: 1rem 0 0; padding: 0; }
+.pm-feat li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 70px 58px;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 5px 0;
+  border-top: 1px solid var(--line);
+  font-size: 11.5px;
+}
+.pm-feat .pm-bar { height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.pm-feat .pm-bar i { display: block; height: 100%; background: var(--accent); }
+.pm-feat .pm-co { text-align: right; font-variant-numeric: tabular-nums; }
+.pm-up { color: #0a5c28; }
+.pm-dn { color: #8f1a10; }
+.pm-cal { margin-top: 1.6rem; }
+.pm-cal h4 { margin: 0 0 0.6rem; font-size: 10.5px; letter-spacing: 0.12em; color: var(--dim); }

@@ -338,6 +338,101 @@ function ecom() {
 }
 
 
+/* ------------------------------------------------------ predictive model --- */
+/*
+ * A logistic model that ranks launches, reported with the two things a model
+ * like this is usually shown without: an interval on its AUC, and the score of
+ * the one-variable baseline it has to beat.
+ *
+ * Both matter here. On the $100K outcome the five-feature model scores 0.810
+ * against 0.799 for year-one revenue alone — a rounding error's worth of lift
+ * for four extra inputs, on 30 events. Presenting that as "AUC 0.81" without
+ * the comparison would be the difference between a model and a number.
+ *
+ * The first version of this used the site's peak-relative survival rule as its
+ * target and produced a NEGATIVE coefficient on year-one revenue. That is the
+ * artifact documented in add_survival.py, not a finding: a target defined
+ * against a SKU's own peak punishes early peaks, and year-one revenue helps set
+ * the peak. Both targets here are absolute dollar bars, which share no term
+ * with the predictor.
+ */
+function predictive() {
+  const P = O.predict;
+  if (!P) {
+    $('#pm-models').innerHTML =
+      '<p class="sec-note">No model — run data/scripts/predict_launch.py --write.</p>';
+    return;
+  }
+
+  const cards = Object.entries(P.models).map(([key, m]) => {
+    const lift = (m.auc - 0.5) / Math.max(m.auc_r1_only - 0.5, 1e-9);
+    const worth = lift >= 1.2;
+    const maxDrop = Math.max(...m.importance.map((f) => Math.abs(f.drop)), 1);
+    return `
+    <article class="pm-card">
+      <p class="pm-t mono">${esc(m.title)}</p>
+      <div><b class="pm-auc">AUC ${m.auc}</b>
+        <span class="pm-ci mono">95% CI ${m.auc_lo}–${m.auc_hi}</span></div>
+      <p class="pm-vs">
+        ${m.events} of ${m.n} launches cleared it (base rate ${m.base}%).
+        Year-one revenue <b>alone</b> scores ${m.auc_r1_only}.
+      </p>
+      <p class="pm-verdict ${worth ? 'pm-good' : 'pm-weak'}">
+        ${worth
+          ? `The other four features earn their place: they lift discrimination `
+            + `${lift.toFixed(2)}× over the one-variable baseline.`
+          : `<b>Barely better than one variable.</b> The full model adds ${((m.auc - m.auc_r1_only) * 1000 / 10).toFixed(1)} `
+            + `AUC points over year-one revenue alone — inside the confidence interval, so on this `
+            + `evidence the extra inputs are not doing real work. Use the year-one gate.`}
+        ${m.epv < 10
+          ? ` At ${m.epv} events per variable this is under the usual 10-per-variable floor; `
+            + `read the coefficients as indicative.`
+          : ''}
+      </p>
+      <ul class="pm-feat">
+        ${m.importance.map((f) => `<li>
+          <span>${esc(P.labels[f.feature] || f.feature)}</span>
+          <span class="pm-bar"><i style="width:${Math.max(0, (f.drop / maxDrop) * 100).toFixed(0)}%"></i></span>
+          <span class="pm-co ${f.coef >= 0 ? 'pm-up' : 'pm-dn'}">${f.coef >= 0 ? '+' : ''}${f.coef}</span>
+        </li>`).join('')}
+      </ul>
+      <p class="dt-note">Bars are AUC points lost when that feature is shuffled; the number is its
+        coefficient — positive raises the odds, negative lowers them.</p>
+    </article>`;
+  }).join('');
+  $('#pm-models').innerHTML = `<div class="pm-grid">${cards}</div>`;
+
+  /* Calibration: ranking well and being right about the level are different
+     claims, and a model used to size a bet needs the second one. */
+  const m = P.models.matters;
+  $('#pm-detail').innerHTML = `
+    <div class="pm-cal">
+      <h4 class="mono">IS IT CALIBRATED? — ${esc(m.title)}</h4>
+      ${multiLine(m.calibration.map((c, i) => 'Q' + (i + 1)), [
+        { name: 'Predicted', color: '#0071e3', values: m.calibration.map((c) => c.pred) },
+        { name: 'Actual', color: '#1d1d1f', values: m.calibration.map((c) => c.actual) },
+      ], { labelEvery: 1, yUnit: '%' })}
+      <p class="dt-note">Launches sorted by predicted probability into five equal groups.
+        The two lines tracking each other means the numbers can be read as probabilities,
+        not just as a ranking — the model says 19% and 22% of that group cleared the bar.</p>
+    </div>`;
+
+  const bn = P.models.matters;
+  $('#pm-note').innerHTML =
+    `<b>What the model actually says:</b> the strongest signal by far is year-one revenue, `
+    + `and the second is that a brand's <i>existing SKU count</i> lowers the odds `
+    + `(coefficient ${bn.importance.find((f) => f.feature === 'brand_n')?.coef}) while its `
+    + `<i>revenue</i> raises them. Big brand, few SKUs is the favourable shape — the same `
+    + `revenue-per-SKU logic the white-space matrix is coloured by, arrived at independently. `
+    + `<b>What it cannot do:</b> it scores a launch that has already had a year. It is a `
+    + `year-one triage tool, not a pre-launch one, and nothing in this data describes whether `
+    + `a product tastes good. Trained on ${P.n} convenience-channel launches from `
+    + `${P.models.present.n === P.n ? '2020–2022' : '2020–2022'}; ${FOLDS_TEXT}.`;
+}
+
+const FOLDS_TEXT = '5-fold cross-validated, so every score above is out-of-sample';
+
+
 /* -------------------------------------------------- chatter vs sales ------- */
 /*
  * A null result, published because it changes how the rest of the site should
@@ -611,6 +706,7 @@ function main(data) {
   ranked();
   ecom();
   survival();
+  predictive();
   chatterTest();
   initSimulator(O);
   priceGrid();
