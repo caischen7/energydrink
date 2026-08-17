@@ -2,21 +2,30 @@
 
 **You should not need to do anything here.** `.github/workflows/trends.yml`
 refreshes this directory on the 2nd of every month, re-runs the search → sales
-model, and commits both back. Setup is one repository secret:
+model, and commits both back.
+
+    Settings → Actions → General → Workflow permissions → Read and write
+
+Then Actions → *Refresh Google Trends* → **Run workflow**, rather than waiting
+a month. The model's verdict appears in the run summary.
+
+## Cost: none, either way
+
+With no secret set the job uses **pytrends** — free, no signup, no key. It is
+unofficial and breaks whenever Google changes its internals, which makes it a
+poor thing to depend on but a perfectly good place to start. Try this first.
+
+For something more reliable, add a SerpApi key:
 
     Settings → Secrets and variables → Actions → New repository secret
       SERPAPI_KEY = <your key>
 
-    Settings → Actions → General → Workflow permissions → Read and write
-
-Then Actions → *Refresh Google Trends* → **Run workflow** to prove it, rather
-than waiting a month. The model's verdict appears in the run summary.
-
-Without `SERPAPI_KEY` the job falls back to **pytrends**: free, unofficial,
-rate-limited, and liable to break whenever Google changes its internals. It is
-fine for a first look and a poor thing to depend on. SerpApi's Google Trends
-endpoint costs money, but this uses 13 calls a month, which is negligible on
-any plan.
+**This workload fits inside SerpApi's free tier.** One call per flavor term,
+once a month, is **13 calls** against a free allowance of 100–250 searches a
+month (published figures disagree; check on signup). Paid plans start around
+$25/month for 1,000 searches, which this will not reach on its own. Note that
+credits are shared across all SerpApi engines, so a key used elsewhere draws
+from the same pool.
 
 ## Why it runs on GitHub rather than here
 

@@ -8,9 +8,12 @@
 # Setup, once:
 #   Settings -> Secrets and variables -> Actions -> New repository secret
 #     SERPAPI_KEY = <your key>
-#   Without it the job falls back to pytrends, which is free, unofficial, and
-#   breaks whenever Google changes its internals. Fine for a look; not
-#   something to depend on.
+#   13 calls a month fits inside SerpApi's free tier (100-250 searches/month
+#   depending on the published figure), so this costs nothing at this volume.
+#
+#   With NO secret set the job uses pytrends instead: free, no signup, no key,
+#   but unofficial and liable to break when Google changes its internals. That
+#   is the sensible way to try this before bothering with a key.
 #
 # Settings -> Actions -> General -> Workflow permissions must be
 # "Read and write" for the commit step to push.
