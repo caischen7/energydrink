@@ -1,19 +1,46 @@
 # Google Trends exports go here
 
-The modelling pipeline (`data/scripts/trends_model.py`) is built and tested. It
-is waiting on this directory. Drop CSVs in, rerun, and it switches from the
-YouTube stand-in to real search data with no other change.
+**You should not need to do anything here.** `.github/workflows/trends.yml`
+refreshes this directory on the 2nd of every month, re-runs the search → sales
+model, and commits both back. Setup is one repository secret:
 
-## Why you have to export these by hand
+    Settings → Secrets and variables → Actions → New repository secret
+      SERPAPI_KEY = <your key>
 
-`trends.google.com` is blocked by this environment's egress proxy — the gateway
-answers **403 to the CONNECT**, which is an organisation policy denial, not a
-network fault (`api.github.com` returns 200 from the same shell). `pytrends`,
-SerpApi and the Trends API are all blocked for the same reason. Twenty minutes
-of manual exporting is the shortest route, and it gets you the real series
-rather than a proxy for it.
+    Settings → Actions → General → Workflow permissions → Read and write
 
-## How to export
+Then Actions → *Refresh Google Trends* → **Run workflow** to prove it, rather
+than waiting a month. The model's verdict appears in the run summary.
+
+Without `SERPAPI_KEY` the job falls back to **pytrends**: free, unofficial,
+rate-limited, and liable to break whenever Google changes its internals. It is
+fine for a first look and a poor thing to depend on. SerpApi's Google Trends
+endpoint costs money, but this uses 13 calls a month, which is negligible on
+any plan.
+
+## Why it runs on GitHub rather than here
+
+The Claude Code container cannot reach `trends.google.com` — the egress gateway
+answers **403 to the CONNECT**, an organisation policy denial rather than a
+network fault (`api.github.com` returns 200 from the same shell). GitHub's
+runners are not behind that proxy.
+
+## The normalisation trap the collector avoids
+
+Google Trends returns a **0–100 index scaled to the maximum inside the window
+you asked for**, not absolute volume. So fetching `2019–2025` and then
+`2019–2026` rescales every historical point. Appending "just the new months" to
+an existing file therefore splices segments on different scales and produces
+jumps that are pure artifact.
+
+`data/scrapers/google_trends.py` refetches the **entire window every run** and
+rewrites each file. A few extra API calls, and a whole class of silent error
+gone. For the same reason values are comparable *within* a term and meaningless
+*across* terms — the model only ever uses within-term change.
+
+## Doing it by hand instead
+
+If you would rather not wire up the Action, export manually:
 
 For each term below: <https://trends.google.com/trends/explore>
 

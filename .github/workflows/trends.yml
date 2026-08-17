@@ -1,0 +1,86 @@
+# Refresh Google Trends and re-run the search -> sales model, on a schedule.
+#
+# This exists because the Claude Code container cannot reach trends.google.com
+# (the egress proxy answers 403 to CONNECT). GitHub's runners are not behind
+# that proxy, so the collection runs here and commits the result back. Nobody
+# has to run anything by hand.
+#
+# Setup, once:
+#   Settings -> Secrets and variables -> Actions -> New repository secret
+#     SERPAPI_KEY = <your key>
+#   Without it the job falls back to pytrends, which is free, unofficial, and
+#   breaks whenever Google changes its internals. Fine for a look; not
+#   something to depend on.
+#
+# Settings -> Actions -> General -> Workflow permissions must be
+# "Read and write" for the commit step to push.
+
+name: Refresh Google Trends
+
+on:
+  schedule:
+    # 05:20 UTC on the 2nd of each month. Trends is a weekly series, so monthly
+    # is plenty; the offset avoids the top-of-hour rush on GitHub's schedulers.
+    - cron: '20 5 2 * *'
+  workflow_dispatch:        # run it by hand from the Actions tab whenever
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trends-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    # Job-level, so the `if:` below can actually see it. Declared only on the
+    # step, `env.SERPAPI_KEY` is empty when the condition is evaluated and the
+    # fallback install always ran.
+    env:
+      SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pytrends (fallback path only)
+        if: ${{ env.SERPAPI_KEY == '' }}
+        run: pip install --quiet pytrends
+
+      - name: Collect Google Trends
+        run: python data/scrapers/google_trends.py --provider auto
+
+      - name: Re-run the search -> sales model
+        run: |
+          python data/scripts/trends_model.py --source google | tee trends_run.txt
+          python data/scripts/trends_model.py --source google --write
+
+      # The model's verdict goes into the run summary, so the outcome is
+      # visible from the Actions tab without opening a file.
+      - name: Summarise
+        run: |
+          {
+            echo '## Search → sales model'
+            echo '```'
+            cat trends_run.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          rm -f trends_run.txt
+
+      - name: Commit refreshed data
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data/trends public/data/dashboard.json
+          # No diff is the normal case between Trends updates, not a failure.
+          if git diff --staged --quiet; then
+            echo 'No change in Trends data or model output.'
+            exit 0
+          fi
+          git commit -m 'Refresh Google Trends and re-run the search → sales model
+
+          Automated by .github/workflows/trends.yml.'
+          git push
