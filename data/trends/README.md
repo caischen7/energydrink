@@ -9,23 +9,28 @@ model, and commits both back.
 Then Actions → *Refresh Google Trends* → **Run workflow**, rather than waiting
 a month. The model's verdict appears in the run summary.
 
-## Cost: none, either way
+## Cost: none in the normal case
 
-With no secret set the job uses **pytrends** — free, no signup, no key. It is
-unofficial and breaks whenever Google changes its internals, which makes it a
-poor thing to depend on but a perfectly good place to start. Try this first.
+The collector tries **pytrends first** — free, no signup, no key — and calls
+SerpApi only for terms pytrends could not return. A working pytrends therefore
+costs nothing, and a broken one degrades the run rather than ending it. Each
+run prints which provider served each term, so drifting onto the paid path is
+visible rather than silent.
 
-For something more reliable, add a SerpApi key:
+The SerpApi key is optional insurance:
 
     Settings → Secrets and variables → Actions → New repository secret
       SERPAPI_KEY = <your key>
 
-**This workload fits inside SerpApi's free tier.** One call per flavor term,
-once a month, is **13 calls** against a free allowance of 100–250 searches a
-month (published figures disagree; check on signup). Paid plans start around
-$25/month for 1,000 searches, which this will not reach on its own. Note that
-credits are shared across all SerpApi engines, so a key used elsewhere draws
-from the same pool.
+**Even the worst case is free.** If pytrends failed on every term, that is
+**13 calls a month** against a free allowance of 100–250 searches (published
+figures disagree; check on signup). Paid plans start near $25/month for 1,000
+searches, which this will not reach. Credits are shared across all SerpApi
+engines, so a key used elsewhere draws from the same pool.
+
+**Never put the key in the repository.** It is read from the environment only.
+Anything pasted into a chat, an issue or a commit should be regenerated at
+<https://serpapi.com/manage-api-key>.
 
 ## Why it runs on GitHub rather than here
 

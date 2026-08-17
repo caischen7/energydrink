@@ -7,13 +7,24 @@ so the intended home is the scheduled GitHub Action in
 `.github/workflows/trends.yml`, which runs on GitHub's network and commits the
 refreshed CSVs back. Nobody has to run anything by hand.
 
-Providers, in the order `--provider auto` tries them:
+Providers. `--provider auto` tries pytrends FIRST and falls back to serpapi
+per-term only when pytrends fails:
 
-  serpapi    Paid, documented, stable. Set SERPAPI_KEY. ~13 calls per refresh,
-             which is negligible against any plan.
-  pytrends   Free, unofficial, rate-limited and prone to breaking when Google
-             changes its internals. Fine as a fallback; do not build a
-             production dependency on it.
+  pytrends   Free, no key, no signup. Unofficial, rate-limited, and liable to
+             break when Google changes its internals - which is exactly why it
+             is worth having a fallback rather than being the only option.
+  serpapi    Documented and stable, used only for the terms pytrends could not
+             return. Needs SERPAPI_KEY in the environment. At 13 terms a month
+             this stays inside the free tier even if pytrends fails on all of
+             them.
+
+Preferring the free path and keeping the paid one in reserve means a broken
+pytrends degrades the run instead of ending it, and a working pytrends costs
+nothing. The run prints which provider served each term so a silent drift onto
+the paid path is visible.
+
+NEVER hard-code the key. It is read from the environment only, so it lives in
+GitHub Secrets and never in the repository.
 
 THE NORMALISATION TRAP, AND WHY THIS ALWAYS REFETCHES THE WHOLE WINDOW
 ----------------------------------------------------------------------
@@ -160,42 +171,57 @@ def write(fam, term, rows):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--provider", choices=["auto", "serpapi", "pytrends"], default="auto")
+    ap.add_argument("--no-fallback", action="store_true",
+                    help="fail a term outright rather than falling back to serpapi")
     ap.add_argument("--sleep", type=float, default=1.5)
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
     key = os.environ.get("SERPAPI_KEY", "").strip()
-    provider = args.provider
-    if provider == "auto":
-        provider = "serpapi" if key else "pytrends"
-    if provider == "serpapi" and not key:
+    if args.provider == "serpapi" and not key:
         sys.exit("SERPAPI_KEY is not set. Set it, or pass --provider pytrends.")
 
-    print(f"provider {provider}   geo {GEO}   window {window()}   terms {len(TERMS)}")
+    # Free path first; the key is a backstop, not the default.
+    if args.provider == "auto":
+        order = ["pytrends"] + (["serpapi"] if key and not args.no_fallback else [])
+    else:
+        order = [args.provider]
+
+    print(f"providers {' -> '.join(order)}   geo {GEO}   window {window()}   terms {len(TERMS)}")
+    if "serpapi" in order and order[0] != "serpapi":
+        print("  (serpapi is the fallback; it is called only for terms pytrends cannot return)")
     if args.dry_run:
         for fam, term in TERMS.items():
             print(f"  would fetch {term!r:<32} -> data/trends/{fam}.csv")
         print("\ndry run — nothing called, nothing written.")
         return
 
-    ok, failed = 0, []
+    ok, failed, used = 0, [], {}
     for fam, term in TERMS.items():
-        try:
-            rows = fetch_serpapi(term, key) if provider == "serpapi" else fetch_pytrends(term)
-        except Exception as e:                      # noqa: BLE001 - report and continue
-            print(f"  FAIL {fam}: {type(e).__name__}: {e}")
-            failed.append(fam)
-            continue
+        rows, via, why = [], None, []
+        for prov in order:
+            try:
+                rows = fetch_serpapi(term, key) if prov == "serpapi" else fetch_pytrends(term)
+            except Exception as e:                  # noqa: BLE001 - try the next provider
+                why.append(f"{prov}: {type(e).__name__}: {e}")
+                rows = []
+            if rows:
+                via = prov
+                break
+            why.append(f"{prov}: no data returned")
         if not rows:
-            print(f"  FAIL {fam}: no data returned")
+            print(f"  FAIL {fam}: " + " | ".join(why))
             failed.append(fam)
             continue
         write(fam, term, rows)
-        print(f"  ok   {fam:<22} {len(rows):>4} points  {rows[0][0]} -> {rows[-1][0]}")
+        used[via] = used.get(via, 0) + 1
+        note = "" if via == order[0] else f"   (via {via} — {why[0]})"
+        print(f"  ok   {fam:<22} {len(rows):>4} points  {rows[0][0]} -> {rows[-1][0]}{note}")
         ok += 1
         time.sleep(args.sleep)
 
-    print(f"\n{ok}/{len(TERMS)} written to data/trends/")
+    print(f"\n{ok}/{len(TERMS)} written to data/trends/  "
+          + ", ".join(f"{v} via {k}" for k, v in used.items()))
     if failed:
         print("failed: " + ", ".join(failed))
         # A partial refresh mixes windows across files, which is exactly the

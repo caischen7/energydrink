@@ -8,12 +8,11 @@
 # Setup, once:
 #   Settings -> Secrets and variables -> Actions -> New repository secret
 #     SERPAPI_KEY = <your key>
-#   13 calls a month fits inside SerpApi's free tier (100-250 searches/month
-#   depending on the published figure), so this costs nothing at this volume.
-#
-#   With NO secret set the job uses pytrends instead: free, no signup, no key,
-#   but unofficial and liable to break when Google changes its internals. That
-#   is the sensible way to try this before bothering with a key.
+#   The secret is OPTIONAL and is a fallback, not the default. The collector
+#   tries pytrends first (free, no key) and only calls SerpApi for terms
+#   pytrends could not return - so a working pytrends costs nothing and a
+#   broken one degrades the run instead of ending it. 13 terms a month sits
+#   inside SerpApi's free tier even if pytrends fails on every one.
 #
 # Settings -> Actions -> General -> Workflow permissions must be
 # "Read and write" for the commit step to push.
@@ -49,8 +48,8 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install pytrends (fallback path only)
-        if: ${{ env.SERPAPI_KEY == '' }}
+      # Always installed: pytrends is the primary path now, not the fallback.
+      - name: Install pytrends
         run: pip install --quiet pytrends
 
       - name: Collect Google Trends
