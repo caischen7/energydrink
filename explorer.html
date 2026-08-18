@@ -46,6 +46,11 @@
         <p id="fx-hint" class="fx-hint mono">—</p>
       </div>
 
+      <div class="fx-modes" role="tablist" aria-label="What to explore">
+        <button type="button" class="fx-mode" role="tab" data-mode="terms" aria-selected="true">Flavors</button>
+        <button type="button" class="fx-mode" role="tab" data-mode="brands" aria-selected="false">Brands</button>
+        <button type="button" class="fx-mode" role="tab" data-mode="concepts" aria-selected="false">Concepts</button>
+      </div>
       <div id="fx-chips" class="fx-chips"></div>
     </section>
 
@@ -76,6 +81,35 @@
       <div class="fc-caveat">
         <h4 class="mono">HOW TO READ THIS</h4>
         <p id="fx-verdict">—</p>
+      </div>
+    </section>
+
+    <section id="control" class="aud-top">
+      <h2 class="sec-h mono">THE CONTROL — DOES THE WHOLE CATEGORY DO THIS?</h2>
+      <p class="sec-note">
+        Before trusting any single flavor, check the category. If total energy-drink
+        revenue already moves with generic <i>"energy drink"</i> search, then a flavor
+        that appears to track its own search term may just be riding the same seasonal
+        wave twice — <b>and would show a correlation whether or not anyone searched for
+        that flavor.</b> This is the number every result below has to beat.
+      </p>
+      <div id="fx-control"></div>
+      <p class="dt-note" id="fx-control-note">—</p>
+    </section>
+
+    <section id="summary" class="aud-top">
+      <h2 class="sec-h mono">EVERY TERM AT ONCE</h2>
+      <p class="sec-note">
+        The same test run across every term with a collected search series. One term
+        clearing p&nbsp;&lt;&nbsp;0.05 means little; what matters is <b>how many clear it
+        out of how many tested</b>, against how many would clear by chance alone. The
+        table applies a Benjamini–Hochberg false-discovery-rate correction across the
+        whole family.
+      </p>
+      <div class="tbl-wrap"><table class="intel-table" id="fx-table"></table></div>
+      <div class="fc-caveat">
+        <h4 class="mono">THE HONEST ANSWER</h4>
+        <p id="fx-overall">—</p>
       </div>
     </section>
 

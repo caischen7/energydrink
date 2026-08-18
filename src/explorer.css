@@ -186,3 +186,38 @@
   .fx-chips { gap: 0.35rem; }
   .fx-chip { font-size: 0.78rem; }
 }
+
+/* Mode tabs — flavors / brands / concepts. */
+.fx-modes {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 1.5rem;
+  padding: 0.25rem;
+  border: 1px solid var(--hair, #e3e3e7);
+  border-radius: 999px;
+  width: fit-content;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+.fx-mode {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.4rem 1rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+}
+.fx-mode[aria-selected='true'] {
+  background: var(--accent);
+  color: #fff;
+}
+.fx-mode:hover[aria-selected='false'] { color: var(--ink); }
+
+/* "no signal" is the majority verdict in the summary table, so it must not
+   shout — but it still has to clear AA against the row background. */
+.fx-null { color: var(--dim); }
+
+#fx-table td.num,
+#fx-table th.num { text-align: right; font-variant-numeric: tabular-nums; }

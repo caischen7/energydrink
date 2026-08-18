@@ -5,8 +5,8 @@
  * data/scripts/build_flavor_explorer.py (PDI monthly revenue per flavor term)
  * and filled in by data/scripts/add_trends_to_explorer.py (Google Trends).
  *
- * THREE STATISTICAL DECISIONS ARE BAKED IN HERE, ON PURPOSE
- * ---------------------------------------------------------
+ * FOUR STATISTICAL DECISIONS ARE BAKED IN HERE, ON PURPOSE
+ * --------------------------------------------------------
  * 1. The chart plots levels INDEXED TO EACH SERIES' OWN PEAK. Dollars and a
  *    0-100 search index share no unit, and a dual y-axis lets whoever picks the
  *    two scales manufacture any apparent relationship they like. Indexing shows
@@ -24,6 +24,14 @@
  *    roughly a one-in-two chance of a "significant" result from noise alone.
  *    The verdict text says so rather than burying it, and applies a Bonferroni
  *    threshold before calling anything real.
+ *
+ * 4. Across terms, a Benjamini-Hochberg FDR correction. Testing forty terms at
+ *    alpha 0.05 yields two "findings" from noise before anyone looks at the
+ *    data, so the summary reports the corrected count alongside the number that
+ *    would have passed uncorrected. The category series is the other half of
+ *    that defence: if total category revenue already tracks generic "energy
+ *    drink" search, then a per-flavor correlation has to beat the category, not
+ *    beat zero, and the page says so.
  */
 import '@fontsource-variable/inter';
 import './dashboard.css';
@@ -184,140 +192,312 @@ function kpi(label, value, sub) {
 /* ------------------------------------------------------------------ page -- */
 
 let DATA = null;
+let MODE = 'terms';                 // terms | brands | concepts
+
+const GROUP = () => DATA[MODE] || {};
+const LABEL = { terms: 'flavor', brands: 'brand', concepts: 'concept' };
+
+/* One analysis, used by the single-term view, the category control and every
+   row of the summary table — so the number in the table is provably the same
+   number the chart shows. */
+function analyze(rev, trendTerms) {
+  const bareT = trendTerms[0];
+  const qualT = trendTerms[1] || null;
+  const bare = DATA.trends[bareT] || null;
+  const qual = qualT ? DATA.trends[qualT] || null : null;
+  const which = qual || bare;
+  if (!which) return { have: false, bare, qual, bareT, qualT };
+  const scan = lagScan(logDiff(rev), logDiff(which));
+  const usable = scan.filter((s) => s.r != null);
+  if (!usable.length) return { have: true, scan, best: null, bare, qual, bareT, qualT };
+  const best = usable.reduce((a, b) => (Math.abs(b.r) > Math.abs(a.r) ? b : a));
+  return {
+    have: true, scan, best, bare, qual, bareT, qualT,
+    whichName: qual ? qualT : bareT,
+    // Bonferroni within the entity: the reported lag is the best of thirteen.
+    pAdjLags: best.p == null ? null : Math.min(1, best.p * scan.length),
+  };
+}
+
+/* Benjamini-Hochberg. Controls the expected PROPORTION of false discoveries
+   rather than the chance of any single one, which is the right trade when the
+   question is "how many of these are real" across a whole family of terms. */
+function bhAdjust(ps) {
+  const idx = ps.map((p, i) => [p, i]).filter(([p]) => p != null).sort((a, b) => a[0] - b[0]);
+  const m = idx.length;
+  const out = new Array(ps.length).fill(null);
+  let prev = 1;
+  for (let k = m - 1; k >= 0; k--) {
+    const [p, i] = idx[k];
+    prev = Math.min(prev, (p * m) / (k + 1));
+    out[i] = prev;
+  }
+  return out;
+}
 
 function resolveTerm(qRaw) {
   const q = qRaw.trim().toLowerCase();
   if (!q) return null;
-  const keys = Object.keys(DATA.terms);
-  if (DATA.terms[q]) return q;
-  const starts = keys.filter((k) => k.startsWith(q));
-  if (starts.length) return starts.sort((a, b) => DATA.terms[b].total - DATA.terms[a].total)[0];
-  const has = keys.filter((k) => k.includes(q) || q.includes(k));
-  if (has.length) return has.sort((a, b) => DATA.terms[b].total - DATA.terms[a].total)[0];
-  return null;
+  const g = GROUP();
+  const keys = Object.keys(g);
+  if (g[q]) return q;
+  const byTotal = (a, b) => g[b].total - g[a].total;
+  const starts = keys.filter((k) => k.toLowerCase().startsWith(q));
+  if (starts.length) return starts.sort(byTotal)[0];
+  const has = keys.filter((k) => k.toLowerCase().includes(q) || q.includes(k.toLowerCase()));
+  return has.length ? has.sort(byTotal)[0] : null;
 }
 
 function suggest(qRaw) {
   const q = qRaw.trim().toLowerCase();
   const box = $('#fx-suggest');
-  if (!q) { box.hidden = true; $('#fx-input').setAttribute('aria-expanded', 'false'); return; }
-  const hits = Object.keys(DATA.terms)
-    .filter((k) => k.includes(q))
-    .sort((a, b) => DATA.terms[b].total - DATA.terms[a].total)
-    .slice(0, 8);
-  if (!hits.length) { box.hidden = true; $('#fx-input').setAttribute('aria-expanded', 'false'); return; }
+  const close = () => { box.hidden = true; $('#fx-input').setAttribute('aria-expanded', 'false'); };
+  if (!q) return close();
+  const g = GROUP();
+  const hits = Object.keys(g).filter((k) => k.toLowerCase().includes(q))
+    .sort((a, b) => g[b].total - g[a].total).slice(0, 8);
+  if (!hits.length) return close();
   box.innerHTML = hits.map((k) =>
     `<li role="option" tabindex="-1" data-term="${esc(k)}">
-       <span>${esc(k)}</span><span class="fx-sug-v mono">${esc(money(DATA.terms[k].total))}</span></li>`).join('');
+       <span>${esc(k)}</span><span class="fx-sug-v mono">${esc(money(g[k].total))}</span></li>`).join('');
   box.hidden = false;
   $('#fx-input').setAttribute('aria-expanded', 'true');
 }
 
 function render(term) {
-  const d = DATA.terms[term];
+  const d = GROUP()[term];
   const months = DATA.months;
   const label = months.map((m) => (m.endsWith('-01') ? m.slice(0, 4) : ''));
 
   // --- headline numbers ---------------------------------------------------
   const active = d.rev.filter((v) => v > 0).length;
   const peakI = d.rev.indexOf(Math.max(...d.rev));
-  $('#fx-kpis').innerHTML =
-    kpi('TOTAL REVENUE 2019–2025', money(d.total), `${d.skus} SKUs`) +
-    kpi('PEAK MONTH', money(d.rev[peakI]), months[peakI]) +
-    kpi('MONTHS WITH SALES', `${active}/${months.length}`, active < months.length ? 'partial coverage' : 'continuous') +
-    kpi('UNITS SOLD', d.units.toLocaleString(), 'convenience channel');
+  const tiles = [kpi('TOTAL REVENUE 2019–2025', money(d.total),
+    d.skus != null ? `${d.skus} SKUs` : 'all SKUs for this brand')];
+  if (d.total > 0) {
+    tiles.push(kpi('PEAK MONTH', money(d.rev[peakI]), months[peakI]));
+    tiles.push(kpi('MONTHS WITH SALES', `${active}/${months.length}`,
+      active < months.length ? 'partial coverage' : 'continuous'));
+  } else {
+    tiles.push(kpi('MONTHS WITH SALES', '0', 'never sold in this channel'));
+  }
+  if (d.units != null) tiles.push(kpi('UNITS SOLD', d.units.toLocaleString(), 'convenience channel'));
+  else if (d.why) tiles.push(kpi('WHY IT IS HERE', d.skus ? 'partly present' : 'no product', d.why));
+  $('#fx-kpis').innerHTML = tiles.join('');
 
-  // --- the two search series, if collected --------------------------------
-  const [bareT, qualT] = d.trend_terms;
-  const bare = DATA.trends[bareT] || null;
-  const qual = DATA.trends[qualT] || null;
-  const haveSearch = !!(bare || qual);
+  // --- chart --------------------------------------------------------------
+  const a = analyze(d.rev, d.trend_terms);
+  const series = [];
+  if (d.total > 0) series.push({ name: `${term} — revenue`, values: indexToPeak(d.rev), color: SALES });
+  if (a.bare) series.push({ name: `search: "${a.bareT}"`, values: bridge(indexToPeak(a.bare)), color: BARE });
+  if (a.qual) series.push({ name: `search: "${a.qualT}"`, values: bridge(indexToPeak(a.qual)), color: QUALIFIED });
 
-  const series = [{ name: `${term} — revenue`, values: indexToPeak(d.rev), color: SALES }];
-  if (bare) series.push({ name: `search: "${bareT}"`, values: bridge(indexToPeak(bare)), color: BARE });
-  if (qual) series.push({ name: `search: "${qualT}"`, values: bridge(indexToPeak(qual)), color: QUALIFIED });
+  $('#fx-chart').innerHTML = series.length
+    ? multiLine(label, series, { labelEvery: 12, yUnit: '', yFmt: (v) => v.toFixed(0) })
+    : `<p class="fx-empty mono">NOTHING TO PLOT FOR THIS TERM YET</p>`;
+  $('#fx-scale').innerHTML = a.have
+    ? `Each line is indexed to its own peak (100).${d.total > 0
+        ? ` Revenue peaked at <b>${money(d.rev[peakI])}</b> in ${months[peakI]}.` : ''}
+       The search lines are Google's own 0–100 index, so <b>the vertical distance between two
+       lines means nothing</b> — only the shapes are comparable.`
+    : `<b>No search series collected for “${esc(term)}” yet.</b> Run the
+       <i>Refresh Google Trends</i> action; this container cannot reach trends.google.com.`;
 
-  $('#fx-chart').innerHTML = multiLine(label, series, { labelEvery: 12, yUnit: '', yFmt: (v) => v.toFixed(0) });
-  $('#fx-scale').innerHTML = haveSearch
-    ? `Each line is indexed to its own peak (100). Revenue peaked at <b>${money(d.rev[peakI])}</b> in
-       ${months[peakI]}; the search lines are Google's own 0–100 index, so <b>the vertical distance
-       between two lines means nothing</b> — only the shapes are comparable.`
-    : `<b>Search data has not been collected for “${esc(term)}” yet.</b> Only the top
-       ${'' + (DATA.meta.trends_top_n || 20)} flavors by revenue get a search series. Run the
-       <i>Refresh Google Trends</i> action to collect more.`;
-
-  // --- set composition ----------------------------------------------------
-  // Rendered BEFORE the correlation block, which returns early when a term has
-  // no search series. Left below it, "what's in the set" stayed blank for every
-  // term outside the collected top 20 - the majority of the vocabulary.
-  $('#fx-set-note').innerHTML = `<b>${d.skus} SKUs</b> carry “${esc(term)}” in their flavor or
-    description field. Flavor sets overlap — a mango-pineapple SKU counts in both — so these
-    totals do not sum to the category.`;
-  $('#fx-brands').innerHTML = `<ul class="fx-brands">${d.brands.map((b) =>
-    `<li>${esc(b)}</li>`).join('')}</ul>`;
+  // --- set composition (before any early return) ---------------------------
+  $('#fx-set-note').innerHTML = d.why
+    ? `<b>${d.skus} SKU${d.skus === 1 ? '' : 's'}</b> in PDI. ${esc(d.why)}.
+       ${d.skus === 0
+         ? 'Zero here means <b>not sold in convenience</b>, not that nobody wants it — this channel sees no grocery, specialty or DTC.'
+         : 'Small but non-zero: somebody has already tried it in this channel.'}`
+    : d.skus != null
+      ? `<b>${d.skus} SKUs</b> carry “${esc(term)}” in their flavor or description field. Flavor sets
+         overlap — a mango-pineapple SKU counts in both — so these totals do not sum to the category.`
+      : `All PDI convenience revenue recorded against <b>${esc(term)}</b>, 2019–2025.`;
+  $('#fx-brands').innerHTML = d.brands
+    ? `<ul class="fx-brands">${d.brands.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>` : '';
 
   // --- correlation --------------------------------------------------------
-  const salesD = logDiff(d.rev);
   const box = $('#fx-corr');
   const verdict = $('#fx-verdict');
-
-  if (!haveSearch) {
+  if (!a.have) {
     box.innerHTML = `<p class="fx-empty mono">NO SEARCH SERIES FOR THIS TERM</p>`;
-    verdict.innerHTML = `This container cannot reach trends.google.com, so search data is
-      collected by a scheduled GitHub Action. Until it runs for “${esc(term)}”, the sales line
-      above stands alone — and a sales line on its own says nothing about search.`;
+    verdict.textContent = `Search data is collected by a scheduled GitHub Action, because this
+      environment cannot reach trends.google.com. Until it runs for “${term}”, there is nothing
+      to correlate — and a sales line on its own says nothing about search.`;
     return;
   }
-
-  const which = qual || bare;
-  const whichName = qual ? qualT : bareT;
-  const scan = lagScan(salesD, logDiff(which));
-  const usable = scan.filter((s) => s.r != null);
-  const best = usable.length ? usable.reduce((a, b) => (Math.abs(b.r) > Math.abs(a.r) ? b : a)) : null;
-  box.innerHTML = correlogram(scan, best);
-
-  if (!best) {
-    verdict.innerHTML = `Too few overlapping months with sales in both series to compute a
-      correlation for “${esc(term)}”. That is a coverage statement, not a null result.`;
+  if (!a.best) {
+    box.innerHTML = `<p class="fx-empty mono">NOT ENOUGH OVERLAPPING MONTHS</p>`;
+    verdict.textContent = `“${term}” has too few months with sales in both series to compute a
+      correlation. That is a coverage statement, not a null result.`;
     return;
   }
+  box.innerHTML = correlogram(a.scan, a.best);
 
-  // Thirteen lags were scanned, so the naive threshold is wrong. Bonferroni is
-  // conservative and easy to defend, which is what this needs to be.
-  const alpha = 0.05 / scan.length;
-  const real = best.p != null && best.p < alpha;
-  const dir = best.lag > 0 ? `search led sales by ${best.lag} month${best.lag > 1 ? 's' : ''}`
-    : best.lag < 0 ? `sales led search by ${-best.lag} month${best.lag < -1 ? 's' : ''}`
+  const b = a.best;
+  const real = a.pAdjLags != null && a.pAdjLags < 0.05;
+  const dir = b.lag > 0 ? `search led sales by ${b.lag} month${b.lag > 1 ? 's' : ''}`
+    : b.lag < 0 ? `sales led search by ${-b.lag} month${b.lag < -1 ? 's' : ''}`
     : 'search and sales moved in the same month';
-
   verdict.innerHTML = `
-    Strongest relationship for <b>${esc(term)}</b> is at <b>lag ${best.lag > 0 ? '+' : ''}${best.lag}</b> —
-    ${dir} — with <b>r = ${best.r.toFixed(3)}</b> over ${best.n} months
-    (raw p ${best.p < 0.001 ? '&lt; 0.001' : '= ' + best.p.toFixed(3)}).
+    Strongest relationship for <b>${esc(term)}</b> is at <b>lag ${b.lag > 0 ? '+' : ''}${b.lag}</b> —
+    ${dir} — with <b>r = ${b.r.toFixed(3)}</b> over ${b.n} months
+    (raw p ${b.p < 0.001 ? '&lt; 0.001' : '= ' + b.p.toFixed(3)},
+     ${a.pAdjLags < 0.001 ? '&lt; 0.001' : a.pAdjLags.toFixed(3)} after correcting for the
+     ${a.scan.length} lags tested).
     ${real
-      ? `That survives a Bonferroni threshold of ${alpha.toFixed(4)} for the ${scan.length} lags tested,
-         so it is unlikely to be scan noise. It still is not causation: a flavor launch drives
-         search and sales together, and this cannot separate that from search driving sales.`
-      : `That does <b>not</b> survive the Bonferroni threshold of ${alpha.toFixed(4)} needed once you
-         account for testing ${scan.length} lags. Read it as no detectable relationship.
-         Picking the largest of thirteen correlations will produce an r near ${Math.abs(best.r).toFixed(2)}
-         from pure noise about half the time.`}
-    ${best.lag < 0 && real
-      ? ` <b>Note the sign of the lag.</b> Sales moved first, which inverts the story — people
-          search after they see the product, not before.`
-      : ''}
-    <br /><br />Series used: <b>“${esc(whichName)}”</b>${qual && bare
-      ? `. The bare word “${esc(bareT)}” is plotted too but not used for the statistic — it measures
+      ? `That survives the correction, so it is unlikely to be scan noise. It is still not
+         causation: a launch drives search and sales together, and nothing here separates that
+         from search driving sales. Check it against the category control below.`
+      : `That does <b>not</b> survive the correction. Read it as no detectable relationship —
+         picking the largest of ${a.scan.length} correlations produces an r near
+         ${Math.abs(b.r).toFixed(2)} from pure noise about half the time.`}
+    ${b.lag < 0 && real
+      ? ` <b>Note the sign.</b> Sales moved first, which inverts the story — people search after
+          they meet the product, not before.` : ''}
+    <br /><br />Series used: <b>“${esc(a.whichName)}”</b>${a.qual && a.bare
+      ? `. The bare word “${esc(a.bareT)}” is plotted but not used for the statistic — it measures
          the fruit, not drink intent.` : '.'}`;
 }
 
+/* ------------------------------------------------- category + summary ---- */
+
+function renderControl() {
+  const c = DATA.category;
+  const a = analyze(c.rev, c.trend_terms);
+  const months = DATA.months;
+  const label = months.map((m) => (m.endsWith('-01') ? m.slice(0, 4) : ''));
+
+  const series = [{ name: 'all energy drinks — revenue', values: indexToPeak(c.rev), color: SALES }];
+  if (a.bare) series.push({ name: 'search: "energy drink"', values: bridge(indexToPeak(a.bare)), color: QUALIFIED });
+
+  $('#fx-control').innerHTML =
+    multiLine(label, series, { labelEvery: 12, yUnit: '', yFmt: (v) => v.toFixed(0) }) +
+    (a.best ? correlogram(a.scan, a.best) : '');
+
+  if (!a.have) {
+    $('#fx-control-note').innerHTML = `Category revenue is <b>${money(c.total)}</b> across
+      ${c.skus.toLocaleString()} GTINs. The generic <i>"energy drink"</i> search series has not
+      been collected yet, so the control cannot be computed — every per-term result below is
+      unanchored until it is.`;
+    return null;
+  }
+  if (!a.best) { $('#fx-control-note').textContent = 'Not enough overlap to compute the control.'; return null; }
+  const real = a.pAdjLags < 0.05;
+  $('#fx-control-note').innerHTML = `Category revenue <b>${money(c.total)}</b> across
+    ${c.skus.toLocaleString()} GTINs. Against generic <i>"energy drink"</i> search the best lag is
+    <b>${a.best.lag > 0 ? '+' : ''}${a.best.lag}</b> at <b>r = ${a.best.r.toFixed(3)}</b>
+    (${real ? 'survives' : 'does not survive'} correction).
+    ${real
+      ? `<b>Because the category itself moves with generic search, a flavor that correlates with
+         its own search term has not shown anything yet</b> — it has to beat this, not beat zero.`
+      : `The category does <b>not</b> track generic search, which is good news for the per-term
+         tests: a flavor-level correlation cannot be dismissed as category seasonality.`}`;
+  return a;
+}
+
+function renderSummary(control) {
+  const rows = [];
+  for (const [mode, group] of [['brands', DATA.brands], ['terms', DATA.terms], ['concepts', DATA.concepts]]) {
+    for (const [name, d] of Object.entries(group || {})) {
+      const a = analyze(d.rev, d.trend_terms);
+      if (!a.have || !a.best) continue;
+      rows.push({ mode, name, total: d.total, r: a.best.r, lag: a.best.lag, n: a.best.n,
+                  p: a.pAdjLags, pRaw: a.best.p });
+    }
+  }
+  const table = $('#fx-table');
+  if (!rows.length) {
+    table.innerHTML = `<tbody><tr><td class="fx-empty">No search series collected yet — the
+      summary appears once the Refresh Google Trends action has run.</td></tr></tbody>`;
+    $('#fx-overall').innerHTML = `Nothing to summarise yet. The pipeline is in place: the
+      collector, the merge step and this table all run without further edits once
+      <i>Refresh Google Trends</i> has completed one pass.`;
+    return;
+  }
+  const adj = bhAdjust(rows.map((r) => r.p));
+  rows.forEach((r, i) => { r.q = adj[i]; });
+  rows.sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
+
+  table.innerHTML = `
+    <thead><tr>
+      <th>Term</th><th>Type</th><th class="num">Revenue</th><th class="num">Best lag</th>
+      <th class="num">r</th><th class="num">n</th><th class="num">q (FDR)</th><th>Verdict</th>
+    </tr></thead>
+    <tbody>${rows.map((r) => `
+      <tr>
+        <td class="pd">${esc(r.name)}</td>
+        <td>${LABEL[r.mode]}</td>
+        <td class="num">${esc(money(r.total))}</td>
+        <td class="num">${r.lag > 0 ? '+' : ''}${r.lag}</td>
+        <td class="num">${r.r.toFixed(3)}</td>
+        <td class="num">${r.n}</td>
+        <td class="num">${r.q < 0.001 ? '&lt;0.001' : r.q.toFixed(3)}</td>
+        <td>${r.q < 0.05
+          ? (r.lag > 0 ? '<b>search leads</b>' : r.lag < 0 ? '<b>sales lead</b>' : '<b>same month</b>')
+          : '<span class="fx-null">no signal</span>'}</td>
+      </tr>`).join('')}</tbody>`;
+
+  const hits = rows.filter((r) => r.q < 0.05);
+  const leads = hits.filter((r) => r.lag > 0).length;
+  const lagsBehind = hits.filter((r) => r.lag < 0).length;
+  // Count of terms that would have looked significant with NO correction at all.
+  // This is the "how much of this is scan noise" number, and it belongs next to
+  // the corrected count rather than replacing it.
+  const naive = rows.filter((r) => r.pRaw != null && r.pRaw < 0.05).length;
+  $('#fx-overall').innerHTML = `
+    <b>${hits.length} of ${rows.length}</b> terms show a relationship surviving both corrections —
+    Bonferroni across the ${2 * MAX_LAG + 1} lags within each term, then Benjamini–Hochberg across
+    all ${rows.length} terms. Without any correction, <b>${naive}</b> would have looked
+    significant.
+    ${hits.length === 0
+      ? `<br /><br />That is a clean null: <b>at this granularity, search interest does not predict
+         convenience-channel revenue.</b> It is a real answer rather than a failure — 83 monthly
+         points per term can detect a strong relationship and not a weak one, so this rules out a
+         large effect, not every effect.`
+      : `<br /><br />${hits.length === 1 ? 'That one is a genuine discovery' : `Those ${hits.length} are genuine discoveries`}
+         at a 5% false-discovery rate: BH controls the expected <i>proportion</i> of false
+         positives among them, so about 1 in 20 of what survives is expected to be spurious.
+         <b>${leads} ${leads === 1 ? 'has' : 'have'} search leading sales</b> and
+         <b>${lagsBehind} ${lagsBehind === 1 ? 'has' : 'have'} sales leading search</b>.
+         ${lagsBehind >= leads && hits.length > 1
+           ? `That balance is the thing to watch: with as many terms showing sales moving first,
+              the pattern looks more like a shared seasonal cycle than like search driving demand.`
+           : `Search leading is the direction a predictive story needs — though a launch moves
+              search and sales at once, so this is still not causal evidence.`}`}
+    ${control && control.pAdjLags != null && control.pAdjLags < 0.05
+      ? `<br /><br /><b>Read all of this against the control.</b> Total category revenue already
+         tracks generic search (r = ${control.best.r.toFixed(3)}), so some of the per-term
+         correlation above is the category's own seasonality appearing in every term at once.`
+      : ''}`;
+}
+
+/* ------------------------------------------------------------------ wire -- */
+
 function select(term, push = true) {
-  if (!DATA.terms[term]) return;
+  const g = GROUP();
+  if (!g[term]) return;
   $('#fx-input').value = term;
   $('#fx-suggest').hidden = true;
-  $('#fx-hint').textContent = `${DATA.terms[term].skus} SKUs · ${money(DATA.terms[term].total)} 2019–2025`;
-  if (push) history.replaceState(null, '', `#${encodeURIComponent(term)}`);
+  const d = g[term];
+  $('#fx-hint').textContent = d.skus != null
+    ? `${d.skus} SKUs · ${money(d.total)} 2019–2025`
+    : `${money(d.total)} 2019–2025`;
+  if (push) history.replaceState(null, '', `#${MODE}:${encodeURIComponent(term)}`);
   render(term);
+}
+
+function setMode(mode) {
+  MODE = mode;
+  for (const b of document.querySelectorAll('.fx-mode')) {
+    b.setAttribute('aria-selected', String(b.dataset.mode === mode));
+  }
+  const g = GROUP();
+  const keys = Object.keys(g).slice(0, 14);
+  $('#fx-chips').innerHTML = keys.map((t) =>
+    `<button type="button" class="fx-chip" data-term="${esc(t)}">${esc(t)}</button>`).join('');
+  $('#fx-input').placeholder = { terms: 'mango', brands: 'Red Bull', concepts: 'masala chai' }[mode];
+  select(keys[0]);
 }
 
 async function main() {
@@ -325,32 +505,35 @@ async function main() {
   // aggregate instead. Same credentials, same nginx realm.
   DATA = await requireAuth({ dataUrl: 'data/flavor_explorer.json' });
 
-  const withSearch = Object.keys(DATA.trends || {}).length;
-  $('#fx-foot').textContent =
-    `${Object.keys(DATA.terms).length} flavors · ${withSearch} search series · PDI 2019–2025`;
+  const n = Object.keys(DATA.trends || {}).length;
+  $('#fx-foot').textContent = `${Object.keys(DATA.terms).length} flavors · ` +
+    `${Object.keys(DATA.brands || {}).length} brands · ${Object.keys(DATA.concepts || {}).length} concepts · ` +
+    `${n} search series · PDI 2019–2025`;
 
   $('#fx-limits').innerHTML = [
-    `<b>Convenience channel only</b>, and roughly 8.6% of it. A flavor that sells in
-     grocery, club or DTC is under-represented here — this is not total market.`,
-    `<b>Flavor sets overlap.</b> "Mango Peach" counts under both mango and peach, so
-     term revenues cannot be added together.`,
-    `<b>Search values are relative.</b> Google indexes each term to its own peak, so
-     levels compare within a term over time and never between terms.`,
-    `<b>Correlation is not causation</b>, and a lag is not a mechanism. A launch moves
-     search and sales at once; nothing here separates that from search driving sales.`,
-    `<b>The lag scan tests 13 hypotheses.</b> The verdict applies a Bonferroni
-     correction; the raw p-value alone would call roughly half of pure-noise pairs
-     significant.`,
+    `<b>Convenience channel only</b>, and roughly 8.6% of it. A flavor that sells in grocery, club
+     or DTC is under-represented — this is not total market. It is why a concept can read as
+     "no product" here and still exist on a shelf somewhere else.`,
+    `<b>Flavor sets overlap.</b> "Mango Peach" counts under both mango and peach, so term revenues
+     cannot be added together.`,
+    `<b>Search values are relative.</b> Google indexes each term to its own peak, so levels compare
+     within a term over time and never between terms.`,
+    `<b>Correlation is not causation</b>, and a lag is not a mechanism. A launch moves search and
+     sales at once; nothing here separates that from search driving sales.`,
+    `<b>Two corrections are applied</b>: Bonferroni across the ${2 * MAX_LAG + 1} lags within each
+     term, then Benjamini–Hochberg across all terms. Raw p-values alone would call roughly half of
+     pure-noise pairs significant.`,
+    `<b>83 monthly points per term</b> is enough to detect a strong relationship and not enough to
+     detect a weak one. A null here rules out a large effect, not every effect.`,
   ].map((t) => `<li>${t}</li>`).join('');
 
-  // Highest-revenue flavors as one-click chips, so the page is useful before
-  // the visitor knows what the vocabulary contains.
-  const top = Object.keys(DATA.terms).slice(0, 12);
-  $('#fx-chips').innerHTML = top.map((t) =>
-    `<button type="button" class="fx-chip" data-term="${esc(t)}">${esc(t)}</button>`).join('');
   $('#fx-chips').addEventListener('click', (e) => {
     const b = e.target.closest('[data-term]');
     if (b) select(b.dataset.term);
+  });
+  document.querySelector('.fx-modes').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-mode]');
+    if (b) setMode(b.dataset.mode);
   });
 
   const input = $('#fx-input');
@@ -360,10 +543,8 @@ async function main() {
       e.preventDefault();
       const t = resolveTerm(input.value);
       if (t) select(t);
-      else $('#fx-hint').textContent = `No flavor matching "${input.value.trim()}" in the PDI set.`;
-    } else if (e.key === 'Escape') {
-      $('#fx-suggest').hidden = true;
-    }
+      else $('#fx-hint').textContent = `No ${LABEL[MODE]} matching "${input.value.trim()}" in the PDI set.`;
+    } else if (e.key === 'Escape') $('#fx-suggest').hidden = true;
   });
   $('#fx-suggest').addEventListener('click', (e) => {
     const li = e.target.closest('[data-term]');
@@ -373,8 +554,13 @@ async function main() {
     if (!e.target.closest('.fx-search')) $('#fx-suggest').hidden = true;
   });
 
-  const initial = decodeURIComponent(location.hash.slice(1)) || 'mango';
-  select(DATA.terms[initial] ? initial : Object.keys(DATA.terms)[0], false);
+  const control = renderControl();
+  renderSummary(control);
+
+  const [hm, ht] = decodeURIComponent(location.hash.slice(1)).split(':');
+  MODE = ['terms', 'brands', 'concepts'].includes(hm) ? hm : 'terms';
+  setMode(MODE);
+  if (ht && GROUP()[ht]) select(ht, false);
 }
 
 main();

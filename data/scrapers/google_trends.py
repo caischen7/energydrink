@@ -94,17 +94,42 @@ TERMS = {
 # Each term contributes TWO searches - the bare word measures the fruit, the
 # qualified phrase measures drink intent, and the gap between them is the point.
 EXPLORER_TOP_N = int(os.environ.get("TRENDS_EXPLORER_TOP_N", "20"))
+EXPLORER_BRANDS_N = int(os.environ.get("TRENDS_EXPLORER_BRANDS_N", "10"))
 EXPLORER_JSON = os.path.join(ROOT, "public/data/flavor_explorer.json")
 
 
 def explorer_terms():
-    """{filename_stem: search phrase} for the top-revenue explorer flavors."""
+    """{filename_stem: search phrase} for everything the explorer page charts.
+
+    Four groups, and all four matter for different reasons:
+
+      category   "energy drink" itself. The control. If total category revenue
+                 already tracks generic search, a per-flavor correlation may be
+                 nothing but shared seasonality counted twice - so this series
+                 is collected first and never skipped.
+      brands     Red Bull, Monster and the rest. Brand search has far more
+                 volume than flavor search, so these are the strongest test of
+                 whether search moves before revenue at all.
+      flavors    the top terms by revenue.
+      concepts   flavors with little or no PDI presence. Their whole point is
+                 search WITHOUT sales, so they are collected even though the
+                 sales side is near zero.
+    """
     with open(EXPLORER_JSON) as f:
         payload = json.load(f)
     out = {}
-    for _term, d in list(payload["terms"].items())[:EXPLORER_TOP_N]:
-        for phrase in d["trend_terms"]:
-            out[phrase.replace(" ", "_")] = phrase
+
+    def add(phrases):
+        for p in phrases:
+            out[p.replace(" ", "_")] = p
+
+    add(payload.get("category", {}).get("trend_terms", []))
+    for _b, d in list(payload.get("brands", {}).items())[:EXPLORER_BRANDS_N]:
+        add(d["trend_terms"])
+    for _t, d in list(payload["terms"].items())[:EXPLORER_TOP_N]:
+        add(d["trend_terms"])
+    for _c, d in payload.get("concepts", {}).items():
+        add(d["trend_terms"])
     return out
 
 
@@ -195,7 +220,7 @@ def main():
     ap.add_argument("--provider", choices=["auto", "serpapi", "pytrends"], default="auto")
     ap.add_argument("--no-fallback", action="store_true",
                     help="fail a term outright rather than falling back to serpapi")
-    ap.add_argument("--sleep", type=float, default=1.5)
+    ap.add_argument("--sleep", type=float, default=2.5)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--set", choices=["families", "explorer", "all"], default="families",
                     help="families = the 13 flavor families for trends_model.py; "
@@ -257,9 +282,15 @@ def main():
           + ", ".join(f"{v} via {k}" for k, v in used.items()))
     if failed:
         print("failed: " + ", ".join(failed))
-        # A partial refresh mixes windows across files, which is exactly the
-        # normalisation problem this script exists to avoid.
-        sys.exit(1)
+        # A partial refresh leaves those terms on their PREVIOUS window while
+        # the rest move to the current one. That is tolerable only because
+        # nothing downstream compares two different terms' levels - each series
+        # is used against its own sales history. Failing the whole run instead
+        # would mean one rate-limited term out of eighty-nine discards the other
+        # eighty-eight, which is worse.
+        if len(failed) == len(jobs):
+            sys.exit("every term failed — provider is down or blocked")
+        print(f"note: {len(failed)}/{len(jobs)} terms keep their previous window")
     if args.set in ("explorer", "all"):
         print("Next: python data/scripts/add_trends_to_explorer.py")
     if args.set in ("families", "all"):

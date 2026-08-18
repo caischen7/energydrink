@@ -71,6 +71,34 @@ def trend_terms(term):
     return [term, f"{term} energy drink"]
 
 
+# --- concept flavors -------------------------------------------------------
+# Flavors with cultural momentum that the convenience channel has barely
+# touched. They are carried DELIBERATELY BELOW the MIN_SKUS/MIN_REVENUE gates,
+# because for these the interesting number is the absence of sales next to the
+# presence of search - a flavor people look up and cannot buy at a gas station.
+#
+# Read them with care. Zero PDI revenue means "not sold in this channel's
+# sample", not "nobody wants it": most of these sell in grocery, specialty and
+# DTC, none of which PDI observes. The page labels them as concepts rather than
+# mixing them into the measured vocabulary.
+CONCEPTS = [
+    ("masala chai",     "spiced tea base; the chai latte is now mainstream in US coffee shops"),
+    ("cookies and cream", "top-5 US ice-cream flavor that has never crossed into energy"),
+    ("ube",             "purple yam; carried by a decade of visual social media"),
+    ("horchata",        "cinnamon-rice; already a fountain staple in the Southwest"),
+    ("yuzu",            "Japanese citrus; established in soda and seltzer first"),
+    ("dragon fruit",    "already proven in seltzer and tea; near-absent in energy"),
+    ("hibiscus",        "agua de jamaica; tart, red, and caffeine-neutral"),
+    ("tamarind",        "chamoy/tajin adjacency, strong with young Latino buyers"),
+    ("guava",           "top tropical in Latin American beverage, thin in US energy"),
+    ("matcha latte",    "the highest-intent search of the tea family"),
+    ("birthday cake",   "dessert flavor proven in protein and pre-workout"),
+    ("prickly pear",    "Southwest signature; visually distinctive"),
+    ("elderflower",     "European soft-drink staple; premium positioning"),
+    ("black sesame",    "dessert flavor with a long runway in East Asian retail"),
+]
+
+
 def bq(sql, token, dry=False):
     body = json.dumps({"query": sql, "useLegacySql": False,
                        "dryRun": dry, "timeoutMs": 180000}).encode()
@@ -222,9 +250,80 @@ def main():
 
     print(f"  {len(terms)} terms clear {MIN_SKUS} SKUs and ${MIN_REVENUE:,}")
 
+    # --- concept flavors, carried below the gates on purpose ---------------
+    # Phrase matching, not tokens: "cookies and cream" is three words and
+    # "cookies" alone would drag in unrelated SKUs.
+    full_text = {g: f"{r[0].get('flavor') or ''} {r[0].get('descr') or ''}".lower()
+                 for g, r in sku_rows.items()}
+    concepts = {}
+    for phrase, why in CONCEPTS:
+        variants = {phrase, phrase.replace(" and ", " & "), phrase.replace(" ", "")}
+        gtins = {g for g, t in full_text.items() if any(v in t for v in variants)}
+        series = [0.0] * len(months)
+        for g in gtins:
+            for r in sku_rows[g]:
+                i = midx.get(r["m"])
+                if i is not None:
+                    series[i] += float(r["rev"] or 0)
+        concepts[phrase] = {
+            "skus": len(gtins),
+            "total": round(sum(series), 2),
+            "rev": [round(v, 2) for v in series],
+            "why": why,
+            "trend_terms": trend_terms(phrase),
+        }
+    empty = sum(1 for d in concepts.values() if d["skus"] == 0)
+    print(f"  {len(concepts)} concept flavors ({empty} with no PDI presence at all)")
+
+    # --- the category control ----------------------------------------------
+    # THE most important series on the page. If total category revenue already
+    # tracks generic "energy drink" search, then a flavor-level correlation may
+    # be nothing but shared category seasonality showing up twice. Every
+    # per-term result should be read against this one.
+    cat = [0.0] * len(months)
+    cat_units = 0.0
+    for r in rows:
+        i = midx.get(r["m"])
+        if i is not None:
+            cat[i] += float(r["rev"] or 0)
+            cat_units += float(r["units"] or 0)
+    category = {
+        "skus": len(sku_rows),
+        "total": round(sum(cat), 2),
+        "units": round(cat_units),
+        "rev": [round(v, 2) for v in cat],
+        "trend_terms": ["energy drink"],
+    }
+    print(f"  category total ${category['total']/1e9:.2f}B across {category['skus']:,} GTINs")
+
+    # --- brands --------------------------------------------------------------
+    brand_rev = collections.defaultdict(lambda: [0.0] * len(months))
+    for r in rows:
+        i = midx.get(r["m"])
+        if i is None:
+            continue
+        brand_rev[(r.get("brand") or "?").strip()][i] += float(r["rev"] or 0)
+    brands = {}
+    for b, series in brand_rev.items():
+        total = sum(series)
+        if total < 20_000_000 or b in ("?", ""):
+            continue
+        # Trends needs the brand name plus a qualified phrase; "Bang" and "Ghost"
+        # are common words and the bare form measures something else entirely.
+        brands[b] = {
+            "total": round(total, 2),
+            "rev": [round(v, 2) for v in series],
+            "trend_terms": [b.lower(), f"{b.lower()} energy drink"],
+        }
+    brands = dict(sorted(brands.items(), key=lambda kv: -kv[1]["total"]))
+    print(f"  {len(brands)} brands over $20M")
+
     payload = {
         "months": months,
         "terms": dict(sorted(terms.items(), key=lambda kv: -kv[1]["total"])),
+        "concepts": concepts,
+        "category": category,
+        "brands": brands,
         "trends": {},          # filled by data/scripts/add_trends_to_explorer.py
         "meta": {
             "source": "PDI convenience POS, pdi_daily_agg",
