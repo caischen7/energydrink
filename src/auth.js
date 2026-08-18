@@ -20,7 +20,7 @@
 const DASHBOARD = {
   storageKey: 'ion_dash_auth', // sessionStorage: base64(user:pass) for the session
   user: 'energydrink',
-  passHash: '87a8339edc6403b43c23640d4c7eba4a7ba0a951ae71e616f70130c4cfd601f5',
+  passHash: 'fb4ae640687c24b5d2a8e57d24ce5c5f3a5cd9c3db3cf52edd280241e3b72e37',
   dataUrl: 'data/dashboard.json', // relative → /data/dashboard.json (nginx-guarded)
   title: 'RESTRICTED — MARKET INTEL',
 };
@@ -30,9 +30,12 @@ async function sha256(s) {
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+/* token === null sends NO Authorization header, which is the point: for a
+   same-origin request the browser attaches any Basic credentials it already
+   holds for this realm by itself. */
 async function fetchData(cfg, token) {
   const res = await fetch(cfg.dataUrl, {
-    headers: { Authorization: 'Basic ' + token },
+    headers: token ? { Authorization: 'Basic ' + token } : {},
     cache: 'no-store',
   });
   if (res.status === 401 || res.status === 403) return null; // server rejected
@@ -138,12 +141,25 @@ export function requireAuth(config) {
   const cfg = { ...DASHBOARD, ...(config || {}) };
   return new Promise((resolve) => {
     const saved = sessionStorage.getItem(cfg.storageKey);
-    if (saved) {
-      fetchData(cfg, saved)
-        .then((d) => (d ? resolve(d) : (sessionStorage.removeItem(cfg.storageKey), showForm(cfg, resolve))))
-        .catch(() => showForm(cfg, resolve));
-      return;
-    }
-    showForm(cfg, resolve);
+    const prompt = () => showForm(cfg, resolve);
+    const withSaved = () =>
+      saved
+        ? fetchData(cfg, saved)
+            .then((d) => (d ? resolve(d) : (sessionStorage.removeItem(cfg.storageKey), prompt())))
+            .catch(prompt)
+        : prompt();
+
+    /* Try with NO credentials of our own first.
+       On the deployed site the analysis pages are themselves behind the same
+       Basic Auth realm as their data, so by the time this runs the browser has
+       already authenticated and re-sends those credentials automatically — the
+       visitor sees one native prompt instead of a native prompt followed by
+       this styled form. Locally (vite preview, no nginx) there is no server
+       auth and this also succeeds, which is what the old sessionStorage branch
+       was really for. Anything else falls through to the form, so the admin
+       console — whose page is not HTML-gated — behaves exactly as before. */
+    fetchData(cfg, null)
+      .then((d) => (d ? resolve(d) : withSaved()))
+      .catch(withSaved);
   });
 }

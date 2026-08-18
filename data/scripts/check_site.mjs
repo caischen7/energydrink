@@ -28,8 +28,12 @@ import { fileURLToPath } from 'url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const BASE = process.env.SITE_URL || 'http://localhost:4173';
+/* Only needed if the target actually enforces auth. Against `vite preview` there
+   is no nginx, so requireAuth's credential-less fetch succeeds and no form ever
+   appears — which is why there is no password baked in here. Point this at a
+   real deployment with SITE_USER/SITE_PASS from docs/CREDENTIALS.md. */
 const USER = process.env.SITE_USER || 'energydrink';
-const PASS = process.env.SITE_PASS || 'energydrink';
+const PASS = process.env.SITE_PASS || '';
 const PAGES = ['index.html', 'dashboard.html', 'insights.html', 'segments.html',
                'audience.html', 'compare.html', 'opportunity.html', 'explorer.html'];
 

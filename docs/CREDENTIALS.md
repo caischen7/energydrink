@@ -10,7 +10,10 @@
 | --- | --- |
 | Page | `/dashboard.html` — reachable via the **MARKET INTEL ↗** link in the top bar |
 | Username | `energydrink` |
-| Password | `energydrink` |
+| Password | `JGLLqdMZBrUAN2MmV8iG` |
+
+Rotated 2026-08-18. The previous password was `energydrink` — identical to the
+username, and therefore guessable in one attempt by anyone who loaded the site.
 
 ## Admin — Site Scout login
 
@@ -29,8 +32,10 @@ the server side is nginx Basic Auth on everything under `/admin/`
 
 ## How it's enforced (two layers, one login)
 
-1. **Server-side (real): nginx HTTP Basic Auth.** The dashboard's data file
-   `/data/dashboard.json` is guarded in [`nginx.conf`](../nginx.conf) by
+1. **Server-side (real): nginx HTTP Basic Auth.** Everything under `/data/`
+   **and the analysis pages themselves** (`dashboard`, `insights`, `segments`,
+   `audience`, `compare`, `opportunity`, `explorer` `.html`) are guarded in
+   [`nginx.conf`](../nginx.conf) by
    `auth_basic` against [`.htpasswd`](../.htpasswd) (apr1-hashed, copied into the
    image by the [`Dockerfile`](../Dockerfile)). The login form fetches the data
    with the entered credentials, so the licensed Mintel/Statista figures are never
@@ -57,15 +62,20 @@ printf '%s' 'NEW_PASSWORD' | sha256sum     # paste the hex into PASS_HASH
 - `.htpasswd` / `.htpasswd-admin` (hashed) ship inside the deployed image —
   that's how Basic Auth works. The hashes are apr1/MD5-based and the passwords
   are short, so treat both credentials as **low-strength**; don't reuse them
-  anywhere that matters. The dashboard login is now `energydrink`/`energydrink` —
-  username and password identical, which is the most guessable form there is.
-  That is a deliberate trade for ease of sharing with reviewers; it is only
-  defensible because the audience is small and the repo is private. **If the
-  licensed Mintel / Euromonitor / PDI figures behind this gate ever need real
-  protection, this is the first thing to change**, and the fix is to generate a
-  passphrase and inject it at deploy time from an env var instead of committing it.
-- The server gate protects the **data**, which is the licensed/sensitive part.
-  The dashboard's HTML/JS shell is public (it contains no figures).
+  anywhere that matters. The dashboard password is now a 20-character random
+  string rather than a copy of the username, so it is no longer guessable — but
+  it is still **committed to this repo**, which is the remaining weakness. The
+  proper fix, if these figures ever need real protection, is to inject it at
+  deploy time from an env var (or Secret Manager) instead of committing it.
+- The server gate protects the **data** *and* the analysis pages. It did not
+  always: until 2026-08-18 only `/data/` was guarded, and this file claimed "the
+  dashboard's HTML/JS shell is public (it contains no figures)". That was true of
+  `dashboard.html` but **false** of `audience.html`, `compare.html` and
+  `opportunity.html`, which were added later and carry licensed figures in their
+  own prose — Passport-derived brand shares, the Mintel sizing, the channel-share
+  history. Verified with real nginx: those pages returned 200 to anonymous
+  requests while the JSON beside them returned 401. `index.html` stays public by
+  design; it carries no figures.
 - This repo is private today. **If you ever make it public** (e.g. the GitHub
   Pages deploy option), rotate both passwords and scrub `.htpasswd`,
   `.htpasswd-admin` and this file from git history first — committed secrets
