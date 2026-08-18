@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Type a flavor and compare its convenience-channel sales against US search interest." />
+  <meta name="robots" content="noindex" />
+  <title>Flavor Explorer — Bogus Banana Market Intel</title>
+  <link rel="icon" type="image/svg+xml" href="/mascot.svg" />
+  <script type="module" src="/src/explorer.js"></script>
+</head>
+<body class="dash">
+  <header class="site-head">
+    <a class="logo" href="./index.html" data-hover>Bogus&nbsp;Banana<sup>®</sup></a>
+    <nav class="nav" aria-label="Market intel pages">
+      <a href="./index.html" data-hover>Home</a>
+      <a href="./dashboard.html" data-hover>Dashboard</a>
+      <a href="./insights.html" data-hover>Insights</a>
+      <a href="./segments.html" data-hover>Segments</a>
+      <a href="./audience.html" data-hover>Audience</a>
+      <a href="./compare.html" data-hover>2025&nbsp;vs&nbsp;2030</a>
+      <a href="./opportunity.html" data-hover>Opportunity</a>
+      <a href="./explorer.html" data-hover class="active" aria-current="page">Flavor&nbsp;Explorer</a>
+    </nav>
+  </header>
+
+  <main class="dash-main">
+    <section class="dash-hero">
+      <h1 class="dash-title">Flavor Explorer</h1>
+      <p class="dash-sub">
+        Type a flavor. The chart below pulls every energy-drink SKU carrying that
+        word and plots its <b class="volt">convenience-channel revenue</b> month by
+        month, against <b class="volt">US search interest</b> for the same word —
+        so you can see whether people searching leads to people buying.
+      </p>
+
+      <div class="fx-search">
+        <label class="fx-label mono" for="fx-input">
+          <span class="volt">&gt;</span> FLAVOR
+        </label>
+        <input id="fx-input" type="text" class="fx-input" placeholder="mango"
+               autocomplete="off" spellcheck="false" role="combobox"
+               aria-expanded="false" aria-controls="fx-suggest"
+               aria-describedby="fx-hint" />
+        <ul id="fx-suggest" class="fx-suggest" role="listbox" hidden></ul>
+        <p id="fx-hint" class="fx-hint mono">—</p>
+      </div>
+
+      <div id="fx-chips" class="fx-chips"></div>
+    </section>
+
+    <section class="aud-top">
+      <div id="fx-kpis" class="fx-kpis"></div>
+    </section>
+
+    <section id="chart" class="aud-top">
+      <h2 class="sec-h mono" id="fx-chart-h">SALES vs SEARCH</h2>
+      <p class="sec-note" id="fx-chart-note">
+        Both lines are indexed to their own peak, because they are measured in
+        different units — dollars against a 0–100 search index. Indexing compares
+        <b>shape</b>, which is the only honest comparison between the two.
+      </p>
+      <div id="fx-chart"></div>
+      <p class="dt-note" id="fx-scale">—</p>
+    </section>
+
+    <section id="correlation" class="aud-top">
+      <h2 class="sec-h mono">DOES SEARCH LEAD SALES?</h2>
+      <p class="sec-note">
+        Correlation is computed on <b>month-over-month change</b>, not on the levels
+        you see plotted. Two series that both drift upward correlate at 0.9 no matter
+        what they measure; differencing removes that and leaves the real question —
+        when search moves, does spending move with it?
+      </p>
+      <div id="fx-corr"></div>
+      <div class="fc-caveat">
+        <h4 class="mono">HOW TO READ THIS</h4>
+        <p id="fx-verdict">—</p>
+      </div>
+    </section>
+
+    <section id="skus" class="aud-top">
+      <h2 class="sec-h mono">WHAT'S IN THE SET</h2>
+      <p class="sec-note" id="fx-set-note">—</p>
+      <div id="fx-brands"></div>
+    </section>
+
+    <section class="aud-top">
+      <div class="fc-caveat">
+        <h4 class="mono">LIMITS OF THIS TOOL</h4>
+        <ul class="fx-limits" id="fx-limits"></ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-foot mono">
+    <span>© 2086 Bogus Banana</span>
+    <span id="fx-foot">—</span>
+  </footer>
+</body>
+</html>

@@ -116,6 +116,21 @@ function showForm(cfg, resolve) {
   });
 }
 
+/* Fetch a SECOND gated file after requireAuth has already resolved, reusing the
+   session token rather than prompting again. The explorer page needs both
+   dashboard.json and flavor_explorer.json, and nginx guards all of /data/.
+   Returns null if the token is missing or the server rejects it, so callers can
+   degrade instead of throwing. */
+export async function fetchGated(url, storageKey = DASHBOARD.storageKey) {
+  const token = sessionStorage.getItem(storageKey);
+  if (!token) return null;
+  try {
+    return await fetchData({ dataUrl: url }, token);
+  } catch {
+    return null;
+  }
+}
+
 /* Resolves with the gated page's data once the visitor is authenticated.
    No-args call = the Market Intel dashboard (back-compat); pass a config
    object ({storageKey, user, passHash, dataUrl, title}) for other surfaces. */

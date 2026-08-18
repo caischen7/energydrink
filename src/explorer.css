@@ -1,0 +1,188 @@
+/* Flavor Explorer — search box, chips, correlogram. Layout only; the palette
+   and typography come from style.css via dashboard.css. */
+
+.fx-search {
+  position: relative;
+  max-width: 34rem;
+  margin: 1.75rem 0 0.75rem;
+}
+
+.fx-label {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--dim);
+  margin-bottom: 0.4rem;
+}
+
+.fx-input {
+  width: 100%;
+  padding: 0.75rem 0.9rem;
+  font: inherit;
+  font-size: 1.05rem;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--hair-strong, #d2d2d7);
+  border-radius: 10px;
+}
+.fx-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+.fx-hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.76rem;
+  color: var(--dim);
+}
+
+/* Suggestions overlay the page rather than pushing it, so the chart below does
+   not jump every keystroke. */
+.fx-suggest {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% - 1.4rem);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  background: var(--bg);
+  border: 1px solid var(--hair-strong, #d2d2d7);
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgb(0 0 0 / 12%);
+  max-height: 17rem;
+  overflow-y: auto;
+}
+.fx-suggest li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+  padding: 0.5rem 0.65rem;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.fx-suggest li:hover,
+.fx-suggest li:focus {
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+}
+.fx-sug-v {
+  font-size: 0.76rem;
+  color: var(--dim);
+}
+
+.fx-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 1rem;
+}
+.fx-chip {
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.32rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--hair-strong, #d2d2d7);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+.fx-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent-ink, var(--accent));
+}
+
+/* KPI row. The compare page's .cmp-kpi rules live in compare.css, which this
+   page does not load — reusing those class names rendered four unstyled divs
+   stacked as bare text. Own classes, own rules. */
+.fx-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 1px;
+  background: var(--hair, #e3e3e7);
+  border: 1px solid var(--hair, #e3e3e7);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.fx-kpi {
+  background: var(--bg);
+  padding: 1.1rem 1.2rem;
+}
+.fx-kpi-v {
+  font-size: clamp(1.4rem, 2.4vw, 1.9rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.fx-kpi-l {
+  margin-top: 0.35rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.09em;
+  color: var(--dim);
+}
+.fx-kpi-s {
+  margin-top: 0.15rem;
+  font-size: 0.78rem;
+  color: var(--dim);
+}
+
+/* Vertical rhythm between sections. audience.css styles .aud-top's contents but
+   assumes the surrounding page supplies the spacing; without this every section
+   butts against the previous one's chart. */
+.dash-main > section + section {
+  margin-top: 3.25rem;
+}
+.dash-main .sec-h {
+  margin-bottom: 0.5rem;
+}
+
+.fx-brands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 0;
+}
+.fx-brands li {
+  font-size: 0.82rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--ink);
+}
+
+.fx-empty {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--dim);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  border: 1px dashed var(--hair-strong, #d2d2d7);
+  border-radius: 10px;
+}
+
+.fx-limits {
+  margin: 0.5rem 0 0;
+  padding-left: 1.1rem;
+}
+.fx-limits li {
+  margin-bottom: 0.5rem;
+  line-height: 1.55;
+}
+
+/* Zero line on the correlogram has to be readable against the grid lines, or
+   the sign of a bar is ambiguous. */
+.c-axis {
+  stroke: var(--ink);
+  stroke-width: 1;
+  opacity: 0.45;
+}
+
+@media (max-width: 640px) {
+  .fx-search { max-width: none; }
+  .fx-chips { gap: 0.35rem; }
+  .fx-chip { font-size: 0.78rem; }
+}

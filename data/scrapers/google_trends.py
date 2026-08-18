@@ -87,6 +87,27 @@ TERMS = {
 }
 
 
+# --- the Flavor Explorer term set -----------------------------------------
+# The explorer page ships ~150 flavor terms, which is far too many to fetch
+# monthly. Only the highest-revenue terms get a search series; the rest of the
+# page still works and simply says the overlay was not collected for them.
+# Each term contributes TWO searches - the bare word measures the fruit, the
+# qualified phrase measures drink intent, and the gap between them is the point.
+EXPLORER_TOP_N = int(os.environ.get("TRENDS_EXPLORER_TOP_N", "20"))
+EXPLORER_JSON = os.path.join(ROOT, "public/data/flavor_explorer.json")
+
+
+def explorer_terms():
+    """{filename_stem: search phrase} for the top-revenue explorer flavors."""
+    with open(EXPLORER_JSON) as f:
+        payload = json.load(f)
+    out = {}
+    for _term, d in list(payload["terms"].items())[:EXPLORER_TOP_N]:
+        for phrase in d["trend_terms"]:
+            out[phrase.replace(" ", "_")] = phrase
+    return out
+
+
 def today():
     return time.strftime("%Y-%m-%d")
 
@@ -154,10 +175,11 @@ def fetch_pytrends(term):
 
 
 # ------------------------------------------------------------------ write --
-def write(fam, term, rows):
+def write(fam, term, rows, out_dir=None):
     """Google's own export shape, so the existing loader reads it unchanged."""
-    path = os.path.join(OUT_DIR, f"{fam}.csv")
-    os.makedirs(OUT_DIR, exist_ok=True)
+    out_dir = out_dir or OUT_DIR
+    path = os.path.join(out_dir, f"{fam}.csv")
+    os.makedirs(out_dir, exist_ok=True)
     with open(path, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(["Category: All categories"])
@@ -175,7 +197,17 @@ def main():
                     help="fail a term outright rather than falling back to serpapi")
     ap.add_argument("--sleep", type=float, default=1.5)
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--set", choices=["families", "explorer", "all"], default="families",
+                    help="families = the 13 flavor families for trends_model.py; "
+                         "explorer = the Flavor Explorer page's top terms")
     args = ap.parse_args()
+
+    jobs = []                       # (label, term, output dir)
+    if args.set in ("families", "all"):
+        jobs += [(f, t, OUT_DIR) for f, t in TERMS.items()]
+    if args.set in ("explorer", "all"):
+        ex = os.path.join(OUT_DIR, "explorer")
+        jobs += [(f, t, ex) for f, t in explorer_terms().items()]
 
     key = os.environ.get("SERPAPI_KEY", "").strip()
     if args.provider == "serpapi" and not key:
@@ -187,17 +219,18 @@ def main():
     else:
         order = [args.provider]
 
-    print(f"providers {' -> '.join(order)}   geo {GEO}   window {window()}   terms {len(TERMS)}")
+    print(f"providers {' -> '.join(order)}   geo {GEO}   window {window()}   "
+          f"set {args.set}   terms {len(jobs)}")
     if "serpapi" in order and order[0] != "serpapi":
         print("  (serpapi is the fallback; it is called only for terms pytrends cannot return)")
     if args.dry_run:
-        for fam, term in TERMS.items():
-            print(f"  would fetch {term!r:<32} -> data/trends/{fam}.csv")
+        for fam, term, d in jobs:
+            print(f"  would fetch {term!r:<32} -> {os.path.relpath(d, ROOT)}/{fam}.csv")
         print("\ndry run — nothing called, nothing written.")
         return
 
     ok, failed, used = 0, [], {}
-    for fam, term in TERMS.items():
+    for fam, term, out_dir in jobs:
         rows, via, why = [], None, []
         for prov in order:
             try:
@@ -213,21 +246,24 @@ def main():
             print(f"  FAIL {fam}: " + " | ".join(why))
             failed.append(fam)
             continue
-        write(fam, term, rows)
+        write(fam, term, rows, out_dir)
         used[via] = used.get(via, 0) + 1
         note = "" if via == order[0] else f"   (via {via} — {why[0]})"
         print(f"  ok   {fam:<22} {len(rows):>4} points  {rows[0][0]} -> {rows[-1][0]}{note}")
         ok += 1
         time.sleep(args.sleep)
 
-    print(f"\n{ok}/{len(TERMS)} written to data/trends/  "
+    print(f"\n{ok}/{len(jobs)} written to data/trends/  "
           + ", ".join(f"{v} via {k}" for k, v in used.items()))
     if failed:
         print("failed: " + ", ".join(failed))
         # A partial refresh mixes windows across files, which is exactly the
         # normalisation problem this script exists to avoid.
         sys.exit(1)
-    print("Next: python data/scripts/trends_model.py --source google --write")
+    if args.set in ("explorer", "all"):
+        print("Next: python data/scripts/add_trends_to_explorer.py")
+    if args.set in ("families", "all"):
+        print("Next: python data/scripts/trends_model.py --source google --write")
 
 
 if __name__ == "__main__":

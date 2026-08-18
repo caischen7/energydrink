@@ -17,6 +17,7 @@ export default defineConfig({
         audience: resolve(__dirname, 'audience.html'),
         compare: resolve(__dirname, 'compare.html'),
         opportunity: resolve(__dirname, 'opportunity.html'),
+        explorer: resolve(__dirname, 'explorer.html'),
       },
     },
   },
