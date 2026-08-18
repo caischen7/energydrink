@@ -22,8 +22,8 @@ GCP_PROJECT=your-project-id ./deploy.sh
 
 That builds the image server-side with Cloud Build (no local Docker needed),
 deploys to Cloud Run with `--allow-unauthenticated`, and prints the public URL
-(`https://ion-liquid-hardware-<hash>-uc.a.run.app`). Overrides:
-`GCP_REGION` (default `us-central1`), `SERVICE_NAME` (default `ion-liquid-hardware`).
+(`https://bogus-banana-<hash>-uc.a.run.app`). Overrides:
+`GCP_REGION` (default `us-central1`), `SERVICE_NAME` (default `bogus-banana`).
 
 ## Why it can't be deployed from this Claude session
 
@@ -54,7 +54,7 @@ To actually deploy, pick one:
 
 The Market Intel dashboard's data (`/data/dashboard.json`, derived from licensed
 Mintel/Statista reports) is served behind **nginx HTTP Basic Auth** — see the
-guarded `location = /data/dashboard.json` block in `nginx.conf`, backed by
+guarded `location ^~ /data/` prefix block in `nginx.conf`, backed by
 `.htpasswd` (copied into the image by the `Dockerfile`). Credentials live in
 `.htpasswd` (hashed); see `docs/CREDENTIALS.md` to view or change them. The
 landing page and the dashboard shell stay public; only the data is gated.
