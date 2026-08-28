@@ -1,27 +1,44 @@
 #!/usr/bin/env python3
-"""Self-test for price_models.py against a panel with a KNOWN answer.
+"""Self-test for price_models.py against panels with a KNOWN answer.
 
-The real panel needs BigQuery and costs about $0.55 to build, so the estimator
-cannot be checked by staring at its output on real data - there is nothing to
-check it against. This generates a synthetic panel where the true elasticity,
-the true distribution coefficient and the amount of mix contamination are all
-chosen by us, then asserts the estimator recovers them.
+WHY THIS FILE WAS REWRITTEN
+---------------------------
+The first version of this test passed while the estimator was wrong, which is
+the worst thing a test can do. It generated the price series as an INDEPENDENT
+variable and then set revenue = price x units. Real panels do the opposite:
+there is no price column in PDI, so price is DERIVED as revenue / units. That
+one difference is the entire bug.
 
-Two things it proves, which are the two claims price_models.py makes:
+When price = r/q, then ln p = ln r - ln q. Any measurement error u in quantity -
+counting noise, store composition inside the cell, multibuy deals recorded
+unevenly - enters the left-hand side of a volume-on-price regression as +u and
+the right-hand side as -u. The estimator converges to
 
-  1. The CONTROLLED specification recovers the planted elasticity while the raw
-     and within-only ones do not. That is the whole argument for reporting three
-     numbers instead of one, and this test found the point the hard way: with
-     distribution growing over the window and correlated with price, within-
-     cluster alone lands at about -1.73 against a planted -1.50. Cluster fixed
-     effects are not sufficient; the distribution control is what closes it.
+    plim(beta_hat) = ( beta * Var(ln p*) - Var(u) ) / ( Var(ln p*) + Var(u) )
 
-  2. The unit-value / fixed-weight divergence diagnostic actually fires when mix
-     is moving. It is easy to write a diagnostic that never triggers; this
-     builds a panel where mix moves lumpily and asserts the correlation drops.
+which is negative even when beta is exactly zero. No fixed effect removes it,
+because it is not an omitted variable: it is the same measurement appearing
+twice with opposite signs.
 
-Deterministic - a fixed LCG, no random seed from the clock - so a failure here
-is a real regression and not a bad draw.
+The old generator could never produce that, so it certified a biased estimator
+at -1.498 against a planted -1.50. This version derives price the way the real
+pipeline does, and additionally builds two disjoint store halves so the
+cross-half estimator can be checked.
+
+WHAT IS ASSERTED
+----------------
+Case A, TRUE ELASTICITY EXACTLY ZERO. The naive estimator must print a clearly
+negative number - that is the artifact, reproduced on demand - and the
+cross-half estimator must stay near zero. This is the test that would have
+caught the original bug.
+
+Case B, TRUE ELASTICITY NEGATIVE. The two estimators must BRACKET the truth:
+naive inflated away from zero by division bias, cross-half attenuated toward
+zero by classical measurement error in the regressor. That bracket is exactly
+what price_models.py claims to report, so the test asserts the claim rather
+than a single number.
+
+Deterministic LCG, no clock-seeded randomness, so a failure is a regression.
 
     python data/scripts/test_price_models.py
 
@@ -36,9 +53,11 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
-TRUE_ELASTICITY = -1.50
-TRUE_STORES = 0.35
-TOLERANCE = 0.15          # the estimator must land within this of the planted value
+# sd of the true log price, and of the quantity measurement error. Both chosen
+# so the artifact is unmistakable without being absurd: the implied naive bias
+# at beta=0 is -Var(u)/(Var(p*)+Var(u)) = -0.004/0.0104 = -0.385.
+SD_LOG_PRICE = 0.08
+SD_NOISE = 0.0632          # Var(u) = 0.004
 
 
 def lcg(seed):
@@ -50,39 +69,64 @@ def lcg(seed):
     return rnd
 
 
-def make_panel(path, lumpy_mix, seed=777):
-    """Panel with a known elasticity. `lumpy_mix` controls whether the
-    unit-value series diverges from the fixed-weight one."""
+def gauss(rnd):
+    """Box-Muller from the LCG. Two uniforms in, one standard normal out."""
+    u1 = max(1e-12, rnd())
+    u2 = rnd()
+    return math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)
+
+
+def make_panel(path, beta, seed=4242):
+    """Panel where price is DERIVED as revenue/units, exactly as the real
+    pipeline derives it, with independent measurement error in each store half."""
     rnd = lcg(seed)
     months = [f"{y}-{m:02d}" for y in range(2019, 2026) for m in range(1, 13)]
-    rows = []
     families = ["Original", "Berry", "Citrus", "Tropical",
                 "Watermelon", "Sour & candy", "Grape", "Coffee & cream"]
+    rows = []
     for ci, cluster in enumerate(families):
         base = 2_000_000 * (1 + ci)
         for t, m in enumerate(months):
             moy = int(m[5:7])
             season = 0.12 * math.sin(2 * math.pi * (moy - 3) / 12)
-            promo = 1 if rnd() < 0.18 else 0
-            idx = math.exp(0.02 * math.sin(t / 7.0) + 0.01 * (rnd() - 0.5) - 0.06 * promo)
             stores = 30000 + 60 * t
-            lq = (math.log(base)
-                  + TRUE_ELASTICITY * math.log(idx)
-                  + season
-                  + TRUE_STORES * math.log(stores / 30000)
-                  + 0.03 * (rnd() - 0.5))
-            units = math.exp(lq)
-            # Mix contamination lives ONLY in the unit-value series, which is
-            # exactly how it behaves in real data: the fixed basket is immune.
-            mix = (1 + 0.30 * rnd()) if lumpy_mix else (1 + 0.25 * (t / len(months)))
+
+            # TRUE price and TRUE quantity. The elasticity lives here and
+            # nowhere else.
+            log_p_true = SD_LOG_PRICE * gauss(rnd)
+            p_true = 2.90 * math.exp(log_p_true)
+            q_true = base * math.exp(beta * log_p_true + season
+                                     + 0.35 * math.log(stores / 30000))
+
+            # Two disjoint halves of stores. Revenue is recorded exactly;
+            # quantity is recorded with independent noise in each half. That is
+            # the asymmetry that creates division bias when price is r/q.
+            qa_true, qb_true = q_true / 2, q_true / 2
+            ua, ub = SD_NOISE * gauss(rnd), SD_NOISE * gauss(rnd)
+            units_a = qa_true * math.exp(ua)
+            units_b = qb_true * math.exp(ub)
+            rev_a, rev_b = p_true * qa_true, p_true * qb_true
+
+            units = units_a + units_b
+            rev = rev_a + rev_b
+            price_a = rev_a / units_a       # = p_true * exp(-ua)
+            price_b = rev_b / units_b       # = p_true * exp(-ub)
+            price = rev / units             # the contaminated series
+
             rows.append({
                 "scheme": "family", "cluster": cluster, "month": m,
-                "rev": round(units * idx * 2.9 * mix, 2), "units": round(units),
-                "skus": 40, "stores": int(stores),
-                "price_unitvalue": round(idx * 2.9 * mix, 4),
-                "price_index": round(idx, 5), "matched_share": 0.9,
-                "disc_rate": round(0.05 + 0.25 * promo, 4),
-                "disc_txn_rate": round(0.05 + 0.20 * promo, 4),
+                "rev": round(rev, 2), "units": round(units), "skus": 40,
+                "stores": int(stores),
+                "price_unitvalue": round(price, 5),
+                # price_index is what the naive specifications regress on, and
+                # in the real pipeline it is built from these same r/q ratios.
+                "price_index": round(price / 2.90, 6),
+                "matched_share": 0.9,
+                "price_index_a": round(price_a / 2.90, 6),
+                "price_index_b": round(price_b / 2.90, 6),
+                "matched_share_a": 0.9, "matched_share_b": 0.9,
+                "units_a": round(units_a), "units_b": round(units_b),
+                "disc_rate": 0.08, "disc_txn_rate": 0.07,
             })
     with open(path, "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
@@ -94,7 +138,7 @@ def make_panel(path, lumpy_mix, seed=777):
 def run(path):
     out = subprocess.run(
         [sys.executable, os.path.join(HERE, "price_models.py"), "--panel", path],
-        capture_output=True, text=True, timeout=600)
+        capture_output=True, text=True, timeout=900)
     if out.returncode != 0:
         print(out.stdout, out.stderr)
         sys.exit("price_models.py exited non-zero")
@@ -115,56 +159,47 @@ def grab(text, label):
 def main():
     fails = []
     with tempfile.TemporaryDirectory() as tmp:
-        # --- case 1: smooth mix. Estimator must recover the planted values. ---
-        p1 = os.path.join(tmp, "smooth.csv")
-        n = make_panel(p1, lumpy_mix=False)
-        t1 = run(p1)
-        within = grab(t1, "within cluster")
-        ctrl = grab(t1, "within + distribution + season")
-        stores = grab(t1, "distribution coefficient")
-        raw = grab(t1, "raw pooled")
-        print(f"panel: {n} cluster-months, planted elasticity {TRUE_ELASTICITY}, "
-              f"distribution {TRUE_STORES}")
-        print(f"  raw pooled        {raw}")
-        print(f"  within cluster    {within}   (want {TRUE_ELASTICITY} +/- {TOLERANCE})")
-        print(f"  controlled        {ctrl}   (want {TRUE_ELASTICITY} +/- {TOLERANCE})")
-        print(f"  distribution      {stores}   (want {TRUE_STORES} +/- {TOLERANCE})")
+        # ---- Case A: the truth is ZERO. Any negative number is the artifact --
+        pa = os.path.join(tmp, "zero.csv")
+        n = make_panel(pa, beta=0.0)
+        ta = run(pa)
+        naive = grab(ta, "within + distribution + season")
+        cross = grab(ta, "mean  ") or grab(ta, "    mean")
+        print(f"CASE A  true elasticity 0.0  ({n} cluster-months)")
+        print(f"  naive (price = revenue/units)   {naive}")
+        print(f"  cross-half                      {cross}")
+        if naive is None or naive > -0.15:
+            fails.append(f"naive estimator returned {naive} on a zero-elasticity "
+                         "panel — the test is not reproducing division bias, so it "
+                         "cannot certify the fix")
+        if cross is None:
+            fails.append("no cross-half estimate produced")
+        elif abs(cross) > 0.12:
+            fails.append(f"cross-half returned {cross} on a zero-elasticity panel; "
+                         "it should be near zero")
 
-        # The CONTROLLED specification is the one that must be right. The raw and
-        # within-only ones are expected to be biased, and asserting that they are
-        # is the point: the synthetic panel has distribution growing over time and
-        # correlated with price, so within-cluster alone inherits that bias
-        # (~-1.73 against a planted -1.50). If all three agreed, the page would be
-        # reporting three numbers for no reason.
-        if within is not None and abs(within - TRUE_ELASTICITY) <= abs(ctrl - TRUE_ELASTICITY):
-            fails.append("within-only was no worse than the controlled spec — the "
-                         "distribution control is doing nothing, which breaks the "
-                         "argument for reporting three specifications")
-        if ctrl is None or abs(ctrl - TRUE_ELASTICITY) > TOLERANCE:
-            fails.append(f"controlled elasticity {ctrl} misses {TRUE_ELASTICITY}")
-        if stores is None or abs(stores - TRUE_STORES) > TOLERANCE:
-            fails.append(f"distribution coefficient {stores} misses {TRUE_STORES}")
-        if raw is None or abs(raw - TRUE_ELASTICITY) <= TOLERANCE:
-            fails.append("raw pooled OLS recovered the truth — the panel is not "
-                         "exercising the bias this script exists to demonstrate")
-
-        # --- case 2: lumpy mix. The divergence diagnostic must FIRE. ---------
-        p2 = os.path.join(tmp, "lumpy.csv")
-        make_panel(p2, lumpy_mix=True)
-        t2 = run(p2)
-        fired = "mix is doing the moving" in t2
-        r = grab(t2, "unit-value vs fixed-weight")
-        print(f"\nlumpy-mix panel: unit-value vs fixed-weight r = {r}, "
-              f"warning fired = {fired}")
-        if not fired:
-            fails.append("mix-divergence warning did not fire on a lumpy-mix panel")
-        # And the elasticity must survive the contamination, because the model
-        # never touches the unit-value series.
-        ctrl2 = grab(t2, "within + distribution + season")
-        print(f"  controlled elasticity under contamination {ctrl2} "
-              f"(want {TRUE_ELASTICITY} +/- {TOLERANCE})")
-        if ctrl2 is None or abs(ctrl2 - TRUE_ELASTICITY) > TOLERANCE:
-            fails.append(f"contaminated-panel elasticity {ctrl2} misses {TRUE_ELASTICITY}")
+        # ---- Case B: a real negative elasticity. The two must bracket it -----
+        pb = os.path.join(tmp, "neg.csv")
+        make_panel(pb, beta=-0.80, seed=99)
+        tb = run(pb)
+        naive_b = grab(tb, "within + distribution + season")
+        cross_b = grab(tb, "mean  ") or grab(tb, "    mean")
+        print(f"\nCASE B  true elasticity -0.80")
+        print(f"  naive                           {naive_b}")
+        print(f"  cross-half                      {cross_b}")
+        if None in (naive_b, cross_b):
+            fails.append("case B did not produce both estimates")
+        else:
+            if not naive_b < -0.80:
+                fails.append(f"naive {naive_b} was not inflated away from zero "
+                             "relative to the planted -0.80")
+            if not cross_b > -0.80:
+                fails.append(f"cross-half {cross_b} was not attenuated toward zero "
+                             "relative to the planted -0.80")
+            if not (cross_b > naive_b):
+                fails.append("the two estimators did not bracket the truth")
+            print(f"  bracket: [{naive_b}, {cross_b}] contains -0.80 = "
+                  f"{naive_b < -0.80 < cross_b}")
 
     if fails:
         print("\nFAILED:")

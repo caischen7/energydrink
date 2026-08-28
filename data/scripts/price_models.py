@@ -19,6 +19,15 @@ verdict says so in words.
 
 THE FOUR THINGS THAT MAKE THIS HONEST
 -------------------------------------
+0. DIVISION BIAS COMES FIRST. Price is revenue/units, so a naive volume-on-price
+   regression puts the same measurement on both sides with opposite signs and
+   returns a negative number even when the truth is zero. Every specification
+   below except the cross-half one is contaminated by it and is reported only as
+   the contrast. The cross-half specification pairs price from one store-half
+   with quantity from the other, so their errors are independent and the
+   mechanical term cancels. Together the two BRACKET the co-movement: naive
+   inflated away from zero, cross-half attenuated toward it.
+
 1. PRICE SERIES. Models run on `price_index`, the fixed-weight Laspeyres series,
    not on `price_unitvalue`. A unit-value series moves with mix - a shift from
    12oz to 24oz reads as a price rise with nothing repriced - and regressing
@@ -117,6 +126,13 @@ def r2(y, yhat):
 
 
 # ---------------------------------------------------------------- the panel --
+def _f(v):
+    try:
+        return float(v) if v not in (None, "") else None
+    except (TypeError, ValueError):
+        return None
+
+
 def load_panel(scheme):
     rows = [r for r in csv.DictReader(open(PANEL)) if r["scheme"] == scheme]
     by = collections.defaultdict(dict)
@@ -130,6 +146,10 @@ def load_panel(scheme):
             "stores": int(r["stores"]), "skus": int(r["skus"]),
             "uv": float(r["price_unitvalue"]),
             "idx": idx,
+            "idx_a": _f(r.get("price_index_a")),
+            "idx_b": _f(r.get("price_index_b")),
+            "units_a": _f(r.get("units_a")) or 0.0,
+            "units_b": _f(r.get("units_b")) or 0.0,
             "matched": float(r["matched_share"]),
             "disc": float(r["disc_rate"]),
         }
@@ -162,6 +182,12 @@ def rows_for(series, search=None):
             "d_lq": math.log(d["units"] / prev["units"]) if prev else None,
             "d_lr": math.log(d["rev"] / prev["rev"]) if prev else None,
             "search": (search or {}).get(m),
+            # Cross-half pair: price from store-half A, quantity from half B.
+            # These two share no quantity term, which is the entire point.
+            "lp_a": math.log(d["idx_a"]) if d.get("idx_a") else None,
+            "lp_b": math.log(d["idx_b"]) if d.get("idx_b") else None,
+            "lq_a": math.log(d["units_a"]) if d.get("units_a") else None,
+            "lq_b": math.log(d["units_b"]) if d.get("units_b") else None,
         })
     return out
 
@@ -211,6 +237,50 @@ def elasticities(panel):
         Xf.append([r["lp"] - mpc[c], r["lstores"] - msc[c], r["disc"]] + moy)
         yf.append(r["lq"] - mqc[c])
     full = ols(Xf, yf)
+    # (d) CROSS-HALF: price from one store-half, quantity from the other.
+    #
+    # This is the specification that matters, and the reason is arithmetic
+    # rather than economic. Everywhere above, price is revenue/units, so
+    # ln p = ln r - ln q carries -u for whatever measurement noise u sits in
+    # quantity, while the left-hand side carries +u. That alone drives the
+    # coefficient toward
+    #     -Var(u) / (Var(ln p*) + Var(u))
+    # with no economics in it at all: a true elasticity of ZERO can print as
+    # -0.3 to -1.3. Fixed effects cannot remove it, because it is not an omitted
+    # variable - it is the same measurement appearing on both sides.
+    #
+    # Splitting stores into two halves gives price and quantity independent
+    # measurement errors, so the mechanical term vanishes. What remains is
+    # classical measurement error in the regressor, which attenuates TOWARD
+    # zero. So the naive and cross-half numbers BRACKET the descriptive
+    # co-movement: naive is inflated away from zero, cross-half is attenuated
+    # toward it. The gap between them is a direct estimate of the artifact.
+    def cross(price_key, qty_key):
+        Xc, yc, kept = [], [], 0
+        pm = collections.defaultdict(list)
+        qm = collections.defaultdict(list)
+        for c, r in pooled:
+            if r.get(price_key) is None or r.get(qty_key) is None:
+                continue
+            pm[c].append(r[price_key])
+            qm[c].append(r[qty_key])
+        pmc = {c: sum(v) / len(v) for c, v in pm.items()}
+        qmc = {c: sum(v) / len(v) for c, v in qm.items()}
+        for c, r in pooled:
+            if r.get(price_key) is None or r.get(qty_key) is None or c not in pmc:
+                continue
+            moy = [1.0 if r["moy"] == k else 0.0 for k in range(2, 13)]
+            Xc.append([r[price_key] - pmc[c], r["lstores"] - msc[c], r["disc"]] + moy)
+            yc.append(r[qty_key] - qmc[c])
+            kept += 1
+        if kept < 60:
+            return None, kept
+        return ols(Xc, yc)[1], kept
+
+    ab, n_ab = cross("lp_a", "lq_b")
+    ba, n_ba = cross("lp_b", "lq_a")
+    both = [v for v in (ab, ba) if v is not None]
+
     return {
         "n": len(pooled),
         "clusters": len({c for c, _ in pooled}),
@@ -219,6 +289,12 @@ def elasticities(panel):
         "controlled": round(full[1], 3),
         "beta_stores": round(full[2], 3),
         "beta_disc": round(full[3], 3),
+        "cross_ab": None if ab is None else round(ab, 3),
+        "cross_ba": None if ba is None else round(ba, 3),
+        "cross": None if not both else round(sum(both) / len(both), 3),
+        "cross_n": max(n_ab, n_ba),
+        "division_bias": (None if not both
+                          else round(full[1] - sum(both) / len(both), 3)),
     }
 
 
@@ -331,6 +407,23 @@ def main():
     print(f"  spread across specifications      {swing:.3f}"
           + ("   <- unstable; treat the number as a direction, not a magnitude"
              if swing > 0.5 else ""))
+
+    if el.get("cross") is None:
+        print("\n  CROSS-HALF UNAVAILABLE. The panel has no price_index_a/b columns, so\n"
+              "  every number above still has price = revenue/units on one side and\n"
+              "  quantity on the other. They are NOT elasticities - a true value of\n"
+              "  zero prints here as roughly -0.3 to -1.3. Rebuild the panel with\n"
+              "  build_price_panel.py to get the store-split columns.")
+    else:
+        print(f"\n  CROSS-HALF (price from one store-half, quantity from the other)")
+        print(f"    A price -> B units             {el['cross_ab']:+.3f}")
+        print(f"    B price -> A units             {el['cross_ba']:+.3f}")
+        print(f"    mean                           {el['cross']:+.3f}   "
+              f"(n={el['cross_n']:,})")
+        print(f"    division bias removed          {el['division_bias']:+.3f}")
+        print("    The naive and cross-half numbers bracket the co-movement: naive is\n"
+              "    inflated away from zero by division bias, cross-half is attenuated\n"
+              "    toward it by measurement error in the regressor. Neither is causal.")
 
     print("\nFORECASTING log-revenue change, expanding window, h=1")
     print(f"{'cluster':<24}{'n':>5}{'price':>9}{'no-price':>10}{'persist':>9}"

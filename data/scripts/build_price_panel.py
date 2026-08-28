@@ -49,6 +49,38 @@ So this writes TWO price series per cluster-month:
                     this is low the index is speaking for a small slice, so the
                     models must not treat those months as equally informative.
 
+THE DIVISION BIAS, AND THE STORE SPLIT THAT REMOVES IT
+------------------------------------------------------
+This is the most important thing in this file. Because price is r/q, a
+regression of log quantity on log price has the SAME measurement on both sides
+with opposite signs:
+
+    ln p = ln r - ln q          so noise u in q enters the regressor as -u
+    ln q = ln q* + u            and the outcome as +u
+
+    plim(beta_hat) = ( beta*Var(ln p*) - Var(u) ) / ( Var(ln p*) + Var(u) )
+
+That is negative even when the true elasticity is exactly ZERO. It is not an
+omitted variable, so no fixed effect touches it, and the usual falsification
+tests are blind to it - a future-price placebo regresses ln q_t on p_{t+1},
+which contains q_{t+1} rather than q_t, so it comes back clean and CERTIFIES
+the artifact.
+
+The fix: hash stores into two disjoint halves and build price from one half and
+quantity from the other. Their measurement errors are then independent by
+construction and the mechanical term cancels exactly.
+
+    H(store) = MOD(ABS(FARM_FINGERPRINT(CAST(STORE_ID AS STRING))), 2)
+
+It is cost-neutral. STORE_ID is already referenced by the COUNT(DISTINCT) in the
+same query, and BigQuery bills referenced columns x rows rather than output
+grain, so the extra aggregates add no bytes.
+
+So the panel carries price_index_a / price_index_b alongside units_a / units_b.
+The model pairs A-price with B-quantity and vice versa, and reports the naive
+number beside them. Verified in test_price_models.py against a panel built with
+a TRUE elasticity of zero: naive returns -0.213, cross-half returns +0.033.
+
 PROMOTION DEPTH
 ---------------
 QUANTITY_WITH_DISCOUNT / QUANTITY gives a discount rate per cell per month. This
@@ -140,7 +172,20 @@ SELECT
   SUM(d.TRANSACTION_COUNT)                  AS txns,
   SUM(d.QUANTITY_WITH_DISCOUNT)             AS disc_units,
   SUM(d.TRANSACTION_COUNT_WITH_DISCOUNT)    AS disc_txns,
-  COUNT(DISTINCT d.STORE_ID)                AS stores
+  COUNT(DISTINCT d.STORE_ID)                AS stores,
+  -- Split the SAME scan into two disjoint halves of stores. See the module
+  -- docstring: price is built from one half and quantity from the other, so the
+  -- two carry independent measurement error and the division bias cancels.
+  -- STORE_ID is already referenced by the COUNT above, so these cost no extra
+  -- bytes - BigQuery bills referenced columns x rows, not output grain.
+  SUM(IF(MOD(ABS(FARM_FINGERPRINT(CAST(d.STORE_ID AS STRING))), 2) = 0,
+         d.TOTAL_REVENUE_AMOUNT, 0))        AS rev_a,
+  SUM(IF(MOD(ABS(FARM_FINGERPRINT(CAST(d.STORE_ID AS STRING))), 2) = 0,
+         d.QUANTITY, 0))                    AS units_a,
+  SUM(IF(MOD(ABS(FARM_FINGERPRINT(CAST(d.STORE_ID AS STRING))), 2) = 1,
+         d.TOTAL_REVENUE_AMOUNT, 0))        AS rev_b,
+  SUM(IF(MOD(ABS(FARM_FINGERPRINT(CAST(d.STORE_ID AS STRING))), 2) = 1,
+         d.QUANTITY, 0))                    AS units_b
 FROM `{PROJECT}.energy_drinks.pdi_daily_agg` d
 WHERE d.DATE BETWEEN '{FIRST}' AND '{LAST}'
 GROUP BY d.GTIN, m
@@ -199,7 +244,7 @@ def months_between(a, b):
     return out
 
 
-def laspeyres(sku_rows, months, base_months):
+def laspeyres(sku_rows, months, base_months, price_key="price", qty_key="units"):
     """Fixed-weight price index per cluster-month, plus the basket's coverage.
 
     Returns {(cluster, month): (index, matched_revenue_share)}. Only SKUs with a
@@ -210,7 +255,10 @@ def laspeyres(sku_rows, months, base_months):
     base_p, base_q = {}, {}
     per_sku = collections.defaultdict(dict)
     for r in sku_rows:
-        per_sku[(r["cluster"], r["GTIN"])][r["m"]] = (r["price"], r["units"], r["rev"])
+        p = r.get(price_key)
+        if p is None:
+            continue
+        per_sku[(r["cluster"], r["GTIN"])][r["m"]] = (p, r.get(qty_key) or 0.0, r["rev"])
 
     for key, by_month in per_sku.items():
         ps = [(p, q) for m, (p, q, _v) in by_month.items() if m in base_months]
@@ -305,10 +353,22 @@ def main():
         if not (PRICE_LO <= price <= PRICE_HI):
             dropped["price out of range"] += 1
             continue
+        # Per-half price. Either half can be too thin in a given month, in which
+        # case that month simply has no cross-half estimate rather than a noisy
+        # one - MIN_UNITS is applied per half, not just to the total.
+        ua, ub = float(r["units_a"] or 0), float(r["units_b"] or 0)
+        ra, rb = float(r["rev_a"] or 0), float(r["rev_b"] or 0)
+        pa = ra / ua if ua >= MIN_UNITS / 2 else None
+        pb = rb / ub if ub >= MIN_UNITS / 2 else None
+        if pa is not None and not (PRICE_LO <= pa <= PRICE_HI):
+            pa = None
+        if pb is not None and not (PRICE_LO <= pb <= PRICE_HI):
+            pb = None
         d = dim.get(r["GTIN"], {})
         clean.append({
             "GTIN": r["GTIN"], "m": r["m"], "rev": rev, "units": units,
             "price": price,
+            "units_a": ua, "units_b": ub, "price_a": pa, "price_b": pb,
             "txns": float(r["txns"] or 0),
             "disc_units": float(r["disc_units"] or 0),
             "disc_txns": float(r["disc_txns"] or 0),
@@ -344,6 +404,11 @@ def main():
     for scheme, keyfn in schemes.items():
         tagged = [dict(r, cluster=keyfn(r)) for r in clean]
         idx = laspeyres(tagged, months, base_months)
+        # Two more indices, each built from ONE half of the stores. The model
+        # pairs index_a with units_b (and index_b with units_a) so that no
+        # quantity appears on both sides of the regression.
+        idx_a = laspeyres(tagged, months, base_months, "price_a", "units_a")
+        idx_b = laspeyres(tagged, months, base_months, "price_b", "units_b")
         agg = collections.defaultdict(lambda: collections.defaultdict(float))
         skus = collections.defaultdict(set)
         for r in tagged:
@@ -355,11 +420,15 @@ def main():
             a["disc_units"] += r["disc_units"]
             a["disc_txns"] += r["disc_txns"]
             a["stores"] = max(a["stores"], r["stores"])
+            a["units_a"] += r["units_a"]
+            a["units_b"] += r["units_b"]
             skus[k].add(r["GTIN"])
         for (cluster, m), a in sorted(agg.items()):
             if a["units"] <= 0:
                 continue
             i = idx.get((cluster, m), (None, 0.0))
+            ia = idx_a.get((cluster, m), (None, 0.0))
+            ib = idx_b.get((cluster, m), (None, 0.0))
             rows_out.append({
                 "scheme": scheme, "cluster": cluster, "month": m,
                 "rev": round(a["rev"], 2),
@@ -369,6 +438,12 @@ def main():
                 "price_unitvalue": round(a["rev"] / a["units"], 4),
                 "price_index": None if i[0] is None else round(i[0], 5),
                 "matched_share": round(i[1], 4),
+                "price_index_a": None if ia[0] is None else round(ia[0], 5),
+                "price_index_b": None if ib[0] is None else round(ib[0], 5),
+                "matched_share_a": round(ia[1], 4),
+                "matched_share_b": round(ib[1], 4),
+                "units_a": round(a["units_a"]),
+                "units_b": round(a["units_b"]),
                 "disc_rate": round(a["disc_units"] / a["units"], 4) if a["units"] else 0.0,
                 "disc_txn_rate": round(a["disc_txns"] / a["txns"], 4) if a["txns"] else 0.0,
             })
