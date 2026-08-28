@@ -1,62 +1,55 @@
 # PDI sales panel → predictive model
 
-Working notes for the SALES-as-dependent-variable modeling track. This
-directory holds the BigQuery side; the modeling scripts land next to it once
-the panel exists.
+> **This work has moved to `ayounker/msbai-capstone-energydrinks` (private).**
+> Nothing further should be attempted from this repo. See "Why it moved" below.
+
+Working notes kept here for the one artifact that stayed:
+`00_discover_schema.sql`.
 
 ## Why this exists
 
-The descriptive work stalls on granularity: the committed PDI panel is
+The predictive-modeling track stalls on granularity: the committed PDI panel is
 GTIN × YEAR, which leaves ~7 annual points per flavor — far too few to fit or
-validate a forecast. Fixing the sales side comes first. Aggregating
-`pdi_daily_agg` to **flavor_family × MONTH** over 2019-01 → 2025-12 turns ~91
-annual rows into ~1,000 monthly panel rows (~84 months × 13 families), which is
-enough to support the regression and a rolling-origin backtest.
+validate a forecast. Aggregating `pdi_daily_agg` to **flavor_family × MONTH**
+over 2019-01 → 2025-12 turns ~91 annual rows into ~1,000 monthly panel rows
+(~84 months × 13 families), which can support a regression and a rolling-origin
+backtest. 2018 is excluded (coverage too thin — ~$38M vs $395M in 2019) and
+2026 is excluded (partial scrape).
 
-2018 is excluded (PDI coverage is too thin — ~$38M vs $395M in 2019) and 2026
-is excluded (partial scrape).
+## Why it moved
 
-## Status: BLOCKED on schema
+Everything the model needs lives in the capstone repo, not here:
 
-Nothing here has been run. This session has no BigQuery credentials, and by
-decision the credential stays out of the repo entirely — **you run the
-queries, commit the aggregate.** (`caischen7/energydrink` is a public repo, so
-committing even an encrypted service-account key was ruled out.)
+| Needed | Location |
+| --- | --- |
+| `classify_target_consumers.py` (`FLAVOR_FAMILIES` taxonomy) | capstone repo |
+| `pdi_unique_products.csv` (~2,309 labeled GTINs) | capstone repo |
+| `trends_model.py`, `data/trends/` | capstone repo |
+| GCP credentials for BigQuery `energy_drinks` | capstone repo (encrypted, via cloud-bootstrap) |
 
-Two prerequisites are also unreachable from this session:
+None of these have ever existed in `caischen7/energydrink` — verified across all
+branches with `git log --all --diff-filter=A --name-only`. The capstone repo
+also cannot be attached to a session already sourcing this one (`add_repo`
+rejects cross-owner adds), so the work needs a session sourced from it directly.
 
-| Needed | Where it lives | Status |
-| --- | --- | --- |
-| `pdi_daily_agg` schema | BigQuery `energy_drinks` | not yet inspected — run `00_discover_schema.sql` |
-| `classify_target_consumers.py` (`FLAVOR_FAMILIES` taxonomy) | `ayounker/msbai-capstone-energydrinks` | unreachable — see below |
-| `pdi_unique_products.csv` (~2,309 labeled GTINs) | same | unreachable |
-| `trends_model.py`, `data/trends/README.md` | same | unreachable |
+There is also a licensing reason: **this repo is public.** Licensed PDI data and
+its aggregates must not land here. The capstone repo is private and is the
+correct home. Scaffolding may travel out of this repo; no PDI comes back in.
 
-The capstone repo cannot be attached to a session that already sources
-`caischen7/energydrink` — `add_repo` rejects cross-owner adds, and the GitHub
-API is scoped to the session's initial repo. Fix: start a session with
-`ayounker/msbai-capstone-energydrinks` as the initial source, or copy the four
-files across.
+## What's still here
 
-## Sequence
+`00_discover_schema.sql` — metadata-only ($0, bills 0 bytes). Returns
+`pdi_daily_agg`'s column names and types, whether `require_partition_filter` is
+set, table size with a full-scan cost estimate, per-year partition coverage (to
+verify the 2018/2026 exclusions), and the dataset's other tables. Kept as a
+reference copy; the working copy now lives in the capstone repo.
 
-1. **`00_discover_schema.sql`** — run first. Metadata-only, $0. Returns column
-   names/types, whether a partition filter is required, table size, per-year
-   partition coverage, and the dataset's other tables. Paste the output back.
-2. **`01_monthly_panel.sql`** — not yet written; needs step 1's column names.
-   Will aggregate to flavor_family × month and flavor_family × audience × month,
-   with a partition filter on the date column. **Dry-run first**
-   (`bq query --dry_run`) and confirm bytes billed drops well below a full scan
-   before running for real — a full scan of this table is ~$0.35–0.55.
-3. Save the reduced panel locally as CSV. The aggregate is safe to commit;
-   licensed row-level PDI data is not.
-4. Modeling (log-linear OLS → gradient-boosting benchmark), scored with
-   rolling-origin validation against persistence and seasonal-naive baselines.
+## Rules that travel with the work
 
-## Rules carried over
-
-- Never `SELECT *` against `pdi_daily_agg`.
-- Always filter on the partition column; always dry-run first.
+- Never `SELECT *` against `pdi_daily_agg` (1.69B rows).
+- Always filter on the partition column; always dry-run and check bytes billed
+  before a real run. A full scan is ~$0.35–0.55.
 - Time-based validation only — never random k-fold on a time series.
-- A model that doesn't beat both baselines is a finding, not a failure to hide.
-- Licensed raw PDI data stays out of the repo.
+- A model that doesn't beat persistence and seasonal-naive baselines is a
+  finding, not a failure to hide.
+- Licensed raw PDI data stays out of git. Aggregates only.
