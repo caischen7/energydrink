@@ -9,7 +9,11 @@
  *
  * Headroom is revenue per SKU. A cell with $25M across 33 SKUs is a better place
  * to launch than one with $80M across 86, because the second is already fought
- * over. That single ratio is what the matrix is coloured by.
+ * over. That single ratio is what the matrix is coloured by — computed on the
+ * MEASURED convenience dollars, so that every audience sits on one basis. The
+ * all-channel figure each cell prints is scaled by an audience-specific factor
+ * running from 1.0 to 64.2; colouring by that ranked audiences by their scaling
+ * factor instead of their headroom. See data/scripts/fix_whitespace_scale.py.
  *
  * Reads the nginx-guarded aggregate; `audiences.opportunity` comes from
  * data/scripts/add_audiences.py.
@@ -70,10 +74,18 @@ function board() {
  * with many SKUs is crowded, which is the opposite of an opportunity.
  */
 function matrix() {
+  /* Colour by MEASURED revenue per SKU, not by the all-channel scaled figure.
+     `c.rev` carries an audience-specific Passport factor between 1.0 and 64.2,
+     while `c.skus` is the raw convenience count, so `c.rev / c.skus` ranked
+     audiences by their scaling factor rather than by how contested the pocket
+     is — three audiences multiplied by 1 were being compared against rows
+     multiplied by 64, and rendered as empty as a result. `head_pdi` puts every
+     row on the one basis that actually sees flavor. The cell still PRINTS the
+     scaled dollars, which remain the better number for absolute size. */
   const med = O.medRPS || 1;
   const cell = (c, _i, aud) => {
     if (!c.rev) return `<td class="mx-cell mx-empty" title="No measured sales">·</td>`;
-    const head = c.rps / med;
+    const head = c.head_pdi != null ? c.head_pdi : c.rps / med;
     const a = Math.min(1, head / 4);
     /* 0.5 is measured, not chosen: it is the fill at which the deep green
        still clears 4.5:1. Past it the cell goes near-black. */
@@ -82,14 +94,15 @@ function matrix() {
       `<i class="mx-g ${c.cagr >= 0 ? 'up' : 'down'}">${pct(c.cagr)}</i>`;
     return `<td class="mx-cell mx-click${dk}" style="--a:${a.toFixed(2)}"
       role="button" tabindex="0" data-aud="${esc(aud)}" data-fam="${esc(c.fam)}"
-      title="${esc(c.fam)} — ${money(c.rev)} across ${c.skus} SKUs · ${money(c.rps)} per SKU (${head.toFixed(1)}x median)${
+      title="${esc(c.fam)} — ${money(c.rev)} across ${c.skus} SKUs · ${money(c.rps_pdi ?? c.rps)} per SKU measured (${head.toFixed(1)}x median)${
         c.cagr == null ? '' : ` · ${pct(c.cagr)} a year`} — click for the SKUs behind it">
       <b>${money(c.rev)}</b><span class="mx-s">${c.skus} SKU</span>${grow}</td>`;
   };
   const sc = O.scaled;
   if (sc) {
     $('#mx-scope').textContent =
-      sc.note + ' Flavor is unknown for 470 SKUs, which are excluded. Growth is the 2-year rate to 2025.';
+      sc.note + ' Flavor is unknown for 470 SKUs, which are excluded. Growth is the 2-year rate to 2025.'
+      + ' Colour is headroom on the measured convenience dollars, so rows scaled by different factors stay comparable.';
     $('#mx-caveat').innerHTML = '<b>Not directly comparable:</b> ' + esc(sc.caveat);
   }
   $('#matrix').innerHTML = `<table class="intel-table mono mx-table">
