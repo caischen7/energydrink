@@ -57,9 +57,12 @@ endogenous to demand, and an observed promo rate is the closest thing available
 to a supply-side shifter.
 
     NOT YET VERIFIED: whether those columns are actually populated across the
-    window, or are null/zero for most rows. --probe checks exactly that and
-    costs about $0.05. Run it before trusting any identification strategy that
-    leans on promo depth.
+    window, or are null/zero for most rows. --probe checks exactly that.
+
+    Cost: roughly $0.20, not the $0.05 first claimed here. The 8-column rollup
+    dry-runs at 85.8 GB, so a column averages ~10.7 GB across 1.09B rows, and
+    the probe touches three of them. --probe dry-runs first, prints the real
+    figure, and refuses to execute above MAX_PROBE_USD without --yes.
 
     python data/scripts/build_price_panel.py --probe     # are the promo cols real?
     python data/scripts/build_price_panel.py --dry-run   # cost only
@@ -93,6 +96,11 @@ BASE_FROM, BASE_TO = "2019-01", "2019-12"
 # than letting them set a cluster's mean.
 MIN_UNITS = 25
 PRICE_LO, PRICE_HI = 0.40, 25.00
+
+# A dry run is free and exact, so nothing here has to guess at cost. The probe
+# refuses to execute above this without --yes, so a schema change that turns a
+# cheap scan into an expensive one fails loudly instead of quietly billing.
+MAX_PROBE_USD = 0.50
 
 
 def bq(sql, token, dry=False):
@@ -241,7 +249,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--probe", action="store_true",
-                    help="check whether the promo columns are populated (~$0.05)")
+                    help="check whether the promo columns are populated (~$0.20)")
+    ap.add_argument("--yes", action="store_true",
+                    help="run even if the dry run exceeds MAX_PROBE_USD")
     args = ap.parse_args()
 
     token = os.environ.get("BQ_TOKEN", "").strip()
@@ -251,8 +261,12 @@ def main():
 
     if args.probe:
         d = bq(PROBE, token, dry=True)
-        print(f"probe scans {int(d['totalBytesProcessed'])/1e9:.1f} GB "
-              f"(${int(d['totalBytesProcessed'])/1e12*6.25:.2f})")
+        b = int(d["totalBytesProcessed"])
+        usd = b / 1e12 * 6.25
+        print(f"probe scans {b/1e9:.1f} GB  ->  ${usd:.2f}")
+        if usd > MAX_PROBE_USD and not args.yes:
+            sys.exit(f"refusing to run: ${usd:.2f} exceeds MAX_PROBE_USD "
+                     f"(${MAX_PROBE_USD:.2f}). Pass --yes to override.")
         res = bq(PROBE, token)
         print(f"\n{'year':<6}{'rows':>14}{'disc NULL':>14}{'disc > 0':>12}{'disc rate':>11}")
         for r in rows_of(res, token):
