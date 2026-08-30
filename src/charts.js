@@ -677,3 +677,47 @@ export function revealCards(root = document) {
   }, { threshold: 0.12 });
   cards.forEach((c) => io.observe(c));
 }
+
+/*
+ * Sparkline grid — small multiples, one cell per series.
+ *
+ * Built for the question "show me all of them", which a single overlaid chart
+ * answers badly: fifteen lines on one axis is a plate of spaghetti, and the
+ * eye cannot follow any individual one. Small multiples trade cross-series
+ * precision for the thing that actually matters here — being able to see each
+ * shape at all.
+ *
+ * Each cell is drawn on its OWN y-scale, indexed to that series' peak, so the
+ * shapes are comparable and the levels deliberately are not. A shared axis
+ * would flatten every small flavor onto the floor beneath Original and Berry.
+ * The printed value carries the level instead, which is where a level belongs.
+ *
+ * rows: [{label, values:[], overlay:[]|null, note, badge, badgeUp}]
+ */
+export function sparkGrid(rows, opts = {}) {
+  const W = opts.width || 190;
+  const H = opts.height || 52;
+  const pad = 3;
+  const line = (vals, color, cls) => {
+    const ok = vals.map((v, i) => [i, v]).filter(([, v]) => v != null && isFinite(v));
+    if (ok.length < 2) return '';
+    const lo = Math.min(...ok.map(([, v]) => v));
+    const hi = Math.max(...ok.map(([, v]) => v));
+    const span = hi - lo || 1;
+    const n = vals.length - 1 || 1;
+    const pts = ok.map(([i, v]) =>
+      [pad + (i / n) * (W - 2 * pad), H - pad - ((v - lo) / span) * (H - 2 * pad)]);
+    return `<path d="${pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ')}"
+      fill="none" stroke="${color}" stroke-width="1.6" class="${cls}"/>`;
+  };
+  return `<div class="sg-grid">${rows.map((r) => `
+    <button type="button" class="sg-cell" data-term="${esc(r.label)}">
+      <span class="sg-head"><b>${esc(r.label)}</b>${
+        r.badge ? `<i class="sg-badge ${r.badgeUp ? 'up' : 'down'}">${esc(r.badge)}</i>` : ''}</span>
+      <svg viewBox="0 0 ${W} ${H}" class="sg-spark" preserveAspectRatio="none" aria-hidden="true">
+        ${line(r.values, opts.color || '#0071e3', 'sg-sales')}
+        ${r.overlay ? line(r.overlay, opts.overlayColor || '#f77f00', 'sg-search') : ''}
+      </svg>
+      <span class="sg-note">${esc(r.note || '')}</span>
+    </button>`).join('')}</div>`;
+}

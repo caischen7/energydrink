@@ -146,6 +146,13 @@ if (run('charts')) {
           }
           const trunc = texts.filter((t) => t.t.includes('…')).map((t) => t.t);
           out.push({ id: (s.closest('[id]') || {}).id || ('svg' + i),
+            /* A sparkline is SUPPOSED to stretch: it is a fixed-height strip
+               whose width follows the grid column, and preserveAspectRatio is
+               "none" on purpose so the shape fills it. The distortion test is
+               meaningless there and would only ever be silenced by padding the
+               viewBox with a lie. Every other chart still has to hold its
+               ratio, which is what the test is for. */
+            spark: s.classList.contains('sg-spark'),
             distort: +((R.width / R.height) / (vb[2] / vb[3])).toFixed(2),
             esc, worst: Math.round(worst), coll, ex, trunc });
         });
@@ -153,8 +160,10 @@ if (run('charts')) {
       });
       for (const r of rs) {
         const tag = `[${width}] ${f} #${r.id}`;
-        chk(`${tag}: box matches content${r.distort !== 1 ? ` (${r.distort}x)` : ''}`,
-            r.distort >= 0.9 && r.distort <= 1.12);
+        if (!r.spark) {
+          chk(`${tag}: box matches content${r.distort !== 1 ? ` (${r.distort}x)` : ''}`,
+              r.distort >= 0.9 && r.distort <= 1.12);
+        }
         chk(`${tag}: labels inside the frame${r.esc ? ` (${r.esc}, max ${r.worst}px)` : ''}`, r.esc === 0);
         chk(`${tag}: no overlapping labels${r.coll ? ' ' + r.ex.join(' ') : ''}`, r.coll === 0);
         /* Truncation is a real defect: an ellipsised label loses the finding.

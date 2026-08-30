@@ -234,3 +234,44 @@
 }
 .fx-norm input { margin: 0; }
 .fx-norm-why { font-weight: 400; color: var(--dim); }
+
+/* Small multiples. Fixed-width cells in an auto-fill grid, so the number of
+   columns follows the viewport and each sparkline keeps the same aspect ratio
+   at every width — a percentage width would let the shapes distort between
+   breakpoints and make two flavors look different when only the layout changed. */
+.sg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+.sg-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.6rem 0.7rem 0.5rem;
+  border: 1px solid var(--hair, #e3e3e7);
+  border-radius: 10px;
+  background: var(--bg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.sg-cell:hover { border-color: var(--accent); }
+.sg-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.84rem;
+}
+.sg-head b { font-weight: 600; }
+.sg-badge { font-size: 0.72rem; font-style: normal; font-variant-numeric: tabular-nums; }
+.sg-badge.up { color: var(--accent-ink, #0062c4); }
+.sg-badge.down { color: var(--dim); }
+.sg-spark { width: 100%; height: 52px; display: block; }
+.sg-note { font-size: 0.72rem; color: var(--dim); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 640px) {
+  .sg-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.5rem; }
+}

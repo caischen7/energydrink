@@ -37,7 +37,7 @@ import '@fontsource-variable/inter';
 import './dashboard.css';
 import './audience.css';
 import './explorer.css';
-import { multiLine } from './charts.js';
+import { multiLine, sparkGrid } from './charts.js';
 import { requireAuth } from './auth.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -491,6 +491,67 @@ function renderSummary(control) {
       : ''}`;
 }
 
+/* ------------------------------------------------- all flavors at a glance -- */
+function grid() {
+  const g = GROUP();
+  const keys = Object.keys(g).slice(0, 18);
+  const rows = keys.map((k) => {
+    const d = g[k];
+    const rev = NORMALISE ? perStore(d.rev) : d.rev;
+    /* 12-month momentum on the same basis the chart shows. Momentum is what
+       actually ranked flavors out of sample in flavor_forecast.py — better than
+       the regression did — so it is the badge worth printing. */
+    const tail = rev.slice(-12).filter((v) => v > 0);
+    const prev = rev.slice(-24, -12).filter((v) => v > 0);
+    const a = tail.length ? tail.reduce((x, y) => x + y, 0) / tail.length : 0;
+    const b = prev.length ? prev.reduce((x, y) => x + y, 0) / prev.length : 0;
+    const mom = b > 0 && a > 0 ? (a / b - 1) * 100 : null;
+    const [bareT, qualT] = d.trend_terms;
+    const search = DATA.trends[qualT] || DATA.trends[bareT] || null;
+    return {
+      label: k,
+      values: rev,
+      overlay: search ? bridge(search) : null,
+      badge: mom == null ? '' : `${mom >= 0 ? '+' : ''}${mom.toFixed(0)}%`,
+      badgeUp: mom != null && mom >= 0,
+      note: `${money(d.total)}${d.skus != null ? ` · ${d.skus} SKU` : ''}`,
+    };
+  });
+  $('#fx-grid').innerHTML = sparkGrid(rows);
+  const withSearch = rows.filter((r) => r.overlay).length;
+  /* If nearly every named flavor is falling while the category rises, that is
+     not fifteen coincidences - it is the unflavoured core taking share, and
+     saying so is more useful than leaving the reader to notice a wall of
+     negative badges. */
+  const down = rows.filter((r) => r.badge && !r.badgeUp).length;
+  const catRev = NORMALISE ? perStore(DATA.category.rev) : DATA.category.rev;
+  const ct = catRev.slice(-12).filter((v) => v > 0);
+  const cp = catRev.slice(-24, -12).filter((v) => v > 0);
+  const catMom = cp.length && ct.length
+    ? ((ct.reduce((a, b) => a + b, 0) / ct.length) /
+       (cp.reduce((a, b) => a + b, 0) / cp.length) - 1) * 100 : null;
+  $('#fx-grid-note').innerHTML = `${rows.length} ${LABEL[MODE]}s shown, ranked by revenue.
+    Badge is the <b>12-month change</b> in ${NORMALISE ? 'revenue per active store' : 'revenue'} —
+    the trailing-momentum measure that ranked flavors better out of sample than
+    a ten-feature regression did.
+    ${(down >= rows.length * 0.7 && catMom != null && catMom > 0) ? `
+      <br /><br /><b>${down} of ${rows.length} are falling while the whole category grows
+      ${catMom.toFixed(1)}%.</b> That gap is the unflavoured core — Red Bull's and Monster's
+      original lines, which name no flavor and are 54% of revenue. Named flavors are
+      collectively losing share to it, so a flavor holding flat here is outperforming.` : ''}
+    ${withSearch ? `${withSearch} carry a search overlay.`
+      : `<b>No search overlay yet:</b> zero Trends series have been collected, so
+         every panel here is sales only. Running the <i>Refresh Google Trends</i>
+         action fills all of them at once.`}`;
+  $('#fx-grid').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-term]');
+    if (b) {
+      select(b.dataset.term);
+      document.getElementById('chart').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+}
+
 /* ------------------------------------------------------------------ wire -- */
 
 function select(term, push = true) {
@@ -516,6 +577,7 @@ function setMode(mode) {
   $('#fx-chips').innerHTML = keys.map((t) =>
     `<button type="button" class="fx-chip" data-term="${esc(t)}">${esc(t)}</button>`).join('');
   $('#fx-input').placeholder = { terms: 'mango', brands: 'Red Bull', concepts: 'masala chai' }[mode];
+  grid();
   select(keys[0]);
 }
 
@@ -557,6 +619,7 @@ async function main() {
       NORMALISE = norm.checked;
       const control = renderControl();
       renderSummary(control);
+      grid();
       select($('#fx-input').value || Object.keys(GROUP())[0], false);
     });
   }
