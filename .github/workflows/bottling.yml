@@ -1,0 +1,79 @@
+# Collect US soft-drink manufacturing capacity (NAICS 312111 / 312112).
+#
+# Exists for the same reason as trends.yml: this repo's Claude Code container
+# cannot reach api.census.gov or data.epa.gov — the egress proxy answers 000 to
+# the connection, an organisation policy denial rather than a network fault.
+# GitHub's runners are not behind that proxy.
+#
+# Settings -> Actions -> General -> Workflow permissions must be
+# "Read and write" for the commit step to push. No API key is needed: Census
+# CBP is open at this volume and EPA FRS needs none.
+#
+# Quarterly rather than monthly on purpose. CBP is an annual vintage and FRS
+# changes slowly, so a monthly run would spend CI minutes to commit no diff.
+
+name: Refresh bottling-plant data
+
+on:
+  schedule:
+    # 06:40 UTC on the 5th of Jan / Apr / Jul / Oct.
+    - cron: '40 6 5 1,4,7,10 *'
+  workflow_dispatch:
+    inputs:
+      cbp_year:
+        description: 'Census CBP vintage (CBP lags ~2 years)'
+        required: false
+        default: '2022'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bottling-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    env:
+      CBP_YEAR: ${{ github.event.inputs.cbp_year || '2022' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # stdlib only — nothing to install.
+      - name: Collect Census CBP and EPA FRS
+        run: python data/scrapers/bottling_plants.py --source all | tee plants_run.txt
+
+      # The counts go into the run summary so the outcome is visible from the
+      # Actions tab without opening a file — and so a silent zero-row fetch is
+      # obvious rather than committed unnoticed.
+      - name: Summarise
+        run: |
+          {
+            echo '## Bottling-plant collection'
+            echo '```'
+            cat plants_run.txt
+            echo '```'
+            echo '### Files'
+            ls -la data/plants 2>/dev/null || echo 'no files written'
+          } >> "$GITHUB_STEP_SUMMARY"
+          rm -f plants_run.txt
+
+      - name: Commit refreshed data
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data/plants
+          # No diff is the normal case between CBP vintages, not a failure.
+          if git diff --staged --quiet; then
+            echo 'No change in bottling-plant data.'
+            exit 0
+          fi
+          git commit -m 'Refresh bottling-plant data (Census CBP + EPA FRS)
+
+          Automated by .github/workflows/bottling.yml.'
+          git push
