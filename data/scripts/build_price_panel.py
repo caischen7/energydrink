@@ -204,6 +204,25 @@ FROM `{PROJECT}.energy_drinks.pdi_master_gtin`
 GROUP BY GTIN
 """
 
+# Stores that recorded ANY energy-drink sale in the month, regardless of which
+# products they sold. This is the exogenous denominator for distribution.
+#
+# COUNT(DISTINCT STORE_ID) per GTIN - the `stores` column above - counts stores
+# that sold THAT product, which is an OUTCOME of its price: cut the price or run
+# a promotion and you win shelf space and door count. Controlling for it in a
+# price regression conditions on a collider and bleeds the effect being measured
+# into the control. This series cannot respond to one product's price, so it can.
+#
+# Two columns over the same partition range: roughly 21 GB, about $0.13, on top
+# of the $0.54 main rollup.
+ACTIVE_SQL = f"""
+SELECT FORMAT_DATE('%Y-%m', DATE) AS m,
+       COUNT(DISTINCT STORE_ID)   AS stores_active
+FROM `{PROJECT}.energy_drinks.pdi_daily_agg`
+WHERE DATE BETWEEN '{FIRST}' AND '{LAST}'
+GROUP BY m
+"""
+
 # Does the promo pair actually carry data? Cheap, and it decides whether the
 # identification strategy downstream is viable at all.
 PROBE = f"""
@@ -335,6 +354,9 @@ def main():
     print("querying pdi_daily_agg (GTIN x month) ...", flush=True)
     sku = rows_of(bq(SQL, token), token)
     print(f"  {len(sku):,} GTIN-month rows")
+    print("querying panel-active store count ...", flush=True)
+    active = {r["m"]: int(r["stores_active"]) for r in rows_of(bq(ACTIVE_SQL, token), token)}
+    print(f"  {len(active)} months, {min(active.values()):,}-{max(active.values()):,} active stores")
     print("querying pdi_master_gtin ...", flush=True)
     dim = {r["GTIN"]: r for r in rows_of(bq(DIM, token), token)}
     print(f"  {len(dim):,} GTINs")
@@ -419,6 +441,14 @@ def main():
             a["txns"] += r["txns"]
             a["disc_units"] += r["disc_units"]
             a["disc_txns"] += r["disc_txns"]
+            # DISTRIBUTION POINTS: sum of per-SKU store counts. Not max(), which
+            # was the store count of whichever single SKU was most widely
+            # stocked - a measure that ignores every other product in the
+            # cluster and does not move when SKUs are added or dropped. Not a
+            # distinct-store union either, which a GTIN x month rollup cannot
+            # reconstruct. "Distribution points" is the standard CPG measure and
+            # is what this is, so it is named that rather than "stores".
+            a["dist_points"] += r["stores"]
             a["stores"] = max(a["stores"], r["stores"])
             a["units_a"] += r["units_a"]
             a["units_b"] += r["units_b"]
@@ -435,6 +465,8 @@ def main():
                 "units": round(a["units"]),
                 "skus": len(skus[(cluster, m)]),
                 "stores": int(a["stores"]),
+                "dist_points": int(a["dist_points"]),
+                "stores_active": active.get(m, 0),
                 "price_unitvalue": round(a["rev"] / a["units"], 4),
                 "price_index": None if i[0] is None else round(i[0], 5),
                 "matched_share": round(i[1], 4),

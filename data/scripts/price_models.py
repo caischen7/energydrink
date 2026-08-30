@@ -115,6 +115,41 @@ def ols(X, y, lam=1e-6):
     return solve(A, bv)
 
 
+def ols_cluster_se(X, y, groups, k=1, lam=1e-6):
+    """Coefficient k and its CLUSTER-ROBUST standard error.
+
+    Point estimates without uncertainty were the gap that let two cross-half
+    fits (-3.30 and -0.99) look like a broken design when they were in fact
+    one noisy design: their confidence intervals overlap heavily. Errors are
+    correlated within a cluster across months, so the clustering dimension is
+    the cluster, not the observation - the naive SE would be far too small.
+
+    CR0 sandwich: (X'X)^-1 (sum_g X_g' u_g u_g' X_g) (X'X)^-1.
+    """
+    w = ols(X, y, lam)
+    n, d = len(X), len(X[0]) + 1
+    Xb = [[1.0] + list(r) for r in X]
+    resid = [y[i] - sum(w[j] * Xb[i][j] for j in range(d)) for i in range(n)]
+    XtX = [[sum(Xb[i][a] * Xb[i][b] for i in range(n)) for b in range(d)] for a in range(d)]
+    inv = [[0.0] * d for _ in range(d)]
+    for c in range(d):
+        e = [1.0 if i == c else 0.0 for i in range(d)]
+        col = solve([row[:] for row in XtX], e)
+        for i in range(d):
+            inv[i][c] = col[i]
+    byg = collections.defaultdict(list)
+    for i in range(n):
+        byg[groups[i]].append(i)
+    meat = [[0.0] * d for _ in range(d)]
+    for idxs in byg.values():
+        sc = [sum(Xb[i][a] * resid[i] for i in idxs) for a in range(d)]
+        for a in range(d):
+            for b in range(d):
+                meat[a][b] += sc[a] * sc[b]
+    var_kk = sum(inv[k][p] * meat[p][q] * inv[q][k] for p in range(d) for q in range(d))
+    return w[k], math.sqrt(max(var_kk, 0.0)), len(byg)
+
+
 def predict(w, x):
     return w[0] + sum(w[i + 1] * v for i, v in enumerate(x))
 
@@ -151,7 +186,17 @@ def load_panel(scheme):
             "units_a": _f(r.get("units_a")) or 0.0,
             "units_b": _f(r.get("units_b")) or 0.0,
             "matched": float(r["matched_share"]),
-            "disc": float(r["disc_rate"]),
+            # TRANSACTION-based discount rate, not the quantity-based one.
+            # disc_rate = discounted_units/units puts QUANTITY in the
+            # denominator, so it carries the same measurement error u that
+            # creates the division bias - using it as a control re-imports the
+            # contamination the store-split exists to remove. disc_txn_rate has
+            # a transaction denominator and is clean. Both are kept in the panel
+            # so the contrast can be inspected.
+            "disc": _f(r.get("disc_txn_rate")) or float(r["disc_rate"]),
+            "disc_qty": float(r["disc_rate"]),
+            "dist": _f(r.get("dist_points")) or float(r["stores"]),
+            "stores_active": _f(r.get("stores_active")) or 0.0,
         }
     return by
 
@@ -173,9 +218,22 @@ def rows_for(series, search=None):
         out.append({
             "m": m,
             "lp": math.log(d["idx"]),
-            "lq": math.log(d["units"]),
+            # PER ACTIVE STORE. The PDI store panel grows 3.89x across
+            # 2019-2025 (5,148 -> 20,022 active stores), and 2019 alone is a
+            # 2.2x expansion, so raw units mostly measure coverage. Revenue
+            # grew 3.52x while revenue per active store grew only 1.58x:
+            # roughly two thirds of PDI's apparent growth is panel expansion.
+            # Modelling raw units regresses coverage on price.
+            "lq": math.log(d["units"] / d["stores_active"]) if d.get("stores_active")
+            else math.log(d["units"]),
             "lr": math.log(d["rev"]),
-            "lstores": math.log(d["stores"]),
+            # Distribution points normalised by panel-active stores. The raw
+            # per-GTIN store count is an OUTCOME of price - cut price, win
+            # doors - so controlling on it conditions on a collider. Dividing by
+            # the month's active-store base removes panel drift, which is the
+            # part of it that is genuinely exogenous.
+            "lstores": math.log(d["dist"] / d["stores_active"])
+            if d.get("stores_active") else math.log(d["dist"] or d["stores"]),
             "disc": d["disc"],
             "moy": int(m[5:7]),
             "d_lp": math.log(d["idx"] / prev["idx"]) if prev and prev["idx"] else None,
@@ -186,8 +244,10 @@ def rows_for(series, search=None):
             # These two share no quantity term, which is the entire point.
             "lp_a": math.log(d["idx_a"]) if d.get("idx_a") else None,
             "lp_b": math.log(d["idx_b"]) if d.get("idx_b") else None,
-            "lq_a": math.log(d["units_a"]) if d.get("units_a") else None,
-            "lq_b": math.log(d["units_b"]) if d.get("units_b") else None,
+            "lq_a": (math.log(d["units_a"] / (d["stores_active"] or 1))
+                     if d.get("units_a") else None),
+            "lq_b": (math.log(d["units_b"] / (d["stores_active"] or 1))
+                     if d.get("units_b") else None),
         })
     return out
 
@@ -256,7 +316,7 @@ def elasticities(panel):
     # co-movement: naive is inflated away from zero, cross-half is attenuated
     # toward it. The gap between them is a direct estimate of the artifact.
     def cross(price_key, qty_key):
-        Xc, yc, kept = [], [], 0
+        Xc, yc, gc, kept = [], [], [], 0
         pm = collections.defaultdict(list)
         qm = collections.defaultdict(list)
         for c, r in pooled:
@@ -272,13 +332,15 @@ def elasticities(panel):
             moy = [1.0 if r["moy"] == k else 0.0 for k in range(2, 13)]
             Xc.append([r[price_key] - pmc[c], r["lstores"] - msc[c], r["disc"]] + moy)
             yc.append(r[qty_key] - qmc[c])
+            gc.append(c)
             kept += 1
         if kept < 60:
-            return None, kept
-        return ols(Xc, yc)[1], kept
+            return None, None, kept
+        b, se, ng = ols_cluster_se(Xc, yc, gc, k=1)
+        return b, se, kept
 
-    ab, n_ab = cross("lp_a", "lq_b")
-    ba, n_ba = cross("lp_b", "lq_a")
+    ab, se_ab, n_ab = cross("lp_a", "lq_b")
+    ba, se_ba, n_ba = cross("lp_b", "lq_a")
     both = [v for v in (ab, ba) if v is not None]
 
     return {
@@ -291,6 +353,8 @@ def elasticities(panel):
         "beta_disc": round(full[3], 3),
         "cross_ab": None if ab is None else round(ab, 3),
         "cross_ba": None if ba is None else round(ba, 3),
+        "se_ab": None if se_ab is None else round(se_ab, 3),
+        "se_ba": None if se_ba is None else round(se_ba, 3),
         "cross": None if not both else round(sum(both) / len(both), 3),
         "cross_n": max(n_ab, n_ba),
         "division_bias": (None if not both
@@ -416,14 +480,38 @@ def main():
               "  build_price_panel.py to get the store-split columns.")
     else:
         print(f"\n  CROSS-HALF (price from one store-half, quantity from the other)")
-        print(f"    A price -> B units             {el['cross_ab']:+.3f}")
-        print(f"    B price -> A units             {el['cross_ba']:+.3f}")
-        print(f"    mean                           {el['cross']:+.3f}   "
-              f"(n={el['cross_n']:,})")
-        print(f"    division bias removed          {el['division_bias']:+.3f}")
-        print("    The naive and cross-half numbers bracket the co-movement: naive is\n"
-              "    inflated away from zero by division bias, cross-half is attenuated\n"
-              "    toward it by measurement error in the regressor. Neither is causal.")
+        ci = []
+        for nm, b, se in (("A price -> B units", el["cross_ab"], el.get("se_ab")),
+                          ("B price -> A units", el["cross_ba"], el.get("se_ba"))):
+            if se:
+                lo, hi = b - 1.96 * se, b + 1.96 * se
+                ci.append((lo, hi))
+                print(f"    {nm:<28}{b:+.3f}   SE {se:.3f}   "
+                      f"95% CI [{lo:+.2f}, {hi:+.2f}]")
+            else:
+                print(f"    {nm:<28}{b:+.3f}")
+        print(f"    mean                        {el['cross']:+.3f}   (n={el['cross_n']:,})")
+
+        # Two independent halves of the SAME stores should agree. Whether they
+        # do is the design's own falsification test, and it is only answerable
+        # with standard errors: point estimates of -3.30 and -0.99 look like a
+        # broken design until you see their intervals overlap.
+        if len(ci) == 2:
+            lo = max(ci[0][0], ci[1][0])
+            hi = min(ci[0][1], ci[1][1])
+            if lo <= hi:
+                print(f"    the two halves AGREE: their intervals overlap on "
+                      f"[{lo:+.2f}, {hi:+.2f}]")
+            else:
+                print("    the two halves DISAGREE beyond sampling error — the split is\n"
+                      "    not exchangeable and the estimate should not be used")
+            width = max(c[1] - c[0] for c in ci)
+            if width > 2.0:
+                print(f"    BUT the interval spans {width:.1f} in elasticity units. That is\n"
+                      "    too wide to act on: it does not exclude zero, an inelastic\n"
+                      "    response, or a highly elastic one. Report this as 'not\n"
+                      "    identified at this grain', not as an elasticity.")
+        print("    Neither number is causal: retailers set price in response to demand.")
 
     print("\nFORECASTING log-revenue change, expanding window, h=1")
     print(f"{'cluster':<24}{'n':>5}{'price':>9}{'no-price':>10}{'persist':>9}"
