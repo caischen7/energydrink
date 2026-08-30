@@ -221,3 +221,16 @@
 
 #fx-table td.num,
 #fx-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Per-active-store toggle. Checked by default: raw dollars are the misleading
+   default here, not the safe one. */
+.fx-norm {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.fx-norm input { margin: 0; }
+.fx-norm-why { font-weight: 400; color: var(--dim); }

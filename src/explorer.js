@@ -55,6 +55,19 @@ const QUALIFIED = '#f77f00';
 
 /* ------------------------------------------------------------------ math -- */
 
+/* Revenue per active store.
+   The PDI panel grows 3.89x across this window (5,148 -> 20,022 active stores),
+   so raw monthly dollars slope up for every flavor whether or not anyone wants
+   it more — that shape is PDI's sales team, not demand. Category revenue grew
+   3.52x while revenue per active store grew 1.58x, so roughly two thirds of the
+   apparent growth is coverage. Dividing it out is what makes the shape
+   comparable to a search curve at all. */
+function perStore(vals) {
+  const a = DATA.stores_active;
+  if (!a) return vals;
+  return vals.map((v, i) => (a[i] ? v / a[i] : null));
+}
+
 /* Index a series to its own peak so two different units can share an axis. */
 function indexToPeak(vals) {
   const peak = Math.max(...vals.filter((v) => v != null && isFinite(v)), 0);
@@ -193,6 +206,7 @@ function kpi(label, value, sub) {
 
 let DATA = null;
 let MODE = 'terms';                 // terms | brands | concepts
+let NORMALISE = true;               // divide by active stores (see perStore)
 
 const GROUP = () => DATA[MODE] || {};
 const LABEL = { terms: 'flavor', brands: 'brand', concepts: 'concept' };
@@ -286,9 +300,12 @@ function render(term) {
   $('#fx-kpis').innerHTML = tiles.join('');
 
   // --- chart --------------------------------------------------------------
-  const a = analyze(d.rev, d.trend_terms);
+  const rev = NORMALISE ? perStore(d.rev) : d.rev;
+  const a = analyze(rev, d.trend_terms);
   const series = [];
-  if (d.total > 0) series.push({ name: `${term} — revenue`, values: indexToPeak(d.rev), color: SALES });
+  if (d.total > 0) series.push({
+    name: `${term} — revenue${NORMALISE ? ' per store' : ''}`,
+    values: indexToPeak(rev), color: SALES });
   if (a.bare) series.push({ name: `search: "${a.bareT}"`, values: bridge(indexToPeak(a.bare)), color: BARE });
   if (a.qual) series.push({ name: `search: "${a.qualT}"`, values: bridge(indexToPeak(a.qual)), color: QUALIFIED });
 
@@ -364,11 +381,13 @@ function render(term) {
 
 function renderControl() {
   const c = DATA.category;
-  const a = analyze(c.rev, c.trend_terms);
+  const crev = NORMALISE ? perStore(c.rev) : c.rev;
+  const a = analyze(crev, c.trend_terms);
   const months = DATA.months;
   const label = months.map((m) => (m.endsWith('-01') ? m.slice(0, 4) : ''));
 
-  const series = [{ name: 'all energy drinks — revenue', values: indexToPeak(c.rev), color: SALES }];
+  const series = [{ name: `all energy drinks — revenue${NORMALISE ? ' per store' : ''}`,
+                    values: indexToPeak(crev), color: SALES }];
   if (a.bare) series.push({ name: 'search: "energy drink"', values: bridge(indexToPeak(a.bare)), color: QUALIFIED });
 
   $('#fx-control').innerHTML =
@@ -400,7 +419,7 @@ function renderSummary(control) {
   const rows = [];
   for (const [mode, group] of [['brands', DATA.brands], ['terms', DATA.terms], ['concepts', DATA.concepts]]) {
     for (const [name, d] of Object.entries(group || {})) {
-      const a = analyze(d.rev, d.trend_terms);
+      const a = analyze(NORMALISE ? perStore(d.rev) : d.rev, d.trend_terms);
       if (!a.have || !a.best) continue;
       rows.push({ mode, name, total: d.total, r: a.best.r, lag: a.best.lag, n: a.best.n,
                   p: a.pAdjLags, pRaw: a.best.p });
@@ -531,6 +550,16 @@ async function main() {
     const b = e.target.closest('[data-term]');
     if (b) select(b.dataset.term);
   });
+  const norm = $('#fx-normalise');
+  if (norm) {
+    norm.checked = NORMALISE;
+    norm.addEventListener('change', () => {
+      NORMALISE = norm.checked;
+      const control = renderControl();
+      renderSummary(control);
+      select($('#fx-input').value || Object.keys(GROUP())[0], false);
+    });
+  }
   document.querySelector('.fx-modes').addEventListener('click', (e) => {
     const b = e.target.closest('[data-mode]');
     if (b) setMode(b.dataset.mode);

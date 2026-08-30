@@ -90,19 +90,28 @@ function matrix() {
     /* 0.5 is measured, not chosen: it is the fill at which the deep green
        still clears 4.5:1. Past it the cell goes near-black. */
     const dk = a >= 0.5 ? ' mx-dark' : '';
-    const grow = c.cagr == null ? '' :
-      `<i class="mx-g ${c.cagr >= 0 ? 'up' : 'down'}">${pct(c.cagr)}</i>`;
+    /* Growth NET of PDI's own panel expansion. The panel grew 8.4%/yr over the
+       same two-year window these badges cover, so the observed figure carries
+       that much coverage before any demand. 14 of 90 cells flip from growth to
+       decline once it is removed. See data/scripts/net_of_panel_growth.py. */
+    const g = c.cagr_net != null ? c.cagr_net : c.cagr;
+    const grow = g == null ? '' :
+      `<i class="mx-g ${g >= 0 ? 'up' : 'down'}">${pct(g)}</i>`;
     return `<td class="mx-cell mx-click${dk}" style="--a:${a.toFixed(2)}"
       role="button" tabindex="0" data-aud="${esc(aud)}" data-fam="${esc(c.fam)}"
       title="${esc(c.fam)} — ${money(c.rev)} across ${c.skus} SKUs · ${money(c.rps_pdi ?? c.rps)} per SKU measured (${head.toFixed(1)}x median)${
-        c.cagr == null ? '' : ` · ${pct(c.cagr)} a year`} — click for the SKUs behind it">
+        g == null ? '' : ` · ${pct(g)} a year net of panel growth`
+          + (c.cagr_net != null ? ` (${pct(c.cagr)} before removing PDI's ${
+              (O.panel_growth ? O.panel_growth.rate : 8.4).toFixed(1)}%/yr store expansion)` : '')
+        } — click for the SKUs behind it">
       <b>${money(c.rev)}</b><span class="mx-s">${c.skus} SKU</span>${grow}</td>`;
   };
   const sc = O.scaled;
   if (sc) {
     $('#mx-scope').textContent =
       sc.note + ' Flavor is unknown for 470 SKUs, which are excluded. Growth is the 2-year rate to 2025.'
-      + ' Colour is headroom on the measured convenience dollars, so rows scaled by different factors stay comparable.';
+      + ' Colour is headroom on the measured convenience dollars, so rows scaled by different factors stay comparable.'
+      + (O.panel_growth ? ' ' + O.panel_growth.note : '');
     $('#mx-caveat').innerHTML = '<b>Not directly comparable:</b> ' + esc(sc.caveat);
   }
   $('#matrix').innerHTML = `<table class="intel-table mono mx-table">
