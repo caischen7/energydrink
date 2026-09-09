@@ -104,6 +104,7 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 PANEL = os.path.join(ROOT, "data/bq/derived/price_panel.csv")
 EXPLORER = os.path.join(ROOT, "public/data/flavor_explorer.json")
+SOCIAL = os.path.join(ROOT, "data/bq/derived/flavor_social.csv")
 AGG = os.path.join(ROOT, "public/data/dashboard.json")
 
 EXCLUDE = {"Unspecified"}
@@ -116,6 +117,17 @@ MIN_SHARE = 0.0005             # 0.05% - below this a share is rounding noise
 
 FEATURES = ["level", "mom3", "mom12", "d_skus12", "d_price12",
             "disc", "d_disc", "age_off_peak", "sin", "cos"]
+
+# Exogenous block, from data/scripts/build_social_features.py. Every one is a
+# SHARE or a change in a share, so the YouTube corpus ramp cancels the same way
+# PDI's store ramp cancels on the sales side.
+#
+#   soc_level   log trailing-12m share of flavor mention-events. Is a flavor
+#               being talked about more than its sales alone would suggest?
+#   d_soc12     12-month change in that log share. Attention momentum.
+#   soc_gap     soc_level - sales level. THE hypothesis worth testing: does
+#               creator attention running ahead of retail sales lead sales?
+SOCIAL_FEATURES = ["soc_level", "d_soc12", "soc_gap"]
 
 
 # ------------------------------------------------------------------ algebra --
@@ -177,7 +189,26 @@ def load():
     return months, share, skus, price, disc
 
 
-def build_rows(months, share, skus, price, disc, horizon):
+def load_social():
+    """family -> month -> trailing-12m share of flavor mention-events.
+
+    Missing is left MISSING rather than zeroed. Three families (Original,
+    Novelty & branded, Melon & other) cannot be measured in prose at all, and
+    the first 11 months have no complete trailing window; a zero there would
+    assert "nobody talked about it", which is a different claim from "not
+    measured" and would be read by the model as real variation.
+    """
+    if not os.path.exists(SOCIAL):
+        return {}
+    soc = collections.defaultdict(dict)
+    for r in csv.DictReader(open(SOCIAL)):
+        v = r.get("soc_share")
+        if v not in (None, ""):
+            soc[r["family"]][r["month"]] = float(v)
+    return soc
+
+
+def build_rows(months, share, skus, price, disc, horizon, soc=None):
     """One row per (family, origin). Every feature is known at the origin."""
     idx = {m: i for i, m in enumerate(months)}
     out = []
@@ -199,6 +230,11 @@ def build_rows(months, share, skus, price, disc, horizon):
             sk_now, sk_12 = skus[f].get(m, 0), skus[f].get(m12, 0)
             tgt_month = months[j]
             moy = int(tgt_month[5:7])
+            # Exogenous block. A row is usable for the social model only if the
+            # family has a positive share at BOTH the origin and 12 months back.
+            sc_now = (soc or {}).get(f, {}).get(m)
+            sc_12 = (soc or {}).get(f, {}).get(m12)
+            has_soc = bool(sc_now and sc_12 and sc_now > 0 and sc_12 > 0)
             out.append({
                 "fam": f, "origin": m, "target_month": tgt_month, "i": i,
                 "level": math.log(s[m]),
@@ -213,6 +249,10 @@ def build_rows(months, share, skus, price, disc, horizon):
                 # Dated at the TARGET month, not the origin.
                 "sin": math.sin(2 * math.pi * moy / 12),
                 "cos": math.cos(2 * math.pi * moy / 12),
+                "has_soc": has_soc,
+                "soc_level": math.log(sc_now) if has_soc else 0.0,
+                "d_soc12": math.log(sc_now / sc_12) if has_soc else 0.0,
+                "soc_gap": (math.log(sc_now) - math.log(s[m])) if has_soc else 0.0,
                 "y": math.log(s[tgt_month] / s[m]),
                 # baselines
                 "b_drift_src": None,
@@ -245,6 +285,9 @@ def main():
     ap.add_argument("--lam", type=float, default=1.0, help="ridge penalty (standardised)")
     ap.add_argument("--min-train", type=int, default=MIN_TRAIN_ROWS,
                     help="minimum training rows before an origin is scored")
+    ap.add_argument("--social", action="store_true",
+                    help="add the exogenous YouTube-attention block and score it "
+                         "against the panel-only model on the SAME rows")
     ap.add_argument("--write", action="store_true")
     args = ap.parse_args()
 
@@ -252,7 +295,19 @@ def main():
         sys.exit(f"No {PANEL}. Run build_price_panel.py first.")
 
     months, share, skus, price, disc = load()
-    rows = build_rows(months, share, skus, price, disc, args.horizon)
+    soc = load_social() if args.social else {}
+    rows = build_rows(months, share, skus, price, disc, args.horizon, soc)
+    if args.social:
+        if not soc:
+            sys.exit(f"No {SOCIAL}. Run build_social_features.py first.")
+        # The comparison is only honest on an IDENTICAL row set. Restricting to
+        # rows the social block can actually score, and then running BOTH models
+        # over those same rows, is what stops "the exogenous model is better"
+        # from meaning "the exogenous model was asked an easier question".
+        before = len(rows)
+        rows = [r for r in rows if r["has_soc"]]
+        print(f"social block: {len(rows)} of {before} rows carry a measurable "
+              f"attention share")
     fams = sorted({r["fam"] for r in rows})
     print(f"horizon       {args.horizon} months")
     print(f"families      {len(fams)}  (Unspecified excluded as a residual bucket)")
@@ -262,15 +317,26 @@ def main():
 
     # ---- expanding origin -------------------------------------------------
     origins = sorted({r["i"] for r in rows})
-    preds = {k: [] for k in ("model", "persist", "drift", "mom", "seas", "truth")}
+    MODELS = ("model", "model_soc") if args.social else ("model",)
+    BASES = ("persist", "drift", "mom", "seas")
+    preds = {k: [] for k in MODELS + BASES + ("truth",)}
     keep = []
+    coef_soc = None
     for o in origins:
         tr = [r for r in rows if r["i"] < o - args.horizon]   # embargo the overlap
         te = [r for r in rows if r["i"] == o]
         if len(tr) < args.min_train or not te:
             continue
+        ytr = [r["y"] for r in tr]
         Xtr, Xte = standardise(tr, te, FEATURES)
-        w = ridge(Xtr, [r["y"] for r in tr], args.lam)
+        w = ridge(Xtr, ytr, args.lam)
+        if args.social:
+            feats2 = FEATURES + SOCIAL_FEATURES
+            Xtr2, Xte2 = standardise(tr, te, feats2)
+            w2 = ridge(Xtr2, ytr, args.lam)
+            coef_soc = list(zip(feats2, w2[1:]))
+            for x2 in Xte2:
+                preds["model_soc"].append(apply(w2, x2))
         hist = collections.defaultdict(list)
         for r in tr:
             hist[r["fam"]].append(r["y"])
@@ -287,18 +353,29 @@ def main():
     n = len(preds["truth"])
     if n < 40:
         sys.exit(f"only {n} out-of-sample predictions — not enough to score")
-    scores = {k: mae(preds["truth"], preds[k])
-              for k in ("model", "persist", "drift", "mom", "seas")}
+    scores = {k: mae(preds["truth"], preds[k]) for k in MODELS + BASES}
     print(f"\nout-of-sample, expanding origin ({n} predictions, "
           f"{len({r['origin'] for r in keep})} origins)")
-    for k in ("model", "persist", "drift", "mom", "seas"):
-        print(f"  {k:<12}MAE {scores[k]:.4f}")
-    best_base = min(k for k in scores if k != "model")
-    bb = min((scores[k], k) for k in scores if k != "model")
-    beats = scores["model"] < bb[0]
+    for k in MODELS + BASES:
+        label = {"model": "model (panel)", "model_soc": "model + social"}.get(k, k)
+        print(f"  {label:<16}MAE {scores[k]:.4f}")
+    bb = min((scores[k], k) for k in BASES)
     print(f"  best baseline is {bb[1]} at {bb[0]:.4f}")
-    print(f"  VERDICT: model {'BEATS' if beats else 'does NOT beat'} it"
-          + ("" if beats else " — no usable signal at this horizon"))
+    for k in MODELS:
+        label = {"model": "model (panel)", "model_soc": "model + social"}[k]
+        beats = scores[k] < bb[0]
+        print(f"  VERDICT: {label} {'BEATS' if beats else 'does NOT beat'} it"
+              + ("" if beats else " — no usable signal at this horizon"))
+    if args.social:
+        d = scores["model_soc"] - scores["model"]
+        print(f"  exogenous block changes MAE by {d:+.4f} "
+              f"({d/scores['model']*100:+.1f}% vs panel-only, same rows)")
+        if coef_soc:
+            print("\n  standardised coefficients on the exogenous block "
+                  "(last origin):")
+            for name, c in coef_soc:
+                if name in SOCIAL_FEATURES:
+                    print(f"    {name:<12}{c:+.4f}")
 
     # ---- direction, which is what "popular" actually asks ------------------
     hit = sum(1 for p, t in zip(preds["model"], preds["truth"]) if (p > 0) == (t > 0))
