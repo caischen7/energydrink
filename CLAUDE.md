@@ -166,7 +166,7 @@ security caveat, and uninstall instructions.
 
 **TL;DR for a new agent**
 - **Branch:** `claude/wizardly-galileo-w6grgo` (default) — head `233355c`.
-  `npm install && npm run build` is green and emits **seven** pages.
+  `npm install && npm run build` is green and emits **ten** pages.
   `claude/pensive-bell-9idinw` has diverged with unmerged "agent team" work — ask before touching it.
 - **NOT DEPLOYED.** Everything below is repo-only; the live Cloud Run service predates all of it:
   `cd ~/energydrink && git pull && GCP_PROJECT=msbai-dwd-csc9720 ./deploy.sh` (the prefix is
@@ -175,7 +175,37 @@ security caveat, and uninstall instructions.
 ### Pages (gated by `auth.js`; creds in `docs/CREDENTIALS.md`)
 `index` · `dashboard` (19 paginated panels) · `insights` (22 findings, 8 sources, ER diagram) ·
 `segments` (need-state treemap) · `audience` (channel, makeup, demand, flavor, full SKU lists) ·
-`compare` (2025 vs 2030) · `opportunity` (board, White Space Finder, price×size, verdict)
+`compare` (2025 vs 2030) · `opportunity` (board, White Space Finder, price×size, verdict) ·
+`explorer` (flavor explorer) · `whitespace` (**new** — ten analyses, ten tabs)
+
+### The Whitespace Engine (`whitespace.html`, `data/scripts/build_whitespace.py`)
+Ten cross-sectional analyses over the 2,308-SKU corpus → `public/data/whitespace.json`.
+**Six computed, one partial, two blocked, one sample-gated** — every panel carries a
+`status` and the UI renders by it. Blocked/sample panels show method + SQL + cost and
+**no numbers**; that is deliberate, don't "fill them in".
+
+Three panels were wrong on the first run and are fixed — **do not reintroduce them**:
+1. Per-family price elasticities (Watermelon −9.3, Coffee +2.5) — 72 obs each against an
+   index that barely moves. Pooled now, and reported as **not identified**; defer to
+   `price_models.py` (−0.668, halves agree).
+2. Claim shares read "sugar free = 0.2% of revenue". PDI descriptions are terse (median
+   41 chars; the biggest SKUs are literally `MONSTER` / `RED BULL`), so claim tokens are
+   detectable on **13.3% of SKUs / 4.84% of revenue**. That is a detection failure, not a
+   finding. Shares are computed within the detectable subset.
+3. Stated-vs-revealed returned ρ = −0.949 on **n=4**. Nothing is reported below n=6.
+
+**Tenure confound**, inherited by every velocity panel: `$/store` is *lifetime*, and the
+extract has no first-sale date, so it rewards age. One cheap column — `MIN(DATE)` per
+GTIN — fixes it.
+
+### Flavor forecasting is closed (`flavor_forecast.py`)
+Persistence beats the regression at h=3/6/12 (0.0949 / 0.1525 / 0.2227 vs 0.1180 / 0.1852
+/ 0.2888). Adding an exogenous YouTube-attention block made it **worse** (+3.1 / +8.6 /
++14.1% MAE on identical rows). Use trailing-12-month momentum as an *ordering*, with no
+magnitude attached. Four other exogenous sources are unusable and the reasons are in
+`build_social_features.py`'s docstring — notably **YouTube comment dates are fake**: every
+comment before 2025-06 is stamped `<year>-05` (relative "N years ago" resolved against a
+~May scrape). Video *upload* dates are real.
 
 ### The numbers that matter, and where they came from
 US market **$26.9B (2025) → $38.6B (2030)**, Mintel central, 90% band $30.0–47.2B.
