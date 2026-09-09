@@ -18,6 +18,7 @@ export default defineConfig({
         compare: resolve(__dirname, 'compare.html'),
         opportunity: resolve(__dirname, 'opportunity.html'),
         explorer: resolve(__dirname, 'explorer.html'),
+        whitespace: resolve(__dirname, 'whitespace.html'),
       },
     },
   },

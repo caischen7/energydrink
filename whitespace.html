@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Ten whitespace analyses over the energy-drink corpus — velocity, attributes, claims, price, survival and more." />
+  <meta name="robots" content="noindex" />
+  <title>Whitespace Engine — Bogus Banana Market Intel</title>
+  <link rel="icon" type="image/svg+xml" href="/mascot.svg" />
+  <script type="module" src="/src/whitespace.js"></script>
+</head>
+<body class="dash">
+  <header class="site-head">
+    <a class="logo" href="./index.html" data-hover>Bogus&nbsp;Banana<sup>®</sup></a>
+    <nav class="nav" aria-label="Market intel pages">
+      <a href="./index.html" data-hover>Home</a>
+      <a href="./dashboard.html" data-hover>Dashboard</a>
+      <a href="./insights.html" data-hover>Insights</a>
+      <a href="./segments.html" data-hover>Segments</a>
+      <a href="./audience.html" data-hover>Audience</a>
+      <a href="./compare.html" data-hover>2025&nbsp;vs&nbsp;2030</a>
+      <a href="./opportunity.html" data-hover>Opportunity</a>
+      <a href="./explorer.html" data-hover>Flavor&nbsp;Explorer</a>
+      <a href="./whitespace.html" data-hover class="active" aria-current="page">Whitespace</a>
+    </nav>
+  </header>
+
+  <main class="dash-main">
+    <section class="dash-hero">
+      <h1 class="dash-title">Whitespace Engine</h1>
+      <p class="dash-sub">
+        Ten analyses asking one question from ten angles: <em>which attribute cells are
+        under-supplied relative to demand?</em> Not “what will sell next year” — the
+        forecasting direction is exhausted, and the tenth tab explains why. Each tab
+        states its method, its status, and what it cannot do.
+      </p>
+      <div id="ws-meta" class="ws-meta mono"></div>
+    </section>
+
+    <div class="ws-legend mono" aria-hidden="true">
+      <span class="ws-pill ws-ok">computed</span>
+      <span class="ws-pill ws-partial">partial</span>
+      <span class="ws-pill ws-blocked">blocked — needs a data pull</span>
+      <span class="ws-pill ws-sample">sample data — no findings drawn</span>
+    </div>
+
+    <div class="ws-tabs" role="tablist" aria-label="Whitespace analyses" id="ws-tabs"></div>
+
+    <div id="ws-panels"></div>
+  </main>
+
+  <footer class="dash-foot mono">
+    <span>ION_OS // WHITESPACE_ENGINE</span>
+    <span id="ws-foot"></span>
+  </footer>
+</body>
+</html>

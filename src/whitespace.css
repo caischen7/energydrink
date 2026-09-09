@@ -1,0 +1,126 @@
+/*
+ * Whitespace Engine — tab shell + panel furniture.
+ *
+ * @imports dashboard.css (which itself imports style.css), so the tokens, the
+ * panel-card treatment and the chart reveal animations are inherited rather
+ * than restated. Everything here is the tab strip, the status pills and the
+ * tables the ten panels need.
+ */
+@import './dashboard.css';
+
+.ws-meta { color: var(--dim); font-size: 0.78rem; margin-top: 0.75rem; }
+.ws-meta b { color: var(--ink); font-weight: 600; }
+
+/* ---- status pills -------------------------------------------------------- */
+.ws-legend {
+  display: flex; flex-wrap: wrap; gap: 0.5rem;
+  padding: 0 var(--pad); margin: 0 0 1rem;
+}
+.ws-pill {
+  font-size: 0.66rem; letter-spacing: 0.04em; text-transform: uppercase;
+  padding: 0.2rem 0.55rem; border-radius: 999px; border: 1px solid var(--line);
+  color: var(--dim); white-space: nowrap;
+}
+.ws-ok      { border-color: #b5d6b8; background: #eef7ef; color: #2c6b34; }
+.ws-partial { border-color: #d9cda3; background: #fbf6e7; color: #7a6320; }
+.ws-blocked { border-color: #d9b3b3; background: #fbeeee; color: #8a3a3a; }
+.ws-sample  { border-color: #c6c6cc; background: #f2f2f4; color: #55555c; }
+
+/* ---- tab strip ----------------------------------------------------------- */
+.ws-tabs {
+  display: flex; gap: 0.35rem; padding: 0 var(--pad);
+  overflow-x: auto; scrollbar-width: thin;
+  border-bottom: 1px solid var(--line); margin-bottom: 1.5rem;
+  -webkit-overflow-scrolling: touch;
+}
+.ws-tab {
+  flex: 0 0 auto; appearance: none; background: none; cursor: pointer;
+  border: 0; border-bottom: 2px solid transparent;
+  padding: 0.7rem 0.75rem; font: inherit; font-size: 0.8rem;
+  color: var(--dim); white-space: nowrap; display: flex; align-items: center; gap: 0.4rem;
+}
+.ws-tab:hover { color: var(--ink); }
+.ws-tab[aria-selected='true'] { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
+.ws-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.ws-tab .ws-num {
+  font-size: 0.62rem; color: var(--dim); border: 1px solid var(--line);
+  border-radius: 999px; min-width: 1.15rem; height: 1.15rem;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.ws-tab .ws-dot { width: 6px; height: 6px; border-radius: 50%; flex: 0 0 auto; }
+.ws-dot.d-ok { background: #4a9a55; }
+.ws-dot.d-partial { background: #c8a83a; }
+.ws-dot.d-blocked { background: #b85c5c; }
+.ws-dot.d-sample { background: #9a9aa2; }
+
+/* ---- panels -------------------------------------------------------------- */
+.ws-panel { padding: 0 var(--pad) 3rem; }
+.ws-panel[hidden] { display: none !important; }
+.ws-head { max-width: 62ch; margin-bottom: 1.5rem; }
+.ws-head h2 { font-size: clamp(1.35rem, 3vw, 1.9rem); line-height: 1.15; margin: 0 0 0.5rem; }
+.ws-q { color: var(--dim); font-size: 0.95rem; line-height: 1.55; margin: 0 0 0.75rem; }
+.ws-method {
+  border-left: 2px solid var(--line); padding: 0.15rem 0 0.15rem 0.9rem;
+  color: var(--dim); font-size: 0.82rem; line-height: 1.6; margin: 0 0 0.5rem;
+}
+.ws-method b { color: var(--ink); font-weight: 600; }
+.ws-warn {
+  border-left: 2px solid #c8a83a; background: #fdfaf0;
+  padding: 0.7rem 0.9rem; color: #6a5518; font-size: 0.82rem;
+  line-height: 1.6; margin: 0 0 1rem; border-radius: 0 6px 6px 0;
+}
+.ws-stop {
+  border-left: 2px solid #b85c5c; background: #fdf4f4;
+  padding: 0.7rem 0.9rem; color: #7a3232; font-size: 0.82rem;
+  line-height: 1.6; margin: 0 0 1rem; border-radius: 0 6px 6px 0;
+}
+
+/* ---- stat row ------------------------------------------------------------ */
+.ws-stats { display: flex; flex-wrap: wrap; gap: 1.75rem; margin: 0 0 1.75rem; }
+.ws-stat .v { font-size: clamp(1.35rem, 3.4vw, 2rem); font-weight: 600; letter-spacing: -0.02em; }
+.ws-stat .k { font-size: 0.7rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.05em; }
+.ws-stat .v.neg { color: #a33; }
+.ws-stat .v.pos { color: #2c6b34; }
+
+/* ---- tables -------------------------------------------------------------- */
+.ws-tablewrap { overflow-x: auto; margin: 0 0 1.5rem; border: 1px solid var(--line); border-radius: 10px; }
+table.ws-table { border-collapse: collapse; width: 100%; font-size: 0.8rem; min-width: 520px; }
+.ws-table th, .ws-table td { padding: 0.5rem 0.7rem; text-align: left; border-bottom: 1px solid var(--line); }
+.ws-table th {
+  position: sticky; top: 0; background: var(--bg); z-index: 1;
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dim);
+  font-weight: 600; white-space: nowrap;
+}
+.ws-table tbody tr:last-child td { border-bottom: 0; }
+.ws-table tbody tr:hover { background: #fafafc; }
+.ws-table td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ws-table td.neg { color: #a33; }
+.ws-table td.pos { color: #2c6b34; }
+.ws-cap { font-size: 0.75rem; color: var(--dim); margin: -1rem 0 1.5rem; }
+
+/* ---- matrix -------------------------------------------------------------- */
+.ws-matrix { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 1rem; }
+.ws-matrix table { border-collapse: collapse; font-size: 0.72rem; min-width: 640px; width: 100%; }
+.ws-matrix th, .ws-matrix td { padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--line); }
+.ws-matrix th { font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--dim); text-align: left; }
+.ws-matrix td.cell { text-align: right; font-variant-numeric: tabular-nums; }
+.ws-matrix td.rowh { font-weight: 600; white-space: nowrap; }
+
+/* ---- code block for blocked panels --------------------------------------- */
+.ws-sql {
+  background: #f6f6f8; border: 1px solid var(--line); border-radius: 10px;
+  padding: 0.9rem 1rem; overflow-x: auto; font-size: 0.72rem; line-height: 1.55;
+  white-space: pre; margin: 0 0 1.25rem; color: #33333a;
+}
+.ws-needs { margin: 0 0 1.25rem; padding-left: 1.1rem; color: var(--dim); font-size: 0.82rem; line-height: 1.7; }
+.ws-needs li { margin-bottom: 0.2rem; }
+
+@media (max-width: 700px) {
+  .ws-tabs { gap: 0.15rem; }
+  .ws-tab { padding: 0.6rem 0.5rem; font-size: 0.74rem; }
+  .ws-tab .ws-num { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-tab { transition: none; }
+}

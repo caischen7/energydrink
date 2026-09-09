@@ -35,7 +35,8 @@ const BASE = process.env.SITE_URL || 'http://localhost:4173';
 const USER = process.env.SITE_USER || 'energydrink';
 const PASS = process.env.SITE_PASS || '';
 const PAGES = ['index.html', 'dashboard.html', 'insights.html', 'segments.html',
-               'audience.html', 'compare.html', 'opportunity.html', 'explorer.html'];
+               'audience.html', 'compare.html', 'opportunity.html', 'explorer.html',
+               'whitespace.html'];
 
 const CHROMIUM = [
   '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
