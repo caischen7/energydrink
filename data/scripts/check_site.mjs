@@ -35,7 +35,8 @@ const BASE = process.env.SITE_URL || 'http://localhost:4173';
 const USER = process.env.SITE_USER || 'energydrink';
 const PASS = process.env.SITE_PASS || '';
 const PAGES = ['index.html', 'dashboard.html', 'insights.html', 'segments.html',
-               'audience.html', 'compare.html', 'opportunity.html', 'explorer.html'];
+               'audience.html', 'compare.html', 'opportunity.html', 'explorer.html',
+               'stores.html'];
 
 const CHROMIUM = [
   '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
@@ -60,6 +61,24 @@ try {
 
 const browser = await chromium.launch(CHROMIUM ? { executablePath: CHROMIUM } : {});
 
+/* Every context blocks third-party map tiles.
+   stores.html (and admin.html) pull raster tiles from tile.openstreetmap.org.
+   Under `waitUntil: 'networkidle'` that makes this harness depend on a CDN it
+   is not testing: on a sandboxed runner the requests are refused and never
+   settle, so every page load burns the full navigation timeout and the run
+   stops finishing. Aborting them keeps the suite hermetic and fast. Leaflet
+   renders its panes, controls and vector markers - which ARE ours - without a
+   single tile, so nothing under test is lost. */
+const TILE_RE = /(^|\.)(tile\.openstreetmap\.org|tile\.osm\.org|basemaps\.cartocdn\.com)/;
+const newCtx = async (opts) => {
+  const ctx = await browser.newContext(opts);
+  await ctx.route('**/*', (route) => {
+    const h = (() => { try { return new URL(route.request().url()).hostname; } catch { return ''; } })();
+    return TILE_RE.test(h) ? route.abort() : route.continue();
+  });
+  return ctx;
+};
+
 async function open(page, file) {
   await page.goto(`${BASE}/${file}`, { waitUntil: 'networkidle' });
   const pw = await page.$('input[type="password"]');
@@ -81,7 +100,7 @@ const revealAll = async (page) => {
 
 /* ------------------------------------------------------- 1. structure ---- */
 if (run('structure')) {
-  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const ctx = await newCtx({ viewport: { width: 1440, height: 900 } });
   const page = await ctx.newPage();
   for (const f of PAGES) {
     const errs = [];
@@ -111,7 +130,7 @@ if (run('structure')) {
  */
 if (run('charts')) {
   for (const width of [1440, 390]) {
-    const ctx = await browser.newContext({ viewport: { width, height: 1000 } });
+    const ctx = await newCtx({ viewport: { width, height: 1000 } });
     const page = await ctx.newPage();
     for (const f of PAGES) {
       await open(page, f);
@@ -192,7 +211,7 @@ if (run('charts')) {
  * never see them that way.
  */
 if (run('visible')) {
-  const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  const ctx = await newCtx({ viewport: { width: 1440, height: 1000 } });
   const page = await ctx.newPage();
   for (const f of PAGES) {
     await open(page, f);
@@ -249,7 +268,7 @@ if (run('dom')) {
  /* Both widths: contrast is width-independent, but the column crush only
     appears on a phone. */
  for (const width of [1440, 390]) {
-  const ctx = await browser.newContext({ viewport: { width, height: 1000 } });
+  const ctx = await newCtx({ viewport: { width, height: 1000 } });
   const page = await ctx.newPage();
   for (const f of PAGES) {
     await open(page, f);
@@ -351,7 +370,7 @@ if (run('dom')) {
 /* ------------------------------------------------------ 4. responsive ---- */
 if (run('responsive')) {
   for (const v of [{ n: 'mobile', w: 390 }, { n: 'tablet', w: 820 }, { n: 'desktop', w: 1440 }]) {
-    const ctx = await browser.newContext({ viewport: { width: v.w, height: 900 } });
+    const ctx = await newCtx({ viewport: { width: v.w, height: 900 } });
     const page = await ctx.newPage();
     for (const f of PAGES) {
       await open(page, f);
@@ -399,6 +418,40 @@ if (run('facts')) {
   chk('16oz best rung is $2.50-2.99', O.price_grid.best['16 oz'].band === '$2.50–2.99');
   chk('verdict prices the can, not the ounce', /2\.50/.test(O.verdict.why.find((w) => w[0] === 'Price')[1]));
   chk('insights: 22 findings across 8 sources', J.insights.insights.length === 22 && J.insights.sources.length === 8);
+
+  /* --- store map: the payload has to agree with itself ------------------ */
+  const S = JSON.parse(fs.readFileSync(path.join(ROOT, 'public/data/stores_map.json'), 'utf8'));
+  const sm = S.meta;
+  chk('stores: state revenue sums to the reported total',
+      Math.abs(S.states.reduce((a, x) => a + x.rev, 0) - sm.rev_total) / sm.rev_total < 0.001);
+  chk('stores: store counts reconcile to stores_mapped',
+      S.states.reduce((a, x) => a + x.stores, 0) + sm.no_state === sm.stores_mapped);
+  /* Regression guard. The first generated payload drew brand revenue and store
+     revenue independently and shipped a California where Red Bull alone billed
+     $545M inside a $246M state. Brands are a SPLIT of the state, so a state's
+     brand list can never exceed it. */
+  chk('stores: no state\'s brands out-bill the state itself',
+      S.states.every((x) => x.brands.reduce((a, b) => a + b.r, 0) <= x.rev * 1.001));
+  chk('stores: every published cell clears the suppression floor',
+      S.cells.every((c) => c[2] >= sm.min_cell));
+  chk('stores: no cell carries a single store\'s exact revenue', sm.min_cell >= 2);
+  chk('stores: cell count matches the cells array', S.cells.length === sm.cells);
+  chk('stores: rev_per_store is revenue over stores',
+      S.states.every((x) => !x.stores || Math.abs(x.rev_per_store - x.rev / x.stores) <= 1));
+  chk('stores: every state is a known code with a centroid',
+      S.states.every((x) => /^[A-Z]{2}$/.test(x.code) && Number.isFinite(x.lat) && Number.isFinite(x.lon)));
+  chk('stores: plant layer carries the full OSM extract', S.plants.length === 122);
+  chk('stores: plants are real even when the panel is a sample',
+      S.plants.every((pl) => Number.isFinite(pl[0]) && Number.isFinite(pl[1])));
+  /* A placeholder that does not announce itself is the failure mode this whole
+     switch exists to prevent. */
+  const smHtml = html('stores.html');
+  chk('stores: page carries no hardcoded panel numbers in copy',
+      !/\$[0-9]+(\.[0-9]+)?\s?[BMK]\b/.test(smHtml));
+  if (S.source === 'sample') {
+    chk('stores: sample payload declares itself in meta', /generated|sample|placeholder/i.test(
+      sm.privacy + sm.coverage + S.source));
+  }
 }
 
 await browser.close();

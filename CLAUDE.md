@@ -85,6 +85,25 @@ Brand names stay canonical via `data/scrapers/common.py` (mirrors
 `build_clean_datasets.py`'s `BRAND_ALIASES`). Two dashboard panels read these:
 **Nutrition Map** (sugar×caffeine) and **Search Interest** (Wikipedia pageviews).
 
+### Store map (`public/data/stores_map.json`)
+```bash
+python data/scripts/build_stores_map.py --sample    # offline placeholder, no BigQuery
+python data/scripts/build_stores_map.py --dry-run   # cost first
+BQ_TOKEN=$(gcloud auth application-default print-access-token) \
+  python data/scripts/build_stores_map.py           # the real panel
+```
+Joins `pdi_stores` (STATE/CITY/ZIP/LAT/LON/CHAIN) to trailing-12-month sales in
+`pdi_daily_agg`. **The committed file is a `--sample` placeholder** — the real
+store geography is licensed and not in this repo — and `stores.html` shows a
+standing banner while `source: "sample"`. The bottling-plant layer is real OSM
+data either way.
+
+Two constants are load-bearing: stores are binned to a `GRID_DEG` grid and cells
+under `MIN_CELL` stores are **dropped**, because a 1-store cell is that store's
+exact location and revenue, and PDI must not leave the warehouse. Re-sweep both
+against real rows the first time this runs for real — the current values were
+tuned on synthetic points.
+
 ### Dashboard aggregate (`src/data/dashboard.json`)
 ```bash
 python data/scripts/build_dashboard_json.py   # stdlib only; reads data/, writes src/data/dashboard.json
@@ -113,6 +132,7 @@ boot sequence, then wires up two independent layers:
 | `index.html` | Static page skeleton — sections in order: `hero`, `manifesto`, `specs`, `drop`, `protocol`, `join`. Nav links to the dashboard. |
 | `src/auth.js` | **Shared login gate** (`requireAuth(cfg?)` → resolves with the gated JSON). Two layers: a client-side SHA-256 check (gates local dev + instant UX) **and** real server-side enforcement via **nginx Basic Auth** on the data file the form fetches — bypassing the JS yields an empty shell, not the data. No-arg call = the dashboard (`energydrink` / see `docs/CREDENTIALS.md`, `.htpasswd`, guards **all of** `public/data/` **and the analysis pages**); the admin page passes its own config (`bogusbanana` / `bogusbanana1234`, `.htpasswd-admin`, guards `/admin/`). Change BOTH the htpasswd file and the matching passHash (see `docs/CREDENTIALS.md`). |
 | `admin.html` + `src/admin.js` / `src/admin.css` | **Site Scout** — gated admin tool for scouting restaurant locations. Leaflet + OSM tiles (npm `leaflet`, no API keys); "Scan this area" pulls competitors (restaurant/fast_food/cafe), traffic signals, vacant/disused storefronts, parking, transit and anchors from the **Overpass API**; Nominatim geocoding for search. Drop/drag candidate pins → 0–100 weighted scorecard (per-mode weights + non-linear competitor curve designed by a restaurant-operator panel; see `public/admin/config.json`), radius rings, own-unit cannibalization check, CSV/GeoJSON export, localStorage persistence (`bb_scout_v1`). Not linked from public nav; `noindex`. Runtime map/data calls happen in the visitor's browser — the deploy just serves static files. |
+| `stores.html` + `src/stores.js` / `src/stores.css` | The **Store Map** (gated by `auth.js`). Leaflet + OSM tiles, same stack as the admin console but read-only and national. Three layers over `public/data/stores_map.json`: **state bubbles** at centroids, **store clusters** (the builder's grid cells), and **bottling plants** (real OSM data from `data/osm/bottling_candidates.csv`). Symbols are area-proportional (radius ∝ √value) and there is deliberately no choropleth — see the header comment for why. The ranked rail and the table exist because Leaflet vector markers are not keyboard focusable. |
 | `dashboard.html` + `src/dashboard.js` / `src/dashboard.css` / `src/charts.js` | The **Market Intel page** (gated by `auth.js`). `dashboard.js` renders KPI count-ups, thirteen chart panels (market size, concept interest, motivations, share of voice, brand momentum, rising/cooling leaderboard, price×quality, category momentum, flavor demand board, review ratings, IG engagement, Reddit pulse, loves-vs-complaints sentiment) and a sortable cross-platform brand table from `src/data/dashboard.json`; `charts.js` has dependency-free SVG builders (hBars/vBars/scatter/area/multiLine/stackedBars); `dashboard.css` `@import`s `style.css` then adds the terminal layout. Registered as a second Vite input in `vite.config.js`. |
 
 ### How the two layers talk

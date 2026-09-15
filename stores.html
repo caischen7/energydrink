@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Where the convenience panel sells energy drinks — an interactive map of store density and revenue by state." />
+  <meta name="robots" content="noindex" />
+  <title>Store Map — Bogus Banana Market Intel</title>
+  <link rel="icon" type="image/svg+xml" href="/mascot.svg" />
+  <script type="module" src="/src/stores.js"></script>
+</head>
+<body class="dash">
+  <header class="site-head">
+    <a class="logo" href="./index.html" data-hover>Bogus&nbsp;Banana<sup>®</sup></a>
+    <nav class="nav" aria-label="Market intel pages">
+      <a href="./index.html" data-hover>Home</a>
+      <a href="./dashboard.html" data-hover>Dashboard</a>
+      <a href="./insights.html" data-hover>Insights</a>
+      <a href="./segments.html" data-hover>Segments</a>
+      <a href="./audience.html" data-hover>Audience</a>
+      <a href="./compare.html" data-hover>2025&nbsp;vs&nbsp;2030</a>
+      <a href="./opportunity.html" data-hover>Opportunity</a>
+      <a href="./explorer.html" data-hover>Flavor&nbsp;Explorer</a>
+      <a href="./stores.html" data-hover class="active" aria-current="page">Store&nbsp;Map</a>
+    </nav>
+  </header>
+
+  <main class="dash-main">
+    <section class="dash-hero">
+      <h1 class="dash-title">Store Map</h1>
+      <p class="dash-sub">
+        Where the convenience panel actually sells energy drinks. Every dot is a
+        <b class="volt">cluster of stores</b>, sized by how much the category
+        turned over there in the trailing twelve months — and every bubble is a
+        <b class="volt">state</b>, so you can see distribution and demand as two
+        different things.
+      </p>
+      <div id="sm-notice"></div>
+    </section>
+
+    <section class="aud-top">
+      <div id="sm-kpis" class="kpi-strip"></div>
+    </section>
+
+    <section class="aud-top">
+      <div class="sm-controls" role="group" aria-label="Map controls">
+        <div class="sm-ctl">
+          <span class="sm-ctl-label mono" id="sm-view-label">VIEW</span>
+          <div class="sm-seg" role="tablist" aria-labelledby="sm-view-label">
+            <button type="button" class="sm-btn" role="tab" data-view="states" aria-selected="true">States</button>
+            <button type="button" class="sm-btn" role="tab" data-view="cells" aria-selected="false">Store clusters</button>
+            <button type="button" class="sm-btn" role="tab" data-view="plants" aria-selected="false">Bottling plants</button>
+          </div>
+        </div>
+        <div class="sm-ctl">
+          <span class="sm-ctl-label mono" id="sm-metric-label">SIZE BY</span>
+          <div class="sm-seg" role="tablist" aria-labelledby="sm-metric-label">
+            <button type="button" class="sm-btn" role="tab" data-metric="rev" aria-selected="true">Revenue</button>
+            <button type="button" class="sm-btn" role="tab" data-metric="stores" aria-selected="false">Stores</button>
+            <button type="button" class="sm-btn" role="tab" data-metric="rev_per_store" aria-selected="false">Revenue per store</button>
+          </div>
+        </div>
+      </div>
+      <p id="sm-hint" class="sm-hint mono">—</p>
+
+      <div class="sm-wrap">
+        <div id="sm-map" class="sm-map" role="application"
+             aria-label="Interactive map of energy-drink retail in the convenience panel"></div>
+        <aside class="sm-side" aria-label="Ranked states">
+          <h2 class="sm-side-h mono">RANKED <span id="sm-side-metric">BY REVENUE</span></h2>
+          <ol id="sm-rank" class="sm-rank"></ol>
+        </aside>
+      </div>
+      <p class="sec-note" id="sm-legend"></p>
+    </section>
+
+    <section class="aud-top">
+      <h2 class="sec-h mono">EVERY STATE IN THE PANEL</h2>
+      <p class="sec-note">
+        The same data as a table, because a map is bad at exact comparison and a
+        reader who wants to know whether Ohio beats Georgia should not have to
+        squint at two circles. Click a column to sort.
+      </p>
+      <div class="sm-tablewrap">
+        <table class="intel-table sm-table" id="sm-table">
+          <caption class="sr-only">Energy-drink revenue, store count and leading brand by state</caption>
+          <thead>
+            <tr>
+              <th scope="col" data-sort="name">State</th>
+              <th scope="col" class="num" data-sort="stores">Stores</th>
+              <th scope="col" class="num" data-sort="rev">Revenue (T12M)</th>
+              <th scope="col" class="num" data-sort="rev_per_store">Per store</th>
+              <th scope="col" class="num" data-sort="share">Share</th>
+              <th scope="col" data-sort="top">Leading brand</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="aud-top methodology">
+      <h2 class="sec-h mono">HOW TO READ THIS</h2>
+      <div class="method-grid" id="sm-method"></div>
+    </section>
+  </main>
+</body>
+</html>
