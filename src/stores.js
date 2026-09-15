@@ -97,13 +97,16 @@ function kpis() {
   const st = DATA.states;
   const top = st[0];
   const perStore = [...st].sort((a, b) => b.rev_per_store - a.rev_per_store)[0];
+  /* Exactly four. .kpi-strip is a fixed 4-track grid whose --line background
+     shows through 1px gaps, so a fifth tile leaves three cells of bare line
+     colour sitting next to it. The plant count lives in the legend and the
+     methodology block instead. */
   const rows = [
     ['Stores mapped', num(m.stores_mapped), 'in the panel'],
     ['Revenue, T12M', money(m.rev_total), 'through those stores'],
     ['Biggest state', top ? top.code : '—', top ? money(top.rev) : ''],
     ['Richest per store', perStore ? perStore.code : '—',
      perStore ? money(perStore.rev_per_store) + ' / store' : ''],
-    ['Bottling plants', num(DATA.plants.length), 'OSM candidates (real)'],
   ];
   $('#sm-kpis').innerHTML = rows.map(([l, n, u]) => `
     <div class="kpi">
