@@ -1,0 +1,14 @@
+key,value
+source,YouTube Data API v3 corpus (data/youtube/comments.csv)
+comments_scanned,125054
+comments_matched,17818
+match_rate_pct,14.25
+noise_stripped,462
+sentiment_engine,lexicon-fallback (pip install vaderSentiment for VADER)
+videos,3214
+search_queries,96
+upload_years,2007-2026
+schema,"matches the Reddit collector's output, so sources combine"
+privacy,"aggregates only; no usernames, ids or raw text stored"
+sampling,"review/taste-test discussion, self-selected and enthusiast-skewed; measures attention, not market preference. Read against PDI units, never instead of."
+generated_at,2026-09-21T22:16:36.954663Z
