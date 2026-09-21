@@ -166,6 +166,7 @@ function reachDepth() {
     xLabel: 'REACH — % OF PANEL STORES CARRYING IT',
     yLabel: 'DEPTH — UNITS PER SELLING STORE',
     xFmt: (v) => Math.round(v) + '%',
+    yFmt: fmtCompact,
     fmt: (v) => num(v),
   });
   $('#fy-scatter-note').innerHTML =

@@ -170,12 +170,18 @@ export function scatter(points, opts = {}) {
     grid += `<line x1="${x}" y1="${padT}" x2="${x}" y2="${padT + ih}" class="c-grid"/>
       <text x="${x}" y="${H - padB + 24}" class="c-lbl" text-anchor="middle">${opts.xFmt ? opts.xFmt(v) : Math.round(v)}</text>`;
   }
+  /* Mirrors xFmt, which this function has always had. The y ticks were
+     hardcoded to toFixed(1), which is right for the 3.8-5.0 rating axis this
+     was first written for and wrong for anything large: a depth axis topping
+     out near 3,000 produced "1307.8", six characters that ran left into the
+     rotated y-axis title. Callers with big y values pass fmtCompact. */
+  const yFmt = opts.yFmt || ((v) => v.toFixed(1));
   const yticks = opts.yTicks || 5;
   for (let i = 0; i <= yticks; i++) {
     const v = yMin + ((yMax - yMin) * i) / yticks;
     const y = sy(v);
     grid += `<line x1="${padL}" y1="${y}" x2="${padL + iw}" y2="${y}" class="c-grid"/>
-      <text x="${padL - 12}" y="${y}" class="c-lbl" text-anchor="end" dominant-baseline="middle">${v.toFixed(1)}</text>`;
+      <text x="${padL - 12}" y="${y}" class="c-lbl" text-anchor="end" dominant-baseline="middle">${yFmt(v)}</text>`;
   }
 
   /* SVG has no label-collision engine. Place labels largest-bubble-first and skip
