@@ -79,3 +79,18 @@
 
 .fy-peaks { margin: 0.5rem 0 0.4rem; padding-left: 1.1rem; }
 .fy-peaks li { margin-bottom: 0.2rem; }
+
+/* Rows whose PDI description cannot identify the SKU. Marked, not hidden:
+   the revenue is real even when the label is useless. */
+.fy-unresolved { opacity: 0.72; }
+.fy-flag {
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  color: #b06a00;
+  background: #fff4e0;
+  border: 1px solid #f0c36d;
+  border-radius: 4px;
+  padding: 0.05em 0.35em;
+  margin-left: 0.4em;
+  white-space: nowrap;
+}

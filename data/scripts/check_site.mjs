@@ -481,6 +481,39 @@ if (run('facts')) {
   chk('flavors: page warns that PDI has no ratings',
       /no rating field/i.test(F.caveats.no_ratings_in_pdi));
 
+  /* --- buzz vs sales, and the product ranking ---------------------------- */
+  if (F.buzz) {
+    const B = F.buzz;
+    chk('flavors: buzz shares sum to 100',
+        Math.abs(B.families.reduce((a, f) => a + f.buzz_share_pct, 0) - 100) < 0.1);
+    chk('flavors: buzz-to-sales is buzz share over sales share',
+        B.families.every((f) => f.buzz_to_sales == null || !f.sales_share_pct ||
+          Math.abs(f.buzz_to_sales - f.buzz_share_pct / f.sales_share_pct) < 0.02));
+    /* The floors exist because Cola & soda holds 0.031% of units and any buzz
+       divides into a 159x ratio. If the flag stops matching the floors, an
+       artefact leads the chart again. */
+    chk('flavors: the unstable flag matches the stated floors',
+        B.families.every((f) => f.stable ===
+          (f.sales_share_pct >= B.min_sales_share && f.mentions >= B.min_mentions)));
+    chk('flavors: at least one family is held out as unstable', B.n_unstable >= 1);
+    chk('flavors: positioning attributes are excluded from the flavor rollup',
+        B.excluded.includes('Zero Sugar'));
+  }
+  if (F.products) {
+    const P = F.products;
+    chk('flavors: top products are 20 and sorted by revenue',
+        P.top.length === 20 && P.top.every((r, i) => i === 0 || P.top[i - 1].revenue >= r.revenue));
+    /* Half the top-20 revenue sits behind a bare brand name. If this ever
+       reads 0 the resolvability check has broken, not the data improved. */
+    chk('flavors: unresolved product share is measured and non-zero',
+        P.unresolved_share_pct > 0 && P.unresolved_share_pct < 100);
+    chk('flavors: unresolved share matches the flagged rows', (() => {
+      const un = P.top.filter((r) => !r.resolved).reduce((a, r) => a + r.revenue, 0);
+      const tot = P.top.reduce((a, r) => a + r.revenue, 0);
+      return Math.abs(P.unresolved_share_pct - un / tot * 100) < 0.2;
+    })());
+  }
+
   if (S.source === 'sample') {
     chk('stores: sample payload declares itself in meta', /generated|sample|placeholder/i.test(
       sm.privacy + sm.coverage + S.source));

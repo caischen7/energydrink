@@ -116,6 +116,22 @@ and every metric here is either a share or normalised per active store.
 
 `capstone/FINDINGS_flavor_by_year.md` is the write-up.
 
+### Buzz + products on the flavor page
+```bash
+python capstone/collectors/analyze_youtube.py        # 125k comments -> data/youtube/*_pulse_yt_*.csv
+python capstone/scripts/add_buzz_and_products.py     # folds both into public/data/flavor_year.json
+```
+YouTube mention share is rolled up to PDI flavor families through the SAME
+`flavor_family()` the PDI side uses, then divided by unit share. **It is a ratio,
+never a subtraction** — the two are shares of different things. Families under
+0.5% of units or 150 mentions are flagged `stable: false` and held out of the
+chart: Cola & soda holds 0.031% of units, so any buzz divides into a 159× ratio
+that measures the denominator, not interest.
+
+The product table flags rows whose `PRODUCT_DESCRIPTION` is too sparse to
+identify the SKU — **50.2% of top-20 revenue**, including two Monster rows that
+cannot be told apart. Flagged, not dropped.
+
 ### Dashboard aggregate (`src/data/dashboard.json`)
 ```bash
 python data/scripts/build_dashboard_json.py   # stdlib only; reads data/, writes src/data/dashboard.json

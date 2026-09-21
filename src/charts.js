@@ -78,7 +78,30 @@ export function hBars(rows, opts = {}) {
     })
     .join('');
 
-  return `<svg viewBox="0 0 ${W} ${H}" class="chart" preserveAspectRatio="xMidYMid meet" role="img">${bars}</svg>`;
+  /*
+   * opts.refLine = {value, label, color} — a VERTICAL rule at a value.
+   *
+   * hBars has always read opts.refLine when computing `max` (see above) but
+   * never drew it, so callers could pass one, see the scale shift, and get no
+   * line. That silently left "above or below the threshold" encoded in bar
+   * colour alone on a buzz-vs-sales chart where 1.0 is the whole point.
+   *
+   * Drawn behind the bars and under the value column, so it marks the scale
+   * without cutting through the numbers.
+   */
+  let ref = '';
+  if (opts.refLine && opts.refLine.value > 0) {
+    const rx = barX + (opts.refLine.value / max) * barMax;
+    const rc = opts.refLine.color || '#86868b';
+    ref = `
+      <line x1="${rx.toFixed(1)}" y1="0" x2="${rx.toFixed(1)}" y2="${H - gap}"
+            stroke="${rc}" stroke-width="1.5" stroke-dasharray="5 4" opacity="0.85"/>
+      <text x="${(rx + 5).toFixed(1)}" y="${(H - gap - 3).toFixed(1)}" class="c-lbl"
+            fill="${rc}" stroke="#fff" stroke-width="3.5" paint-order="stroke"
+            stroke-linejoin="round">${esc(opts.refLine.label || '')}</text>`;
+  }
+
+  return `<svg viewBox="0 0 ${W} ${H}" class="chart" preserveAspectRatio="xMidYMid meet" role="img">${ref}${bars}</svg>`;
 }
 
 /* Vertical bars, e.g. 1–5 rating distribution. rows: [{label, value}] */

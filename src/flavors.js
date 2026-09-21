@@ -43,6 +43,10 @@ const esc = (s) =>
   String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const num = (v) => Math.round(v).toLocaleString('en-US');
 const pct = (v) => v.toFixed(2) + '%';
+const money = (v) =>
+  v >= 1e9 ? '$' + (v / 1e9).toFixed(2) + 'B' :
+  v >= 1e6 ? '$' + (v / 1e6).toFixed(1) + 'M' :
+  v >= 1e3 ? '$' + (v / 1e3).toFixed(0) + 'K' : '$' + Math.round(v);
 
 const ACCENT = '#0071e3';   // units / primary
 const WARM = '#f77f00';     // store count
@@ -218,6 +222,110 @@ function movers() {
     </div>`);
 }
 
+/* -------------------------------------------------- 5b. buzz vs sales ---- */
+/* The ratio is the chart, not a scatter of mentions against dollars. Buzz
+   share and unit share are shares OF DIFFERENT THINGS, so plotting one against
+   the other on two axes would invite reading a correlation that has no unit to
+   live in. A ratio at least states plainly what it is: how much more, or less,
+   a flavor is discussed than bought. */
+function buzz() {
+  const B = DATA.buzz;
+  if (!B) return;
+  const stable = B.families.filter((f) => f.stable);
+  const unstable = B.families.filter((f) => !f.stable);
+
+  /* Centred on 1.0, because 1.0 is the meaningful midpoint - discussed exactly
+     in proportion to sales - and colour carries which side of it a family
+     falls on. Bars run from the parity line rather than from zero. */
+  const rows = stable.map((f) => ({
+    label: f.family,
+    value: f.buzz_to_sales,
+    color: f.buzz_to_sales >= 1 ? GAIN : LOSS,
+  }));
+  $('#fy-buzz').innerHTML = hBars(rows, {
+    fmt: (v) => v.toFixed(2) + '\u00d7',     /* refLine takes {value, label, color}, not a number - passing 1 silently
+       drew nothing, leaving "above or below parity" encoded in colour alone.
+       The line is what makes 1.0 readable as the midpoint. */
+    refLine: { value: 1, label: 'parity \u2014 talked about as much as bought', color: '#86868b' },
+  });
+
+  const over = stable.filter((f) => f.buzz_to_sales >= 2);
+  const under = stable.filter((f) => f.buzz_to_sales < 1);
+  $('#fy-buzz-note').innerHTML =
+    `Every flavor's share of <b>YouTube mentions</b> (${num(B.total_mentions)} across ` +
+    `125,054 comments) divided by its share of <b>PDI units</b> in ${DATA.years[DATA.years.length - 1]}. ` +
+    `<b>Above 1.0 = discussed more than it sells</b>; below, the reverse. ` +
+    (over.length
+      ? `<b>${over.map((f) => esc(f.family)).join('</b>, <b>')}</b> ` +
+        `${over.length === 1 ? 'is' : 'are'} the standouts — real interest that ` +
+        `the shelf has not converted, which is where a new entrant has room. `
+      : '') +
+    (under.length
+      ? `<b>${under.map((f) => esc(f.family)).join('</b>, <b>')}</b> sell better than ` +
+        `they are talked about: proven demand, crowded shelf.`
+      : '') +
+    ` The two are shares of different things, so they are compared as a ratio, never subtracted.`;
+
+  if (unstable.length) {
+    $('#fy-buzz-unstable').innerHTML = `
+      <div class="fy-warn" role="status">
+        <b>${unstable.length} famil${unstable.length === 1 ? 'y is' : 'ies are'} held out of the chart.</b>
+        A ratio is only as stable as its denominator, and these fall under the floor of
+        ${B.min_sales_share}% of units or ${num(B.min_mentions)} mentions:
+        <ul class="fy-peaks">
+          ${unstable.map((f) => {
+            /* Low sales share and a low mention count are different failures.
+               Calling both a near-zero denominator was wrong for Tea & botanical,
+               whose sales share is fine and whose mention count is not. */
+            const thinSales = f.sales_share_pct != null && f.sales_share_pct < B.min_sales_share;
+            const thinBuzz = f.mentions < B.min_mentions;
+            const why = thinSales && thinBuzz
+              ? `only ${f.sales_share_pct}% of units and only ${num(f.mentions)} mentions, both sides too thin`
+              : thinSales
+                ? `only ${f.sales_share_pct}% of units, so the ratio is arithmetic on a near-zero denominator`
+                : `only ${num(f.mentions)} mentions, too few to estimate a share from`;
+            return `<li><b>${esc(f.family)}</b> \u2014 ${f.buzz_share_pct}% of mentions
+              against ${f.sales_share_pct}% of units, a ratio of ${f.buzz_to_sales}\u00d7:
+              ${why}.</li>`;
+          }).join('')}
+        </ul>
+      </div>`;
+  }
+}
+
+/* ------------------------------------------------- 5c. top products ------ */
+function products() {
+  const P = DATA.products;
+  if (!P) return;
+  $('#fy-prod-note').innerHTML =
+    `Top 20 SKUs by revenue, ${esc(P.window)}. The best sellers are plain originals in ` +
+    `near-universal distribution — the shelf is won by the classics, not by flavor ` +
+    `innovation. Flavor experimentation lives further down the tail.`;
+
+  if (P.unresolved_share_pct > 0) {
+    $('#fy-prod-warn').innerHTML = `
+      <div class="fy-warn" role="status">
+        <b>${P.unresolved_share_pct}% of this revenue sits behind a description too sparse
+        to identify the product.</b> PDI's PRODUCT_DESCRIPTION is blank-ish on exactly the
+        biggest sellers: several rows read only &ldquo;MONSTER&rdquo; or &ldquo;RED BULL&rdquo;,
+        with no size and no flavor, and two Monster rows cannot be told apart at all.
+        Those rows are marked below rather than dropped, because they are real revenue
+        — but this is a ranking of <i>rows</i>, and only partly a ranking of products.
+      </div>`;
+  }
+
+  $('#fy-prod tbody').innerHTML = P.top.map((r, i) => `
+    <tr${r.resolved ? '' : ' class="fy-unresolved"'}>
+      <td class="num">${i + 1}</td>
+      <th scope="row">${esc(r.desc)}${r.resolved ? '' :
+        ' <span class="fy-flag mono" title="description too sparse to identify the SKU">UNRESOLVED</span>'}</th>
+      <td>${esc(r.brand)}</td>
+      <td class="num">${money(r.revenue)}</td>
+      <td class="num">${num(r.stores)}</td>
+      <td>${esc(r.segment)}</td>
+    </tr>`).join('');
+}
+
 /* --------------------------------------------------------- 6. ratings ---- */
 /* Kept in its own section, on its own chart, with a standing warning. The
    temptation is to put rating and sales on one scatter and call the gap white
@@ -387,7 +495,7 @@ function controls() {
 async function main() {
   DATA = await requireAuth({ dataUrl: 'data/flavor_year.json' });
   YEAR = DATA.years[DATA.years.length - 1];
-  kpis(); ramp(); grid(); movers(); ratings(); method();
+  kpis(); ramp(); grid(); movers(); buzz(); products(); ratings(); method();
   controls(); redrawYear();
 }
 
