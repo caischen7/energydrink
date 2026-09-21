@@ -71,6 +71,7 @@ def preflight():
                            "REDDIT_USER_AGENT") if not os.environ.get(k)]
     if not missing:
         return True
+    me = sys.argv[0] or os.path.abspath(__file__)
     print("\n  Missing credentials:", ", ".join(missing))
     env_path = os.path.join(HERE, ".env")
     tmpl = os.path.join(HERE, ".env.example")
@@ -97,8 +98,8 @@ def preflight():
   name; the secret is the field labelled "secret").
 
   No credentials needed to try these first:
-       python capstone/run_reddit_deep.py --self-test
-       python capstone/run_reddit_deep.py --dry-run
+       python3 {me} --self-test
+       python3 {me} --dry-run
 """)
     return False
 
