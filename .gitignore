@@ -17,3 +17,6 @@ data/bq/*.csv
 !data/bq/derived/
 energydrink/
 energydrink/
+
+# Reddit collector response cache — re-fetchable, and may hold raw API objects
+.cache/

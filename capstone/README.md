@@ -5,6 +5,12 @@ Separate from the marketing site in this repo. Nothing here feeds `npm run build
 ```
 capstone/
   scripts/build_registry.py     # emits the registries below; --check re-derives and diffs
+  collectors/
+    flavor_mentions.py          # shared flavor/brand extractor + sentiment (WS3.3)
+    reddit_collector.py         # Reddit Data API, OAuth, aggregates-only (WS3.2)
+    make_label_sample.py        # hand-label sampler for precision (WS3.4)
+  validation/                   # label samples to fill in
+  REDDIT_API_TERMS.md           # PRECONDITION — unverified, read before any real run
   registry/                     # PRE-REGISTERED, date-stamped, versioned
     brands_v1.0_<date>.csv
     flavor_taxonomy_v1.0_<date>.csv
@@ -30,7 +36,7 @@ capstone/
 | 0 | SKU universe + flavor taxonomy | **Awaiting approval** — 8 open decisions |
 | 1 | Retailer ratings (manual capture → Bayesian adjustment) | Not started |
 | 2 | PDI sales velocity | Not started |
-| 3 | Reddit + YouTube text | Not started — blocked on the API terms summary |
+| 3 | Reddit + YouTube text | **Collector built, not yet run** — blocked on `REDDIT_API_TERMS.md` and on your approval of the search terms |
 
 ## Reproducing Workstream 0
 
