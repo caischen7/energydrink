@@ -86,7 +86,10 @@
 .fy-flag {
   font-size: 0.62rem;
   letter-spacing: 0.06em;
-  color: #b06a00;
+  /* #b06a00 was 3.93:1 on #fff4e0 — the check suite caught it as a WCAG AA
+     failure. At 0.62rem this is small text, so it needs 4.5:1 and does not
+     get the large-text exemption. #8a5200 measures 5.86:1. */
+  color: #8a5200;
   background: #fff4e0;
   border: 1px solid #f0c36d;
   border-radius: 4px;
