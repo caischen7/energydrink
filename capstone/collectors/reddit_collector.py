@@ -138,8 +138,35 @@ def token():
     auth = base64.b64encode(f"{cid}:{sec}".encode()).decode()
     req = urllib.request.Request(TOKEN_URL, data=data, headers={
         "Authorization": "Basic " + auth, "User-Agent": ua()})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        return json.load(r)["access_token"]
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.load(r)["access_token"]
+    except urllib.error.HTTPError as e:
+        # Reddit puts the actual reason in the response body. Raising the bare
+        # HTTPError threw away the one piece of information that explains the
+        # failure and left a traceback that says only "403: Forbidden".
+        body = ""
+        try:
+            body = e.read().decode("utf-8", "replace")[:600].strip()
+        except Exception:
+            pass
+        hint = {
+            401: "Credentials rejected. The client id or secret is wrong, or the "
+                 "app is not type 'script'. If you regenerated the secret, make "
+                 "sure .env has the NEW one.",
+            403: "Forbidden. Most often the User-Agent: Reddit blocks generic or "
+                 "malformed ones. Check yours is filled in - a literal '<you>' "
+                 "left in the template will do it. Can also mean the separate "
+                 '"register to use the API" step on reddit.com/prefs/apps is '
+                 "not complete, or the IP is blocked (try off a VPN).",
+            429: "Rate limited before even getting a token - wait a few minutes.",
+        }.get(e.code, "")
+        sys.exit(
+            f"\nReddit refused the token request: HTTP {e.code} {e.reason}\n"
+            f"  User-Agent sent: {ua()!r}\n"
+            f"  Reddit said: {body or '(empty response body)'}\n"
+            f"  {hint}\n"
+            f"\nRun with --check-auth for a full diagnosis.\n")
 
 
 def get(path, tok, quota, **params):

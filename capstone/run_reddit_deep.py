@@ -31,6 +31,7 @@ summary a precondition, and deep mode issues a lot more requests than the
 original plan did, which makes the free-tier request-cap question load-bearing.
 """
 import argparse
+import json
 import os
 import sys
 
@@ -128,6 +129,116 @@ def setup_env():
     python3 {sys.argv[0]} --max-posts 500
 """)
     return 0
+
+
+def check_auth():
+    """Diagnose a credential/auth failure without guessing.
+
+    Prints what is actually being sent - lengths and shape, never the secret
+    itself - then makes one token call and reports exactly what came back.
+    Written after a 403 whose traceback said only "Forbidden", which is not
+    enough to act on.
+    """
+    import urllib.error
+    import urllib.request
+
+    env_file = os.path.join(HERE, ".env")
+    print(f"\n  CHECK-AUTH\n\n  .env: {env_file}"
+          f"  {'(found)' if os.path.exists(env_file) else '(MISSING)'}")
+    if os.path.exists(env_file):
+        mode = oct(os.stat(env_file).st_mode & 0o777)
+        print(f"  permissions: {mode}" +
+              ("" if mode == "0o600" else "   <- consider chmod 600"))
+
+    cid = os.environ.get("REDDIT_CLIENT_ID", "")
+    sec = os.environ.get("REDDIT_CLIENT_SECRET", "")
+    agent = os.environ.get("REDDIT_USER_AGENT", "")
+
+    def shape(v):
+        v = v.strip()
+        if not v:
+            return "EMPTY"
+        lead = v[:3] + "..." + v[-2:] if len(v) > 8 else "(short)"
+        note = ""
+        if v != os.environ.get("", v) and (v.startswith(('"', "'")) or v.endswith(('"', "'"))):
+            note = "   <- has surrounding quotes, remove them"
+        return f"{len(v)} chars  {lead}{note}"
+
+    print(f"\n  REDDIT_CLIENT_ID      {shape(cid)}")
+    print(f"  REDDIT_CLIENT_SECRET  {shape(sec)}")
+    print(f"  REDDIT_USER_AGENT     {agent!r}")
+
+    problems = []
+    if not cid.strip():
+        problems.append("client id is empty")
+    if not sec.strip():
+        problems.append("client secret is empty")
+    if not agent.strip():
+        problems.append("user agent is empty")
+    # The single most common 403 cause.
+    if "<" in agent or ">" in agent:
+        problems.append("USER AGENT STILL HAS A PLACEHOLDER — the literal "
+                        "'<you>' must be replaced with your Reddit username")
+    if agent.strip() and "by /u/" not in agent:
+        problems.append("user agent has no 'by /u/<username>' — Reddit wants "
+                        "a contactable identifier and throttles generic agents")
+    if len(sec.strip()) < 20:
+        problems.append(f"secret is only {len(sec.strip())} chars — Reddit "
+                        "secrets are longer; did the Client ID get pasted here?")
+    if cid.strip() and sec.strip() and cid.strip() == sec.strip():
+        problems.append("client id and secret are identical")
+
+    if problems:
+        print("\n  PROBLEMS FOUND:")
+        for p_ in problems:
+            print(f"    - {p_}")
+        print("\n  Fix those first; a token call will fail until they are fixed.")
+        return 1
+
+    print("\n  Shape looks right. Trying one token call ...")
+    import base64
+    import urllib.parse
+    data = urllib.parse.urlencode({"grant_type": "client_credentials"}).encode()
+    auth = base64.b64encode(f"{cid.strip()}:{sec.strip()}".encode()).decode()
+    req = urllib.request.Request(
+        "https://www.reddit.com/api/v1/access_token", data=data,
+        headers={"Authorization": "Basic " + auth, "User-Agent": agent.strip()})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            body = json.load(r)
+        if "access_token" in body:
+            print(f"\n  SUCCESS — token received "
+                  f"(type {body.get('token_type')}, expires in "
+                  f"{body.get('expires_in')}s, scope {body.get('scope')!r})")
+            print("  Credentials work. Run the real pull:\n"
+                  f"    python3 {sys.argv[0]} --max-posts 500\n")
+            return 0
+        print(f"\n  Unexpected response with no token: {body}")
+        return 1
+    except urllib.error.HTTPError as e:
+        body = ""
+        try:
+            body = e.read().decode("utf-8", "replace")[:800].strip()
+        except Exception:
+            pass
+        print(f"\n  HTTP {e.code} {e.reason}")
+        print(f"  Reddit said: {body or '(empty body)'}")
+        print(f"""
+  For a {e.code}, check in this order:
+    403  - the User-Agent above. Reddit blocks generic and malformed ones.
+         - the separate "register to use the API" step linked from
+           https://www.reddit.com/prefs/apps — creating the app is not enough.
+         - the Responsible Builder Policy acceptance.
+         - a VPN or shared IP that Reddit has blocked.
+    401  - wrong id/secret, or the app is not type 'script'. If you regenerated
+           the secret, .env must have the NEW one.
+    429  - rate limited; wait a few minutes.
+""")
+        return 1
+    except urllib.error.URLError as e:
+        print(f"\n  Could not reach Reddit at all: {e.reason}")
+        print("  Network, DNS or firewall — not a credentials problem.")
+        return 1
 
 
 def preflight():
@@ -338,6 +449,9 @@ def main():
         description="Deep Reddit pull for the flavor study.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__)
+    ap.add_argument("--check-auth", action="store_true",
+                    help="diagnose credential/auth failures; makes ONE token call "
+                         "and reports exactly what Reddit said")
     ap.add_argument("--setup", action="store_true",
                     help="create the .env credentials file interactively "
                          "(secret is typed hidden, never echoed or logged)")
@@ -365,6 +479,8 @@ def main():
 
     if a.setup:
         sys.exit(setup_env())
+    if a.check_auth:
+        sys.exit(check_auth())
     if a.self_test:
         sys.exit(self_test())
 
