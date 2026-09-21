@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Which energy-drink flavors actually sell, year by year, once the growth of the PDI panel is taken out." />
+  <meta name="robots" content="noindex" />
+  <title>Flavor by Year — Bogus Banana Market Intel</title>
+  <link rel="icon" type="image/svg+xml" href="/mascot.svg" />
+  <script type="module" src="/src/flavors.js"></script>
+</head>
+<body class="dash">
+  <header class="site-head">
+    <a class="logo" href="./index.html" data-hover>Bogus&nbsp;Banana<sup>®</sup></a>
+    <nav class="nav" aria-label="Market intel pages">
+      <a href="./index.html" data-hover>Home</a>
+      <a href="./dashboard.html" data-hover>Dashboard</a>
+      <a href="./insights.html" data-hover>Insights</a>
+      <a href="./segments.html" data-hover>Segments</a>
+      <a href="./audience.html" data-hover>Audience</a>
+      <a href="./compare.html" data-hover>2025&nbsp;vs&nbsp;2030</a>
+      <a href="./opportunity.html" data-hover>Opportunity</a>
+      <a href="./explorer.html" data-hover>Flavor&nbsp;Explorer</a>
+      <a href="./stores.html" data-hover>Store&nbsp;Map</a>
+      <a href="./flavors.html" data-hover class="active" aria-current="page">Flavor&nbsp;by&nbsp;Year</a>
+    </nav>
+  </header>
+
+  <main class="dash-main">
+    <section class="dash-hero">
+      <h1 class="dash-title">Flavor by Year</h1>
+      <p class="dash-sub">
+        Which flavors actually sell, 2019&ndash;2025 &mdash; measured in
+        <b class="volt">units</b>, and corrected for the fact that the panel
+        itself more than doubled over the window. Read
+        <b class="volt">share</b> and <b class="volt">per-store velocity</b>;
+        raw annual totals mostly measure how many stores PDI had signed.
+      </p>
+    </section>
+
+    <section class="aud-top">
+      <div id="fy-kpis" class="kpi-strip"></div>
+    </section>
+
+    <!-- 1. the ramp -------------------------------------------------------- -->
+    <section class="aud-top">
+      <h2 class="sec-h mono">FIRST, THE PROBLEM WITH EVERY RAW NUMBER</h2>
+      <p class="sec-note" id="fy-ramp-note"></p>
+      <div class="chart" id="fy-ramp"></div>
+      <p class="sec-note fy-caption">
+        All three series are <b>indexed to 2019 = 100</b> so they share one axis.
+        Units and store counts have no common unit, and a second y-axis lets
+        whoever picks the two scales manufacture any gap they like.
+      </p>
+    </section>
+
+    <!-- 2. ranked by year -------------------------------------------------- -->
+    <section class="aud-top">
+      <h2 class="sec-h mono">MOST POPULAR, BY YEAR</h2>
+      <div class="fy-controls">
+        <div class="fy-ctl">
+          <span class="fy-ctl-label mono" id="fy-year-label">YEAR</span>
+          <div class="fy-seg" role="tablist" aria-labelledby="fy-year-label" id="fy-years"></div>
+        </div>
+        <div class="fy-ctl">
+          <span class="fy-ctl-label mono" id="fy-metric-label">RANK BY</span>
+          <div class="fy-seg" role="tablist" aria-labelledby="fy-metric-label">
+            <button type="button" class="fy-btn" role="tab" data-metric="unit_share_pct" aria-selected="true">Unit share</button>
+            <button type="button" class="fy-btn" role="tab" data-metric="units_per_active_store" aria-selected="false">Per active store</button>
+            <button type="button" class="fy-btn" role="tab" data-metric="units_per_sku" aria-selected="false">Per SKU</button>
+          </div>
+        </div>
+      </div>
+      <p id="fy-metric-note" class="sec-note"></p>
+      <div class="chart" id="fy-ranked"></div>
+    </section>
+
+    <!-- 3. small multiples ------------------------------------------------- -->
+    <section class="aud-top">
+      <h2 class="sec-h mono">EVERY FAMILY'S TRAJECTORY</h2>
+      <p class="sec-note">
+        Share of category units, 2019&ndash;2025, one panel per family on
+        <b>its own vertical scale</b> &mdash; so the shapes are comparable and
+        the levels deliberately are not. Fourteen lines on one axis would be a
+        hairball; the ranked chart above carries the levels.
+      </p>
+      <div id="fy-grid" class="fx-grid"></div>
+    </section>
+
+    <!-- 4. reach x depth --------------------------------------------------- -->
+    <section class="aud-top">
+      <h2 class="sec-h mono">REACH &times; DEPTH &mdash; WHERE THE WHITE SPACE IS</h2>
+      <p class="sec-note" id="fy-scatter-note"></p>
+      <div class="chart" id="fy-scatter"></div>
+    </section>
+
+    <!-- 5. movers ---------------------------------------------------------- -->
+    <section class="aud-top">
+      <h2 class="sec-h mono">WHO GAINED AND WHO LOST</h2>
+      <p class="sec-note">
+        Share of category units, first year against last. Share is the honest
+        comparison here: if the panel doubles, every family's raw units roughly
+        double and the shares are unchanged.
+      </p>
+      <div class="chart" id="fy-slope"></div>
+    </section>
+
+    <!-- 6. ratings, quarantined -------------------------------------------- -->
+    <section class="aud-top">
+      <h2 class="sec-h mono">HIGHEST RATED &mdash; AND WHY IT IS NOT ON THE SAME FOOTING</h2>
+      <div id="fy-rating-warn"></div>
+      <div class="chart" id="fy-ratings"></div>
+      <div id="fy-sens"></div>
+    </section>
+
+    <!-- 7. table + methods ------------------------------------------------- -->
+    <section class="aud-top">
+      <h2 class="sec-h mono">THE FULL TABLE</h2>
+      <p class="sec-note">Click a column to sort. Year follows the selector above.</p>
+      <div class="fy-tablewrap">
+        <table class="intel-table fy-table" id="fy-table">
+          <caption class="sr-only">Flavor family metrics for the selected year</caption>
+          <thead>
+            <tr>
+              <th scope="col" data-sort="cluster">Family</th>
+              <th scope="col" class="num" data-sort="unit_share_pct">Unit share</th>
+              <th scope="col" class="num" data-sort="units">Units</th>
+              <th scope="col" class="num" data-sort="units_per_active_store">Per active store</th>
+              <th scope="col" class="num" data-sort="reach_pct">Reach</th>
+              <th scope="col" class="num" data-sort="depth_units_per_selling_store">Depth</th>
+              <th scope="col" class="num" data-sort="skus">SKUs</th>
+              <th scope="col" class="num" data-sort="units_per_sku">Per SKU</th>
+              <th scope="col" class="num" data-sort="price_per_unit">Price/unit</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="aud-top methodology">
+      <h2 class="sec-h mono">METHODS &amp; LIMITATIONS</h2>
+      <div class="method-grid" id="fy-method"></div>
+    </section>
+  </main>
+</body>
+</html>

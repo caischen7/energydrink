@@ -36,7 +36,7 @@ const USER = process.env.SITE_USER || 'energydrink';
 const PASS = process.env.SITE_PASS || '';
 const PAGES = ['index.html', 'dashboard.html', 'insights.html', 'segments.html',
                'audience.html', 'compare.html', 'opportunity.html', 'explorer.html',
-               'stores.html'];
+               'stores.html', 'flavors.html'];
 
 const CHROMIUM = [
   '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
@@ -448,6 +448,39 @@ if (run('facts')) {
   const smHtml = html('stores.html');
   chk('stores: page carries no hardcoded panel numbers in copy',
       !/\$[0-9]+(\.[0-9]+)?\s?[BMK]\b/.test(smHtml));
+  /* --- flavor by year: the payload has to agree with itself --------------- */
+  const F = JSON.parse(fs.readFileSync(path.join(ROOT, 'public/data/flavor_year.json'), 'utf8'));
+  const yrs = F.years;
+  chk('flavors: 7 years, 2019-2025', yrs.length === 7 && yrs[0] === 2019 && yrs[6] === 2025);
+  for (const y of yrs) {
+    const rows = F.families.filter((r) => r.year === y);
+    const sum = rows.reduce((a, r) => a + r.unit_share_pct, 0);
+    chk(`flavors: ${y} unit shares sum to 100`, Math.abs(sum - 100) < 0.05);
+  }
+  /* reach x depth = units per active store, exactly. If this drifts the
+     decomposition on the scatter is decorative rather than real. */
+  chk('flavors: reach x depth reconstructs per-store velocity',
+      F.families.every((r) => {
+        const got = (r.reach_pct / 100) * r.depth_units_per_selling_store;
+        return Math.abs(got - r.units_per_active_store) / Math.max(r.units_per_active_store, 1) < 0.02;
+      }));
+  chk('flavors: the ramp decomposes multiplicatively',
+      Math.abs(F.ramp.active_stores_growth * F.ramp.per_store_growth - F.ramp.raw_unit_growth) < 0.01);
+  chk('flavors: coverage is the log share, not the (1-1/x) ratio',
+      Math.abs(F.ramp.coverage_share_of_growth_pct -
+               Math.log(F.ramp.active_stores_growth) / Math.log(F.ramp.raw_unit_growth) * 100) < 0.2);
+  chk('flavors: Unspecified is excluded from the ranked families',
+      !F.families.some((r) => r.cluster === 'Unspecified'));
+  chk('flavors: units per SKU is units over SKUs',
+      F.families.every((r) => r.units_per_sku == null || !r.skus ||
+        Math.abs(r.units_per_sku - r.units / r.skus) / r.units_per_sku < 0.01));
+  /* Ratings are a cross-section and must never gain a year dimension. */
+  chk('flavors: ratings carry no year field', !!F.ratings &&
+      !('year' in F.ratings) && F.ratings.families.every((f) => !('year' in f)));
+  chk('flavors: ratings state their single capture date', /^\d{4}-\d{2}-\d{2}$/.test(F.ratings.capture_date));
+  chk('flavors: page warns that PDI has no ratings',
+      /no rating field/i.test(F.caveats.no_ratings_in_pdi));
+
   if (S.source === 'sample') {
     chk('stores: sample payload declares itself in meta', /generated|sample|placeholder/i.test(
       sm.privacy + sm.coverage + S.source));

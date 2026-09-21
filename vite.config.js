@@ -19,6 +19,7 @@ export default defineConfig({
         opportunity: resolve(__dirname, 'opportunity.html'),
         explorer: resolve(__dirname, 'explorer.html'),
         stores: resolve(__dirname, 'stores.html'),
+        flavors: resolve(__dirname, 'flavors.html'),
       },
     },
   },

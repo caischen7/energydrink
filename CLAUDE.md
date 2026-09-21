@@ -104,6 +104,18 @@ exact location and revenue, and PDI must not leave the warehouse. Re-sweep both
 against real rows the first time this runs for real — the current values were
 tuned on synthetic points.
 
+### Flavor by year (`public/data/flavor_year.json`)
+```bash
+python capstone/scripts/analyze_flavor_year.py          # print findings + write JSON
+python capstone/scripts/analyze_flavor_year.py --quiet  # JSON only
+```
+Reduces `data/bq/derived/price_panel.csv` (PDI, 84 months) to flavor-family ×
+year metrics. stdlib only, no BigQuery. **Read the docstring before changing
+it:** the panel is not a fixed sample, so raw annual totals are uninterpretable
+and every metric here is either a share or normalised per active store.
+
+`capstone/FINDINGS_flavor_by_year.md` is the write-up.
+
 ### Dashboard aggregate (`src/data/dashboard.json`)
 ```bash
 python data/scripts/build_dashboard_json.py   # stdlib only; reads data/, writes src/data/dashboard.json
@@ -133,6 +145,7 @@ boot sequence, then wires up two independent layers:
 | `src/auth.js` | **Shared login gate** (`requireAuth(cfg?)` → resolves with the gated JSON). Two layers: a client-side SHA-256 check (gates local dev + instant UX) **and** real server-side enforcement via **nginx Basic Auth** on the data file the form fetches — bypassing the JS yields an empty shell, not the data. No-arg call = the dashboard (`energydrink` / see `docs/CREDENTIALS.md`, `.htpasswd`, guards **all of** `public/data/` **and the analysis pages**); the admin page passes its own config (`bogusbanana` / `bogusbanana1234`, `.htpasswd-admin`, guards `/admin/`). Change BOTH the htpasswd file and the matching passHash (see `docs/CREDENTIALS.md`). |
 | `admin.html` + `src/admin.js` / `src/admin.css` | **Site Scout** — gated admin tool for scouting restaurant locations. Leaflet + OSM tiles (npm `leaflet`, no API keys); "Scan this area" pulls competitors (restaurant/fast_food/cafe), traffic signals, vacant/disused storefronts, parking, transit and anchors from the **Overpass API**; Nominatim geocoding for search. Drop/drag candidate pins → 0–100 weighted scorecard (per-mode weights + non-linear competitor curve designed by a restaurant-operator panel; see `public/admin/config.json`), radius rings, own-unit cannibalization check, CSV/GeoJSON export, localStorage persistence (`bb_scout_v1`). Not linked from public nav; `noindex`. Runtime map/data calls happen in the visitor's browser — the deploy just serves static files. |
 | `stores.html` + `src/stores.js` / `src/stores.css` | The **Store Map** (gated by `auth.js`). Leaflet + OSM tiles, same stack as the admin console but read-only and national. Three layers over `public/data/stores_map.json`: **state bubbles** at centroids, **store clusters** (the builder's grid cells), and **bottling plants** (real OSM data from `data/osm/bottling_candidates.csv`). Symbols are area-proportional (radius ∝ √value) and there is deliberately no choropleth — see the header comment for why. The ranked rail and the table exist because Leaflet vector markers are not keyboard focusable. |
+| `flavors.html` + `src/flavors.js` / `src/flavors.css` | **Flavor by Year** (gated by `auth.js`). Which flavor families sell 2019–2025, from `public/data/flavor_year.json` (built by `capstone/scripts/analyze_flavor_year.py`). Reuses `charts.js`. The whole page is organised around one correction: the PDI panel grows 2.24× over the window while raw units grow 3.01×, so **73% of the apparent growth is coverage** — unit *share* leads every ranking and the ramp chart is indexed to 2019=100 rather than given a second y-axis. Carries a peak-year callout because a first-vs-last slope chart names four winners that have all already peaked. Ratings are quarantined in their own section: PDI has none, and the only rating data is a one-day Amazon snapshot. |
 | `dashboard.html` + `src/dashboard.js` / `src/dashboard.css` / `src/charts.js` | The **Market Intel page** (gated by `auth.js`). `dashboard.js` renders KPI count-ups, thirteen chart panels (market size, concept interest, motivations, share of voice, brand momentum, rising/cooling leaderboard, price×quality, category momentum, flavor demand board, review ratings, IG engagement, Reddit pulse, loves-vs-complaints sentiment) and a sortable cross-platform brand table from `src/data/dashboard.json`; `charts.js` has dependency-free SVG builders (hBars/vBars/scatter/area/multiLine/stackedBars); `dashboard.css` `@import`s `style.css` then adds the terminal layout. Registered as a second Vite input in `vite.config.js`. |
 
 ### How the two layers talk

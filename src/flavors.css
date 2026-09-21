@@ -1,0 +1,81 @@
+/* Flavor by Year — controls, warning callout, table. Layout only; palette and
+   type come from style.css via dashboard.css. The chart grid is reused from
+   explorer.css (.fx-grid). */
+
+.fy-warn {
+  margin: 0 0 1.25rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #f0c36d;
+  border-left: 3px solid #e8a33d;
+  border-radius: 8px;
+  background: #fffaf0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.fy-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem 2.5rem;
+  margin: 1rem 0 0.6rem;
+}
+.fy-ctl { display: flex; flex-direction: column; gap: 0.45rem; }
+.fy-ctl-label { font-size: 0.7rem; letter-spacing: 0.08em; color: var(--dim); }
+.fy-seg { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+
+.fy-btn {
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 0.4rem 0.85rem;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--hair-strong, #d2d2d7);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.fy-btn:hover:not(:disabled) { border-color: var(--accent); }
+.fy-btn[aria-selected='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.fy-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.fy-caption { margin-top: 0.7rem; }
+
+.fy-tablewrap { overflow-x: auto; }
+.fy-table th[data-sort] { cursor: pointer; user-select: none; white-space: nowrap; }
+.fy-table th[data-sort]:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.fy-table th.sorted { color: var(--accent); }
+.fy-table td.num, .fy-table th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.fy-table code, .sec-note code {
+  font-family: 'Space Mono', ui-monospace, monospace;
+  font-size: 0.85em;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 860px) {
+  .fy-controls { gap: 0.9rem 1.5rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fy-btn { transition: none; }
+}
+
+.fy-peaks { margin: 0.5rem 0 0.4rem; padding-left: 1.1rem; }
+.fy-peaks li { margin-bottom: 0.2rem; }

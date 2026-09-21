@@ -20,9 +20,24 @@ Maintained by Cai. Entries below were added during **Workstream 0**
 | A-09 | Prime belongs in the study as a case study, not a ranking row | Named in the brief; ~0.13% PDI share | Either a distorted ranking (if included) or a blind spot on the buzz-vs-sales question (if dropped) | Med | Partly — share computed from segments |
 | A-10 | Prime Energy and Prime Hydration must not be summed | PDI carries both under one brand string, e.g. "PRIME ENERGY ... CAN" vs "PRIME ... SPORTS DRINKS" | A sports drink is counted as an energy drink | **High** | Yes — both description forms observed |
 
+### Added during the flavor-by-year analysis (2026-09-21)
+
+| # | Assumption | Rests on | If wrong | Confidence | Tested? |
+|---|---|---|---|---|---|
+| A-11 | Unit **share** is the right popularity metric for a growing panel | Share is invariant to panel size by construction: if coverage doubles, every family's units roughly double and shares do not move | Rankings would be a measure of PDI's sales team | **High** | **Yes** — shares sum to 100 in all 7 years (`npm run check -- facts`) |
+| A-12 | Coverage's share of growth is the **log** split, 73% | `log(raw) = log(ramp) + log(per-store)`, so each term's share of `log(raw)` is its share of compound growth | An earlier `(1 − 1/x)` ratio gave 83% and has no interpretation | **High** | Yes — decomposition checked multiplicatively, 2.24 × 1.34 = 3.01 |
+| A-13 | Average monthly `stores_active` is the right annual denominator | It is a property of the month, not the cluster, and is collected once per month | Double-counting it 14× would deflate every velocity by the same factor (ordering safe, levels wrong) | Med | Yes — guarded in `yearly()` |
+| A-14 | Average monthly SKU count represents the year's lineup | Lineups change mid-year; the mean is the typical shelf | Units-per-SKU mis-states how hard a facing works | Med | No |
+| A-15 | `units_per_active_store = reach × depth` is exact, not approximate | Algebraically it is: (stores/active) × (units/stores) = units/active | The scatter's decomposition would be decorative | **High** | **Yes** — reconstruction asserted to 2% for every row |
+| A-16 | Peak year matters more than first-vs-last | 4 of the 4 families that "gained" since 2019 are past peak; Watermelon is 27% below a 2021 peak | A go-to-market brief would chase a declining flavor | **High** | Yes — computed per family |
+| A-17 | "Novelty & branded" is kept in rankings but is not a flavor direction | It is the fallback for invented names, and at 13.7% it is too big to hide | Reading it as a flavor would send the brief chasing a naming convention | Med | No |
+| A-18 | The Amazon snapshot cannot support a rating ranking | 51 products, one day, one retailer; whole spread 0.22★; one family has n=2 reviews | Presenting it as "highest rated" would be the study's weakest claim | **High** | **Yes** — sensitivity to m computed and published |
+
 ## Superseded
 
-*(none yet)*
+| # | Was | Now | Why |
+|---|---|---|---|
+| A-12 | Coverage = 83% of growth, via `(1 − 1/ramp)/(1 − 1/raw)` | **73%**, via `log(ramp)/log(raw)` | The original is an ad-hoc ratio that does not attribute anything. The decomposition is multiplicative, so the log split is the standard and interpretable one. Corrected before publication. |
 
 ## Pre-registration status
 
