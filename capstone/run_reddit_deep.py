@@ -65,6 +65,71 @@ def load_dotenv(path):
     return n
 
 
+def setup_env():
+    """Write a .env beside this script, interactively.
+
+    WHY INTERACTIVE RATHER THAN A TEMPLATE TO EDIT
+    A pasted `export REDDIT_CLIENT_SECRET=...` lands in shell history in
+    plaintext, and a filled-in template tends to get mailed, uploaded or
+    committed. Reading the secret with getpass keeps it off the screen and out
+    of history, and the file is written 0600 so it is readable only by you.
+
+    The secret is never echoed, never logged, and never leaves this machine.
+    """
+    import getpass
+    import stat
+
+    path = os.path.join(HERE, ".env")
+    if os.path.exists(path):
+        print(f"\n  {path} already exists.")
+        if input("  Overwrite it? [y/N] ").strip().lower() not in ("y", "yes"):
+            print("  Left alone.")
+            return 0
+
+    print(f"""
+  Creating {path}
+
+  Get these from your app at https://www.reddit.com/prefs/apps
+    Client ID     — shown under the app name (or in the Edit App panel)
+    Client secret — the 'secret' field; typing it here will NOT be shown
+
+  If you have ever pasted the secret into a chat, an email or a screenshot,
+  regenerate it on that page FIRST and use the new one here.
+""")
+    cid = input("  Client ID: ").strip()
+    sec = getpass.getpass("  Client secret (hidden): ").strip()
+    user = input("  Your Reddit username (no /u/): ").strip().lstrip("/").removeprefix("u/")
+
+    if not (cid and sec and user):
+        print("\n  All three are required. Nothing written.")
+        return 1
+    if len(sec) < 10:
+        print("\n  That secret looks too short — check you copied the whole "
+              "'secret' field and not the Client ID. Nothing written.")
+        return 1
+
+    ua = f"script:energydrink-capstone:v1 (by /u/{user})"
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write("# Reddit Data API credentials. Local only — never commit, "
+                 "upload or paste these.\n"
+                 "# Regenerate the secret at https://www.reddit.com/prefs/apps "
+                 "if it is ever exposed.\n")
+        fh.write(f"REDDIT_CLIENT_ID={cid}\n")
+        fh.write(f"REDDIT_CLIENT_SECRET={sec}\n")
+        fh.write(f"REDDIT_USER_AGENT={ua}\n")
+    os.chmod(path, stat.S_IRUSR | stat.S_IWUSR)        # 0600, owner only
+
+    print(f"""
+  Written, permissions 0600 (only your user can read it).
+    user agent: {ua}
+
+  Verify, then do a small first run:
+    python3 {sys.argv[0]} --self-test
+    python3 {sys.argv[0]} --max-posts 500
+""")
+    return 0
+
+
 def preflight():
     """Fail with something actionable rather than a traceback."""
     missing = [k for k in ("REDDIT_CLIENT_ID", "REDDIT_CLIENT_SECRET",
@@ -79,7 +144,9 @@ def preflight():
     # rather than pointing at a file that is not there.
     step1 = (f"1. Fill in the template:\n       {tmpl}\n       -> save as {env_path}"
              if os.path.exists(tmpl) else
-             f"1. Create {env_path} with these three lines:\n"
+             f"1. Run this and follow the prompts (easiest):\n"
+             f"       python3 {sys.argv[0]} --setup\n\n"
+             f"   Or create {env_path} by hand with these three lines:\n"
              f"       REDDIT_CLIENT_ID=...\n"
              f"       REDDIT_CLIENT_SECRET=...\n"
              f'       REDDIT_USER_AGENT=script:bogus-banana-capstone:v1 (by /u/<you>)')
@@ -233,6 +300,9 @@ def main():
         description="Deep Reddit pull for the flavor study.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__)
+    ap.add_argument("--setup", action="store_true",
+                    help="create the .env credentials file interactively "
+                         "(secret is typed hidden, never echoed or logged)")
     ap.add_argument("--self-test", action="store_true",
                     help="verify the whole chain offline, then exit")
     ap.add_argument("--dry-run", action="store_true",
@@ -251,6 +321,8 @@ def main():
     if n:
         print(f"  loaded {n} variable(s) from capstone/.env")
 
+    if a.setup:
+        sys.exit(setup_env())
     if a.self_test:
         sys.exit(self_test())
 
