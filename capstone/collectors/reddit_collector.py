@@ -54,7 +54,19 @@ from flavor_mentions import analyse, FLAVOR_ALIASES, BRAND_ALIASES  # noqa: E402
 # ----------------------------------------------------------------- config --
 OUT_DIR = os.path.join(ROOT, "data/reddit")
 CACHE_DIR = os.path.join(ROOT, ".cache/reddit")
-UA = os.environ.get("REDDIT_USER_AGENT", "")
+def ua():
+    """Read the User-Agent at CALL time, never at import time.
+
+    This was `UA = os.environ.get(...)` evaluated when the module loaded, and
+    it broke the standalone bundle: the bundle installs its embedded modules
+    before main() runs, so UA was captured as "" before load_dotenv() had put
+    anything in the environment. The credential check then failed with
+    "Missing credentials" on a machine whose .env had just loaded three
+    variables successfully - preflight saw them, this did not.
+
+    Anything read from the environment at import time has the same hazard.
+    Read it when you need it."""
+    return os.environ.get("REDDIT_USER_AGENT", "").strip()
 
 # Subreddit names are case-insensitive on Reddit, so "energydrinks" and
 # "EnergyDrinks" are one subreddit and listing both burned half the calls on
@@ -114,7 +126,7 @@ def token():
     deliberately no unauthenticated path to fall back to."""
     cid = os.environ.get("REDDIT_CLIENT_ID", "").strip()
     sec = os.environ.get("REDDIT_CLIENT_SECRET", "").strip()
-    if not (cid and sec and UA):
+    if not (cid and sec and ua()):
         sys.exit(
             "Missing credentials. Set all three, then rerun:\n"
             "  export REDDIT_CLIENT_ID=...\n"
@@ -125,7 +137,7 @@ def token():
     import base64
     auth = base64.b64encode(f"{cid}:{sec}".encode()).decode()
     req = urllib.request.Request(TOKEN_URL, data=data, headers={
-        "Authorization": "Basic " + auth, "User-Agent": UA})
+        "Authorization": "Basic " + auth, "User-Agent": ua()})
     with urllib.request.urlopen(req, timeout=30) as r:
         return json.load(r)["access_token"]
 
@@ -140,7 +152,7 @@ def get(path, tok, quota, **params):
         with open(key) as fh:
             return json.load(fh)
     req = urllib.request.Request(url, headers={
-        "Authorization": "Bearer " + tok, "User-Agent": UA})
+        "Authorization": "Bearer " + tok, "User-Agent": ua()})
     for attempt in range(4):
         try:
             with urllib.request.urlopen(req, timeout=45) as r:
@@ -331,6 +343,17 @@ def run(months, limit=None, verbose=True, deep=False, max_posts=None):
     return res
 
 
+def _show(path):
+    """Display path: relative when that is genuinely shorter and inside ROOT,
+    absolute otherwise. relpath against ROOT produced "var/folders/..." for a
+    temp dir on macOS - a path that does not exist and cannot be copied."""
+    try:
+        rel = os.path.relpath(path, ROOT)
+    except ValueError:
+        return path
+    return path if rel.startswith("..") or os.path.isabs(rel) else rel
+
+
 def write(res, months):
     os.makedirs(OUT_DIR, exist_ok=True)
     stamp = dt.date.today().isoformat()
@@ -342,7 +365,7 @@ def write(res, months):
             w = _csv.DictWriter(fh, fieldnames=list(res[key][0].keys()))
             w.writeheader()
             w.writerows(res[key])
-        print(f"  wrote {os.path.relpath(path, ROOT)}  ({len(res[key])} rows)")
+        print(f"  wrote {_show(path)}  ({len(res[key])} rows)")
 
     meta = os.path.join(OUT_DIR, f"meta_api_{stamp}.csv")
     import csv as _csv
@@ -366,7 +389,7 @@ def write(res, months):
                          "sample per month, NOT a census"),
         ]:
             w.writerow([k, v])
-    print(f"  wrote {os.path.relpath(meta, ROOT)}")
+    print(f"  wrote {_show(meta)}")
 
 
 # ------------------------------------------------------------------- main --

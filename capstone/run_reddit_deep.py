@@ -264,7 +264,45 @@ def self_test():
     except Exception as e:
         fail.append(f"partitioning: {type(e).__name__}: {e}")
 
-    # -- 3. writer ----------------------------------------------------------
+    # -- 3. credentials are read at CALL time, not import time --------------
+    # Regression guard. reddit_collector had `UA = os.environ.get(...)` at
+    # module level; the bundle installs modules before main() loads the .env,
+    # so UA was frozen as "" and a real run died with "Missing credentials"
+    # immediately after reporting it had loaded three variables. Any env read
+    # that happens at import time reintroduces this, so the test sets the
+    # variables AFTER the import and asserts the collector still sees them.
+    try:
+        import reddit_collector as rc2
+        saved = {k: os.environ.get(k) for k in
+                 ("REDDIT_CLIENT_ID", "REDDIT_CLIENT_SECRET", "REDDIT_USER_AGENT")}
+        try:
+            os.environ["REDDIT_CLIENT_ID"] = "probe_id"
+            os.environ["REDDIT_CLIENT_SECRET"] = "probe_secret_value"
+            os.environ["REDDIT_USER_AGENT"] = "script:probe:v1 (by /u/probe)"
+            assert rc2.ua() == "script:probe:v1 (by /u/probe)", (
+                f"user agent read at import time, not call time: {rc2.ua()!r}")
+            # token() must get past its own credential check and fail only on
+            # the network call, which is what SystemExit here would rule out.
+            try:
+                rc2.token()
+            except SystemExit as e:
+                raise AssertionError(
+                    f"credential check rejected env vars set after import: {e}")
+            except Exception:
+                pass          # network failure is expected and fine
+            ok.append("credentials: read at call time, survive a late .env load")
+        finally:
+            for k, v in saved.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+    except AssertionError as e:
+        fail.append(f"credentials: {e}")
+    except Exception as e:
+        fail.append(f"credentials: {type(e).__name__}: {e}")
+
+    # -- 4. writer ----------------------------------------------------------
     try:
         import reddit_collector as rc
         with tempfile.TemporaryDirectory() as tmp:
@@ -317,9 +355,13 @@ def main():
                     help="use the narrow non-partitioned plan instead of deep mode")
     a = ap.parse_args()
 
-    n = load_dotenv(os.path.join(HERE, ".env"))
+    env_file = os.path.join(HERE, ".env")
+    n = load_dotenv(env_file)
     if n:
-        print(f"  loaded {n} variable(s) from capstone/.env")
+        # The real path, not a hardcoded repo-relative one. The bundled copy
+        # lives wherever the user put it, and printing "capstone/.env" to
+        # someone whose file is on their Desktop is just confusing.
+        print(f"  loaded {n} variable(s) from {env_file}")
 
     if a.setup:
         sys.exit(setup_env())
