@@ -1,0 +1,17 @@
+precedence,family_id,family_name,match_regex,matched_against,observed_in_pdi_panel,shadowed_by,status
+1,original,Original,\borig|classic|\bthe original\b|regular,"FLAVOR, falling back to PRODUCT_DESCRIPTION when FLAVOR is blank",yes,,active
+2,coffee_cream,Coffee & cream,coffee|espresso|latte|mocha|cappuccino|vanilla|cream(?!sicle)|caramel|horchata,"FLAVOR, falling back to PRODUCT_DESCRIPTION when FLAVOR is blank",yes,,active
+3,sour_candy,Sour & candy,sour|candy|gummy|bubble ?gum|cotton|razz|slush|freeze|rainbow|swedish fish|birthday cake|sherbet|sorbet|marshmallow|s'?more,"FLAVOR, falling back to PRODUCT_DESCRIPTION when FLAVOR is blank",yes,,active
+4,cola_soda,Cola & soda,cola|root ?beer|dr\.? ?pepper|cream ?soda|ginger,"FLAVOR, falling back to PRODUCT_DESCRIPTION when FLAVOR is blank",yes,Coffee & cream,active
+5,watermelon,Watermelon,watermelon,"FLAVOR, falling back to PRODUCT_DESCRIPTION when FLAVOR is blank",yes,,active
+6,berry,Berry,berry|berries|raspberry|blueberry|strawberr|blackberry|acai|cranberr|juneberry|cherry,"FLAVOR, falling back to PRODUCT_DESCRIPTION when FLAVOR is blank",yes,Watermelon,active
+7,tropical,Tropical,tropical|mango|pineapple|passion|guava|coconut|papaya|dragon ?fruit|kiwi|banana|hawaii,"FLAVOR, falling back to PRODUCT_DESCRIPTION when FLAVOR is blank",yes,,active
+8,citrus,Citrus,citrus|orange|lemon|lime|grapefruit|tangerine|clementine|yuzu,"FLAVOR, falling back to PRODUCT_DESCRIPTION when FLAVOR is blank",yes,Berry; Tropical,active
+9,grape,Grape,grape,"FLAVOR, falling back to PRODUCT_DESCRIPTION when FLAVOR is blank",yes,Sour & candy,active
+10,apple_pear,Apple & pear,apple|pear,"FLAVOR, falling back to PRODUCT_DESCRIPTION when FLAVOR is blank",yes,Berry,active
+11,peach_stone_fruit,Peach & stone fruit,peach|apricot|nectarine|plum|mango peach,"FLAVOR, falling back to PRODUCT_DESCRIPTION when FLAVOR is blank",yes,Tropical,active
+12,punch_mixed_fruit,Punch & mixed fruit,punch|fruit|melon|mixed|blast|blend|medley,"FLAVOR, falling back to PRODUCT_DESCRIPTION when FLAVOR is blank",yes,Watermelon; Tropical,active
+13,tea_botanical,Tea & botanical,tea|mate|yerba|mint|menthol|lavender|hibiscus|ginseng|matcha,"FLAVOR, falling back to PRODUCT_DESCRIPTION when FLAVOR is blank",yes,,active
+14,melon_other,Melon & other,melon|cucumber|honeydew|cantaloupe,"FLAVOR, falling back to PRODUCT_DESCRIPTION when FLAVOR is blank",NO - never fires,Watermelon; Punch & mixed fruit; Tea & botanical,DEAD - see D-01
+fallback,novelty_branded,Novelty & branded,,,yes,,"active - Fallback when FLAVOR is non-empty but matches no rule (Frose Rose, Cosmic Stardust). Mintel's 'branded flavors' trend."
+fallback,unspecified,Unspecified,,,yes,,"active - FLAVOR and PRODUCT_DESCRIPTION both empty, or FLAVOR empty and the description names no flavor. 499 of 2,309 SKUs have a blank FLAVOR."

@@ -1,0 +1,18 @@
+probe_flavor,assigned_family,also_matches,decided_by_order
+Mango Peach,Tropical,Peach & stone fruit,yes
+Cherry,Berry,,no
+Cherry Limeade,Berry,Citrus,yes
+Honeydew Melon,Punch & mixed fruit,Melon & other,yes
+Cantaloupe,Melon & other,,no
+Cucumber Mint,Tea & botanical,Melon & other,yes
+Vanilla,Coffee & cream,,no
+Cream Soda,Coffee & cream,Cola & soda,yes
+Strawberry Watermelon,Watermelon,Berry; Punch & mixed fruit; Melon & other,yes
+Blue Razz,Sour & candy,,no
+Grape Slush,Sour & candy,Grape,yes
+Tropical Punch,Tropical,Punch & mixed fruit,yes
+Orange Mango,Tropical,Citrus,yes
+Apple Cranberry,Berry,Apple & pear,yes
+Dragon Fruit,Tropical,Punch & mixed fruit,yes
+Cotton Candy,Sour & candy,,no
+Frose Rose,Novelty & branded,,no

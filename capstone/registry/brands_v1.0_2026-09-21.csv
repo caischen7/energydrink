@@ -1,0 +1,12 @@
+brand_id,brand_canonical,tier,inclusion_rule,pdi_rank,pdi_t12m_revenue_usd,pdi_share_pct,pdi_cum_share_pct,pdi_yoy_pct,pdi_share_delta_pp,in_original_brief,notes
+red_bull,Red Bull,A,top 10 by PDI T12M revenue,1,520947429.77,37.92,37.92,2.6,-1.47,yes,"Revenue rank #1, but see LIMITATION 1: a units ranking would narrow the gap to Monster."
+monster,Monster,A,top 10 by PDI T12M revenue,2,394780253.65,28.74,66.66,9.7,0.8,yes,
+celsius,Celsius,A,top 10 by PDI T12M revenue,3,101152820.28,7.36,74.02,8.3,0.11,yes,
+alani_nu,Alani Nu,A,top 10 by PDI T12M revenue,4,78873464.81,5.74,79.76,95.8,2.62,yes,"+95.8% YoY, +2.62pp share - the fastest riser in the panel. Flavor-led growth, so high value here."
+c4,C4,A,top 10 by PDI T12M revenue,5,45127140.28,3.29,83.05,4.9,-0.05,yes,
+ghost,Ghost,A,top 10 by PDI T12M revenue,6,42858175.22,3.12,86.17,2.3,-0.13,yes,NORMALISATION HAZARD. The two committed files disagree: segments carries 'Ghost Energy' ($35.96M) and 'Ghost' ($6.96M) as separate brands; brand_momentum merges them into 'Ghost' ($42.86M). Pin one mapping in brand_alias before any brand-level number is quoted. D-06.
+rockstar,Rockstar,A,top 10 by PDI T12M revenue,7,37161730.91,2.71,88.88,-6.6,-0.38,no,"Not named in the brief. Included on the data: #7 by revenue, ahead of both Reign and Bang."
+nos,NOS,A,top 10 by PDI T12M revenue,8,36235073.37,2.64,91.52,-3.6,-0.28,no,"Not named in the brief. Included on the data: #8 by revenue, ahead of both Reign and Bang."
+reign,Reign,A,top 10 by PDI T12M revenue,9,24346064.77,1.77,93.29,-16.7,-0.5,yes,Declining (-16.7% YoY). Retained for the same reason as Bang.
+bang,Bang,A,top 10 by PDI T12M revenue,10,21945063.61,1.6,94.89,-15.6,-0.42,yes,"Declining (-15.6% YoY). Retained: a falling brand is signal for the study, not noise."
+prime,Prime,B,strategic - see notes,,,,,,,yes,"Named in the research brief and culturally salient, but it is NOT in the top-22 PDI list: roughly $1.8M T12M (~0.13% share), read off the segments payload. Keep it precisely BECAUSE of that gap - it is the cleanest available test of the high-buzz / low-sales disagreement the final synthesis is meant to surface. Treat it as a case study, never as a row in a velocity ranking."
