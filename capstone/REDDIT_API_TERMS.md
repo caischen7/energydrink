@@ -51,6 +51,44 @@ Three things follow:
 3. The Responsible Builder Policy is new relative to anything in this file and
    should be read in full before the first real run.
 
+## Observed evidence (2026-09-21, second round): the API refuses a new app
+
+A registered **script** app with correctly shaped credentials (22-char client
+id, 30-char secret, well-formed User-Agent naming a real account) cannot obtain
+a client-credentials token. Diagnosed rather than guessed:
+
+```
+  your UA              403 Forbidden   Server=snooserv
+  browser-like UA      403 Forbidden   Server=snooserv
+  minimal UA           403 Forbidden   Server=snooserv
+  your UA + Accept     403 Forbidden   Server=snooserv
+```
+
+Body: `{"message": "Forbidden", "error": 403}`
+
+What that rules out, and why:
+
+- **Not the User-Agent.** A Chrome UA is refused identically.
+- **Not a WAF or IP block.** `snooserv` is Reddit's own application server and
+  there is no `cf-ray`; an edge block would answer before Reddit's app tier.
+- **Not the credentials.** Bad client credentials return **401** with
+  `invalid_client`, not a bare 403.
+
+So Reddit is refusing the APP, at the application layer, by policy.
+
+**This is the answer to question 1, and it is not the hoped-for one:** creating
+a script app is NOT sufficient to call the Data API. Something else gates it —
+the "You must also register to use the API" step, account age or email
+verification, or an approval that new accounts do not have by default.
+
+**Methodological consequence.** Workstream 3's Reddit half cannot be assumed
+available. The collector is verified correct — it builds a valid OAuth request
+that Reddit declines before authentication is evaluated — but a capstone plan
+that depends on Reddit data needs a fallback. The YouTube corpus (125,054
+comments, already committed) carries the same flavor and sentiment analysis
+through `flavor_mentions.py`, which was written source-agnostic for exactly
+this reason.
+
 ## What to confirm, and where
 
 Run these from a machine with normal network access and record the answers
