@@ -5,6 +5,8 @@ Separate from the marketing site in this repo. Nothing here feeds `npm run build
 ```
 capstone/
   scripts/build_registry.py     # emits the registries below; --check re-derives and diffs
+  run_reddit_deep.py            # ← RUN THIS ONE (--self-test / --dry-run / real)
+  .env.example                  # copy to .env, fill in, gitignored
   collectors/
     flavor_mentions.py          # shared flavor/brand extractor + sentiment (WS3.3)
     reddit_collector.py         # Reddit Data API, OAuth, aggregates-only (WS3.2)
@@ -37,6 +39,20 @@ capstone/
 | 1 | Retailer ratings (manual capture → Bayesian adjustment) | Not started |
 | 2 | PDI sales velocity | Not started |
 | 3 | Reddit + YouTube text | **Collector built, not yet run** — blocked on `REDDIT_API_TERMS.md` and on your approval of the search terms |
+
+## Running the Reddit collector
+
+```bash
+python capstone/run_reddit_deep.py --self-test   # no creds, no network — start here
+python capstone/run_reddit_deep.py --dry-run     # show the plan, call nothing
+python capstone/run_reddit_deep.py               # deep pull, bounded to 2000 posts
+```
+
+In VS Code: Run and Debug (Ctrl+Shift+D) → pick a config → F5. Four are
+defined in `.vscode/launch.json`, from self-test to an unbounded multi-hour run.
+
+Credentials: copy `capstone/.env.example` to `capstone/.env` and fill it in.
+Read `REDDIT_API_TERMS.md` first — it is a precondition, not a formality.
 
 ## Reproducing Workstream 0
 

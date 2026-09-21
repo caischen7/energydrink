@@ -107,13 +107,19 @@ BRAND_ALIASES = {
 # to miss, because the false hits concentrate on a handful of flavors.
 #
 #   "monster" -> the film/creature sense, and Eminem's "The Monster"
-#   "bang"    -> the noise, "bang for your buck", "bang on"
+#   "bang"    -> the noise, "bang for your buck", "bang on", "big bang", and
+#                plural "bangs" (hair) - the brand is always singular.
+#                An earlier version used `bangs?\b(?! energy)`, which stripped
+#                EVERY "bang" not followed by "energy" and silently deleted
+#                real brand mentions like "the bang mocha was the greatest
+#                flavor out". The self-test in run_reddit_deep.py caught it.
+#                Specific phrases only; never a catch-all on a brand name.
 #   "prime"   -> Amazon Prime, "prime time", "in his prime"
 #   "nos"     -> nitrous oxide, "nos" in racing talk
 #   "rb"      -> RB Leipzig, running back
 NOISE = re.compile(
     r"\b(the monster|monster movie|monsters? inc|loch ness|"
-    r"bang for your buck|bang on|big bang|bangs?\b(?! energy)|"
+    r"bang for your buck|bang on|big bang|\bbangs\b|"
     r"amazon prime|prime time|prime video|in his prime|in her prime|prime rib|"
     r"nitrous|nos bottle|"
     r"rb leipzig|running back)\b", re.I)

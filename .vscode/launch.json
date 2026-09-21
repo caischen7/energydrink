@@ -1,0 +1,44 @@
+{
+  // Reddit collector run configs. Pick one from the Run and Debug panel (Ctrl+Shift+D)
+  // and press F5. "Self-test" needs no credentials and no network — start there.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Reddit: self-test (no creds, no network)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/capstone/run_reddit_deep.py",
+      "args": ["--self-test"],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": false
+    },
+    {
+      "name": "Reddit: dry-run (show the plan, call nothing)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/capstone/run_reddit_deep.py",
+      "args": ["--dry-run"],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Reddit: DEEP pull, bounded (2000 posts, ~40 min)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/capstone/run_reddit_deep.py",
+      "args": ["--max-posts", "2000"],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Reddit: DEEP pull, UNBOUNDED (multi-hour)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/capstone/run_reddit_deep.py",
+      "args": ["--max-posts", "0", "--months", "60"],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

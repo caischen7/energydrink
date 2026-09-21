@@ -20,3 +20,6 @@ energydrink/
 
 # Reddit collector response cache — re-fetchable, and may hold raw API objects
 .cache/
+
+# Reddit API credentials — never commit
+capstone/.env
