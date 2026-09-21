@@ -166,49 +166,160 @@ def get(path, tok, quota, **params):
     return None
 
 
-def harvest(tok, quota, months, verbose=True):
-    """Walk subreddits and search terms, yielding TEXT ONLY.
+# --- getting past the 1,000-item listing cap --------------------------------
+#
+# Reddit caps ANY single listing at roughly 1,000 items. Paginating with
+# `after` past that returns nothing - it is a product limit, not a rate limit,
+# and no amount of patience or politeness gets a 1,001st item out of one query.
+#
+# You get past it by PARTITIONING the space into many separate listings, each
+# with its own 1,000 cap, and taking the union. That is ordinary documented API
+# use, not evasion: every call is an authenticated, rate-limited request to a
+# public endpoint. What it is NOT is a census - see the honesty note below.
+#
+# Three axes, multiplying together:
+#
+#   1. QUERY TERM. Each distinct `q` is its own listing with its own cap. This
+#      is the biggest lever, and it is why the term list below includes bland
+#      high-frequency words as well as topical ones: "the" and "it" partition
+#      the subreddit far more evenly than "tier list" does.
+#   2. SORT. new / top / relevance / comments surface different slices of the
+#      same result set, so they overlap heavily but not completely.
+#   3. TIME WINDOW. `t` takes all/year/month/week/day. Each is a separate cap,
+#      and the narrow ones reach content the `all` listing has long buried.
+#
+# Then the real multiplier: COMMENT TREES. The cap applies to post listings.
+# Each unique post's comments are a separate fetch, and taste talk lives in the
+# comments anyway. A few thousand posts at 10-40 comments each is where the
+# corpus actually comes from.
+#
+# HONESTY NOTE, which belongs in the methods section too: the union of many
+# capped listings is still not the subreddit. Reddit's search index does not
+# reliably surface very old or low-engagement posts at all, so coverage decays
+# with age in a way this cannot measure from the inside. Report what was
+# collected, never imply completeness.
 
-    Yields plain strings, never the API objects, so no username, id or
-    permalink can reach the analyser or the output by accident. That is a
-    structural guarantee rather than a promise to be careful."""
+DEEP_TERMS = [
+    # high-frequency partitioners - these do the heavy lifting
+    "the", "it", "a", "and", "is", "my", "this", "you", "but", "not",
+    # topical, for precision on the flavor question
+    "flavor", "flavour", "taste", "tastes", "best", "worst", "new", "tried",
+    "review", "tier list", "favorite", "sugar", "caffeine", "can", "drink",
+]
+DEEP_SORTS = ["new", "top", "relevance", "comments"]
+DEEP_WINDOWS = ["all", "year", "month"]
+
+PAGE = 100          # max Reddit returns per call
+LISTING_CAP = 1000  # per-listing ceiling; stop paginating when reached
+
+
+def _listing(path, tok, quota, **params):
+    """Paginate one listing to its cap, yielding post dicts.
+
+    Stops on: no children, no `after` cursor, or LISTING_CAP reached. The cap
+    check is what keeps this from spending calls on pages Reddit will not
+    serve."""
+    after, seen = None, 0
+    while seen < LISTING_CAP:
+        p = dict(params, limit=PAGE)
+        if after:
+            p["after"] = after
+        body = get(path, tok, quota, **p)
+        if not body:
+            return
+        data = body.get("data", {})
+        kids = data.get("children", [])
+        if not kids:
+            return
+        for c in kids:
+            yield c.get("data", {})
+        seen += len(kids)
+        after = data.get("after")
+        if not after:
+            return
+
+
+def harvest(tok, quota, months, verbose=True, deep=False, max_posts=None):
+    """Walk the partition space, yielding (month, text) - TEXT ONLY.
+
+    Post ids are held in memory to deduplicate and to fetch comment trees, and
+    are never yielded, written or logged. The caller receives bare strings, so
+    no username, id or permalink can reach the analyser or the output.
+    """
     since = dt.datetime.utcnow() - dt.timedelta(days=30 * months)
+    terms = DEEP_TERMS if deep else SEARCH_TERMS
+    sorts = DEEP_SORTS if deep else ["new"]
+    windows = DEEP_WINDOWS if deep else ["all"]
+
+    seen_ids = set()      # dedupe across partitions; in-memory only
+    stats = {"queries": 0, "posts_raw": 0, "posts_unique": 0, "comments": 0,
+             "too_old": 0}
+
     for sub in SUBREDDITS:
-        for term in SEARCH_TERMS:
-            body = get(f"/r/{sub}/search", tok, quota, q=term, restrict_sr=1,
-                       sort="new", limit=100, t="all")
-            if not body:
-                continue
-            kids = body.get("data", {}).get("children", [])
-            if verbose:
-                print(f"  r/{sub} :: {term!r} -> {len(kids)} posts", flush=True)
-            for c in kids:
-                d = c.get("data", {})
-                created = dt.datetime.utcfromtimestamp(d.get("created_utc", 0))
-                if created < since:
-                    continue
-                month = created.strftime("%Y-%m")
-                text = " ".join(filter(None, [d.get("title"), d.get("selftext")]))
-                yield month, text
-                # Top-level comments on the post, which is where taste talk is.
-                cid = d.get("id")
-                if not cid:
-                    continue
-                cbody = get(f"/r/{sub}/comments/{cid}", tok, quota, limit=100, depth=1)
-                if not cbody or len(cbody) < 2:
-                    continue
-                for cc in cbody[1].get("data", {}).get("children", []):
-                    t = cc.get("data", {}).get("body")
-                    if t and t not in ("[deleted]", "[removed]"):
-                        yield month, t
+        for term in terms:
+            for sort in sorts:
+                for win in windows:
+                    if max_posts and len(seen_ids) >= max_posts:
+                        break
+                    stats["queries"] += 1
+                    for d in _listing(f"/r/{sub}/search", tok, quota, q=term,
+                                      restrict_sr=1, sort=sort, t=win):
+                        stats["posts_raw"] += 1
+                        pid = d.get("id")
+                        if not pid or pid in seen_ids:
+                            continue          # union, not sum
+                        seen_ids.add(pid)
+                        stats["posts_unique"] += 1
+                        created = dt.datetime.utcfromtimestamp(d.get("created_utc", 0))
+                        if created < since:
+                            stats["too_old"] += 1
+                            continue
+                        month = created.strftime("%Y-%m")
+                        text = " ".join(filter(None, [d.get("title"), d.get("selftext")]))
+                        if text.strip():
+                            yield month, text
+
+                        # The multiplier. Comment trees are not subject to the
+                        # post-listing cap, and this is where taste talk is.
+                        cbody = get(f"/r/{sub}/comments/{pid}", tok, quota,
+                                    limit=500, depth=2, sort="top")
+                        if not cbody or len(cbody) < 2:
+                            continue
+                        for t in _walk_comments(cbody[1].get("data", {}).get("children", [])):
+                            stats["comments"] += 1
+                            yield month, t
+                    if verbose:
+                        print(f"  r/{sub} q={term!r} sort={sort} t={win} -> "
+                              f"{stats['posts_unique']:,} unique posts, "
+                              f"{stats['comments']:,} comments", flush=True)
+    harvest.stats = stats
+
+
+def _walk_comments(children, depth=0):
+    """Yield comment bodies from a tree. Skips `more` stubs rather than
+    expanding them: each expansion is another call, and at this corpus size the
+    marginal comment is not worth the quota. Recorded as a known limitation."""
+    if depth > 4:
+        return
+    for c in children or []:
+        if c.get("kind") != "t1":
+            continue                      # `more` stubs and anything non-comment
+        d = c.get("data", {})
+        body = d.get("body")
+        if body and body not in ("[deleted]", "[removed]"):
+            yield body
+        replies = d.get("replies")
+        if isinstance(replies, dict):
+            yield from _walk_comments(
+                replies.get("data", {}).get("children", []), depth + 1)
 
 
 # --------------------------------------------------------------- analyser --
-def run(months, limit=None, verbose=True):
+def run(months, limit=None, verbose=True, deep=False, max_posts=None):
     quota = Quota()
     tok = token()
     rows, by_month = [], collections.Counter()
-    for month, text in harvest(tok, quota, months, verbose):
+    for month, text in harvest(tok, quota, months, verbose, deep, max_posts):
         rows.append({"comment": text, "month": month})
         by_month[month] += 1
         if limit and len(rows) >= limit:
@@ -216,6 +327,7 @@ def run(months, limit=None, verbose=True):
     res = analyse(rows)                      # aggregates only
     res["months"] = dict(sorted(by_month.items()))
     res["quota"] = quota.report()
+    res["harvest"] = getattr(harvest, "stats", {})
     return res
 
 
@@ -258,27 +370,58 @@ def write(res, months):
 
 
 # ------------------------------------------------------------------- main --
-def plan():
+def plan(deep=False):
     """What a real run would do, printed without making a single call."""
-    calls = len(SUBREDDITS) * len(SEARCH_TERMS)
+    terms = DEEP_TERMS if deep else SEARCH_TERMS
+    sorts = DEEP_SORTS if deep else ["new"]
+    wins = DEEP_WINDOWS if deep else ["all"]
+    parts = len(SUBREDDITS) * len(terms) * len(sorts) * len(wins)
+    calls = parts
     print(f"""
-PLAN — no network calls made
+PLAN — no network calls made   [{'DEEP' if deep else 'standard'}]
 
-  subreddits     {len(SUBREDDITS)}  {', '.join('r/' + s for s in SUBREDDITS)}
-  search terms   {len(SEARCH_TERMS)}  {SEARCH_TERMS}
-  search calls   {calls}  (one per subreddit x term)
-  + one comments call per post returned, so the real total is
-    roughly {calls} + (posts found), commonly {calls * 20}-{calls * 60}
+  subreddits     {len(SUBREDDITS)}  {', '.join('r/' + x for x in SUBREDDITS)}
+  query terms    {len(terms)}
+  sorts          {len(sorts)}  {sorts}
+  time windows   {len(wins)}  {wins}
+  ------------------------------------------------------------------
+  partitions     {parts:,}  (subreddit x term x sort x window)
+  each paginates to the {LISTING_CAP:,}-item per-listing cap, so the ceiling is
+  {parts * LISTING_CAP:,} post-hits before dedupe - the union will be far smaller,
+  and that union is the number that matters.
+
+  search calls   {parts:,} .. {parts * (LISTING_CAP // PAGE):,}  (1 per page, up to {LISTING_CAP // PAGE} pages each)
+  comment calls  1 per UNIQUE post
   pacing         {QPM_BUDGET} queries/min ({SLEEP:.1f}s apart)
-  est. wall time {calls * 30 * SLEEP / 60:.0f}-{calls * 60 * SLEEP / 60:.0f} min for a full pull
-  cache          {os.path.relpath(CACHE_DIR, ROOT)}  (re-runs are free, interrupted runs resume)
 
-  vocabulary     {len(FLAVOR_ALIASES)} flavors / {len(BRAND_ALIASES)} brands,
-                 from capstone/collectors/flavor_mentions.py
+  HOW THE 1,000 CAP IS BEATEN
+  The cap is per listing, not per subreddit. Each distinct (term, sort, window)
+  is its own listing with its own {LISTING_CAP:,}. Taking the union across {parts:,} of
+  them is ordinary API use - every call is authenticated and rate-limited.
+  Comment trees are not subject to the post cap at all, and are where most of
+  the text comes from.
 
-  writes         data/reddit/flavor_pulse_api_<date>.csv
-                 data/reddit/brand_pulse_api_<date>.csv
-                 data/reddit/meta_api_<date>.csv
+  WHAT IT STILL IS NOT
+  A census. Reddit's search index does not reliably surface very old or
+  low-engagement posts, so coverage decays with age in a way this cannot
+  measure from the inside. Report what was collected; never imply completeness.
+
+  WHAT IT COSTS IN TIME
+  Pacing is the binding constraint, not quota. A mock run of the same logic
+  (capstone/tests/test_deep_harvest.py) turned 48 partitions into ~21,700
+  unique posts, so this plan's {parts:,} partitions are in the tens of
+  thousands of posts - and every unique post costs one more call for its
+  comments. At {QPM_BUDGET}/min that is realistically
+  {(parts + 20000) * SLEEP / 3600:.0f}-{(parts * 5 + 40000) * SLEEP / 3600:.0f} HOURS for a full pull.
+
+  Do a bounded first run instead, look at what comes back, then widen:
+      --deep --max-posts 2000        (~{(200 + 2000) * SLEEP / 60:.0f} min)
+  The cache makes this free to resume, so a long run can be stopped and
+  restarted without losing work.
+
+  cache          {os.path.relpath(CACHE_DIR, ROOT)}  (re-runs free, interrupted runs resume)
+  vocabulary     {len(FLAVOR_ALIASES)} flavors / {len(BRAND_ALIASES)} brands
+  writes         data/reddit/flavor_pulse_api_<date>.csv, brand_..., meta_...
   never writes   usernames, post ids, permalinks, or raw comment text
 
 CREDENTIALS  {'present' if os.environ.get('REDDIT_CLIENT_ID') else 'NOT SET — a real run will stop and tell you how'}
@@ -291,16 +434,31 @@ def main():
     ap.add_argument("--dry-run", action="store_true", help="print the plan, call nothing")
     ap.add_argument("--months", type=int, default=24, help="how far back (default 24)")
     ap.add_argument("--limit", type=int, help="stop after N texts (for a cheap first look)")
+    ap.add_argument("--deep", action="store_true",
+                    help="partition across terms x sorts x time windows to get "
+                         "past the 1,000-item per-listing cap")
+    ap.add_argument("--max-posts", type=int,
+                    help="stop once this many UNIQUE posts have been seen")
     ap.add_argument("--quiet", action="store_true")
     a = ap.parse_args()
 
     if a.dry_run:
-        plan()
+        plan(a.deep)
         return
 
-    res = run(a.months, a.limit, verbose=not a.quiet)
+    res = run(a.months, a.limit, verbose=not a.quiet, deep=a.deep,
+              max_posts=a.max_posts)
+    h = res.get("harvest", {})
     print(f"\n  {res['rows_seen']:,} texts, {res['rows_matched']:,} matched "
           f"({res['match_rate_pct']}%)  ·  {res['quota']['calls']} API calls")
+    if h:
+        # Printed because it is the number that answers "did we get past 1,000":
+        # posts_raw counts every hit across partitions, posts_unique counts the
+        # union. If unique is stuck near 1,000 the partitioning is not working.
+        print(f"  {h['queries']} partitions · {h['posts_raw']:,} hits -> "
+              f"{h['posts_unique']:,} UNIQUE posts "
+              f"({h['posts_raw'] - h['posts_unique']:,} duplicates across "
+              f"partitions) · {h['comments']:,} comments")
     write(res, a.months)
 
 
