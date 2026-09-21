@@ -72,11 +72,20 @@ def preflight():
     if not missing:
         return True
     print("\n  Missing credentials:", ", ".join(missing))
+    env_path = os.path.join(HERE, ".env")
+    tmpl = os.path.join(HERE, ".env.example")
+    # The bundled copy has no .env.example beside it, so offer to write one
+    # rather than pointing at a file that is not there.
+    step1 = (f"1. Fill in the template:\n       {tmpl}\n       -> save as {env_path}"
+             if os.path.exists(tmpl) else
+             f"1. Create {env_path} with these three lines:\n"
+             f"       REDDIT_CLIENT_ID=...\n"
+             f"       REDDIT_CLIENT_SECRET=...\n"
+             f'       REDDIT_USER_AGENT=script:bogus-banana-capstone:v1 (by /u/<you>)')
     print(f"""
   Two ways to fix it:
 
-  1. Copy the template and fill it in (easiest in VS Code):
-       cp {os.path.relpath(os.path.join(HERE, '.env.example'), ROOT)} {os.path.relpath(os.path.join(HERE, '.env'), ROOT)}
+  {step1}
 
   2. Or export them in your shell:
        export REDDIT_CLIENT_ID=...

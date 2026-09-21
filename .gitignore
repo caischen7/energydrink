@@ -23,3 +23,6 @@ energydrink/
 
 # Reddit API credentials — never commit
 capstone/.env
+
+# Generated bundle is committed deliberately — it is the file people download
+!capstone/dist/
