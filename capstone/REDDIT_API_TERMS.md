@@ -25,6 +25,32 @@ training data would be stale in exactly the places that matter, and this is a
 compliance gate for academic submission. So it stays blank until someone with
 network access fills it in.
 
+## Observed evidence (2026-09-21)
+
+First hard data, read off the live app-creation form at
+`https://www.reddit.com/prefs/apps` by Cai and screenshotted. Recorded because
+it is verified observation, unlike anything else on this page.
+
+The form states, verbatim:
+
+> By creating an app, you agree to Reddit's **Developer Terms** and **Data Api
+> Terms**. **You must also register to use the API.**
+
+and links a **Responsible Builder Policy** at
+`https://support.reddithelp.com/hc/en-us/articles/42728983564564-Responsible-Builder-Policy`
+
+Three things follow:
+
+1. **Registration is a separate step from creating the app.** "You must also
+   register" is not the app form. Question 1 below is therefore answered in
+   part — some registration exists and is mandatory — but what it asks for, and
+   whether academic use is a category in it, is still unknown.
+2. **Three documents bind, not one:** Developer Terms, Data API Terms, and the
+   Responsible Builder Policy. The questions below should be checked against
+   all three.
+3. The Responsible Builder Policy is new relative to anything in this file and
+   should be read in full before the first real run.
+
 ## What to confirm, and where
 
 Run these from a machine with normal network access and record the answers
@@ -32,13 +58,14 @@ here with the date you read them.
 
 | # | Question | Where |
 |---|---|---|
-| 1 | Does non-commercial / academic research use qualify for the free tier, and does it need separate registration? | Reddit Data API Terms; the researcher-access page if one still exists |
+| 1 | Does non-commercial / academic research use qualify for the free tier? Registration IS required (observed above) — what does it ask for, and is academic use a category? | The "register to use the API" link on the app form; Data API Terms |
 | 2 | What is the current rate limit for an OAuth **script** app — queries per minute, and over what averaging window? | Reddit API docs / the `x-ratelimit-*` response headers |
 | 3 | Is a descriptive `User-Agent` still mandatory, and what format? | Reddit API rules |
 | 4 | Are there restrictions on **storing** post/comment text, and for how long? | Data API Terms, "Your Use of the Data" |
 | 5 | Are there restrictions on **publishing derived aggregates** in academic work, and is attribution required? | Data API Terms |
 | 6 | Does deleted/removed content have to be honoured on re-publication (deletion propagation)? | Data API Terms |
-| 7 | Is there a cap on total monthly requests for free-tier use? | Pricing / developer platform docs |
+| 7 | Is there a cap on total monthly requests for free-tier use? **More load-bearing since deep mode** — 2,100 partitions plus one call per unique post is tens of thousands of requests. | Pricing / developer platform docs |
+| 8 | What does the **Responsible Builder Policy** require of a research collector? | The support article linked from the app-creation form |
 
 ## What the code currently assumes
 
